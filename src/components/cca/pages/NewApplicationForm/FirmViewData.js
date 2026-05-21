@@ -1,0 +1,1586 @@
+import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { Typography, Button, Box, Grid, RadioGroup, Radio, FormControlLabel, Link, TableCell, TableRow, TableBody, Table, TableHead, TableContainer, Paper, Checkbox, TextField } from '@mui/material';
+import { useSelector } from 'react-redux';
+import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
+import DownloadIcon from '@mui/icons-material/Download';
+import FirmApplicationForm from '../../../../service/NewLicenseService/FirmApplicationForm';
+import StateService from '../../../../service/AdminService/StateService';
+import CityService from '../../../../service/AdminService/CityService';
+import CountryService from '../../../../service/AdminService/CountryService';
+import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
+import showAlert from '../../../global/common/MessageBox/AlertService';
+import { useNavigate } from 'react-router-dom';
+
+const FirmViewData = forwardRef(({userName}, ref) => {
+  const reviewerUserName = useSelector((state)=>state.jwtAuthentication.username);
+  const [checkedRows, setCheckedRows] = useState({
+    userName:userName,
+    reviewerUserName:reviewerUserName,
+    isRejected:true
+  });
+
+  //------------------------------
+  const childFunction = () => {
+    alert("Child method called");
+
+    showAlert({
+      messageTitle: 'Submit the Application Review',
+      messageContent: "Are you sure you want to Submit the Application Review Form?",
+      confirmText: 'yes',
+      closeText: "cancel",
+      onConfirm: () => handleFormSubmit(),
+      enableHeaderCloseBtn: true,
+      disableOutsideKeyDown: true,
+      maxWidth: 'sm',
+      fullWidth: true,
+    });
+  }
+
+  useImperativeHandle(ref, ()=>({
+    childFunction
+  }));
+//-----------------------------------
+
+  console.log("checkedRows--=-==--->",checkedRows);
+ // alert(userName)
+    const [states, setStates] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [cities, setCities] = useState([]);
+    const [isLoading, setLoading] = useState(false);
+    const [basicDetailsFormValues, setBasicDetailsFormValues] = useState({});
+
+   
+    
+
+    // get first application form by userName
+    useEffect(() => {
+      if (userName) {
+        setLoading(true);
+        FirmApplicationForm.getAllFirmApplication(userName)
+          .then((response) => {
+            const { indivAddressDTO, appFirmApplication } = response.data;
+    
+            // Set residential and appFirmApplication data into the form values
+            setBasicDetailsFormValues({
+              residential: indivAddressDTO?.residential || {}, // Set residential address data
+              firmApplication: appFirmApplication || {},      // Set firm application data
+            });
+          })
+          .catch((error) => {
+            console.error("Error fetching application form:", error);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
+    }, [userName]);
+    
+    console.log(basicDetailsFormValues);
+
+
+
+    useEffect(() => {
+      StateService.getAllStateList().then(data => {
+        console.log(data.data)
+          setStates(data.data);
+      }).catch(error => {
+          console.error("Error fetching states:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+      CountryService.getAllCountryList().then(data => {
+        console.log(data.data)
+          setCountries(data.data);
+      }).catch(error => {
+          console.error("Error fetching countries:", error);
+      });
+  }, []);
+
+  const getStateNameById = (id) => {
+    console.log('State ID:', id); 
+    console.log('Available States:', states); // Log all states
+    const state = states.find(s => {
+        console.log(`Comparing ${s.stateId} with ${id}`); // Log comparison
+        return s.stateId === Number(id);
+    });
+    console.log('Found state:', state); // Log the found state object
+    return state ? state.stateName : 'Unknown';
+};
+const stateId = basicDetailsFormValues?.residential?.state || 'N/A'; // Use a fallback
+console.log('Residential State ID:', stateId);
+  
+  const getCityNameById = (id) => {
+      const city = cities.find(c => c.cityId === Number(id));
+      return city ? city.cityName : 'Unknown';
+  };
+  const getCountryNameById = (id) => {
+    const country = countries.find(c => c.countryId === Number(id));
+    return country ? country.countryName : 'Unknown';
+};
+
+  useEffect(() => {
+      CityService.getAllCityList().then(data => {
+        console.log(data.data)
+          setCities(data.data);
+      }).catch(error => {
+          console.error("Error fetching cities:", error);
+      });
+  }, []);
+    
+const [basicDetailsFormValues2, setBasicDetailsFormValues2] = useState({})
+  // get second application form by userName
+  useEffect(() => {
+    if (userName) {
+      console.log(userName);
+      setLoading(true);
+
+      FirmApplicationForm.getAllFirmApplication2(userName)
+        .then((response) => {
+          console.log(response.data);
+
+          // Destructure the response data
+          const { appFirmApplication,applicationDocuments } = response.data;
+
+          console.log("applicationDocuments",applicationDocuments)
+
+          // Set state with the firm application details
+          setBasicDetailsFormValues2({
+            ...appFirmApplication, // Include other relevant data if needed
+            applicationDocuments:applicationDocuments.filter(doc => 
+              doc.documentTitle.startsWith('firm')
+            ),
+          });
+        })
+        .catch((err) => {
+          console.error(err);
+          // Handle error (e.g., navigate or display a message)
+        })
+        .finally(() => {
+          setLoading(false); // Ensure loading state is set to false
+        });
+    } else {
+      // Handle the case where `userName` is not available
+      // Example: navigate('/admin/state', { replace: true });
+    }
+  }, [userName]);
+console.log("basicDetailsFormValues2",basicDetailsFormValues2)
+
+const [basicDetailsFormValues7, setBasicDetailsFormValues7] = useState({});
+const [filteredAppLocations, setFilteredAppLocations] = useState([]);
+
+useEffect(() => {
+  if (userName) {
+    console.log(userName);
+    setLoading(true);
+
+    FirmApplicationForm.getAllFirmApplication3(userName)
+      .then((response) => {
+        console.log(response.data);
+
+        const filteredAppLocations = response.data.filteredAppLocations || [];
+
+        // Mapping over the filteredAppLocations to extract addressDTO and appFirmApplication
+        const updatedLocations = filteredAppLocations.map(location => {
+          const matchingAddressDTO = location.addressDTOs?.find(
+            (addressDTO) => addressDTO.addressId === location.addressId
+          );
+
+          const matchingAppFirmApplication = location.appFirmApplication?.find(
+            (firmApp) => firmApp.addressId === location.addressId
+          );
+
+          return {
+            ...location,
+            addressDTO: matchingAddressDTO || {}, // Set empty object if no match found
+            appFirmApplication: matchingAppFirmApplication || {}, // Set empty object if no match found
+          };
+        });
+
+        // Extract appFirmApplication details
+        const appFirmApplicationData = updatedLocations.map(location => ({
+          partnerDetailId: location.appFirmApplication.partnerDetailId,
+          salutation: location.appFirmApplication.salutation,
+          firstName: location.appFirmApplication.firstName,
+          middleName: location.appFirmApplication.middleName,
+          lastName: location.appFirmApplication.lastName,
+          telephoneNo: location.appFirmApplication.telephoneNo,
+          mobileNo: location.appFirmApplication.mobileNo,
+          fax: location.appFirmApplication.fax,
+          emailId: location.appFirmApplication.emailId,
+          passportNo: location.appFirmApplication.passportNo,
+          nationality: location.appFirmApplication.nationality,
+          personalWebPage: location.appFirmApplication.personalWebPage,
+        }));
+
+        // Set the state with both filteredAppLocations and appFirmApplication
+        setFilteredAppLocations(updatedLocations);
+
+        setBasicDetailsFormValues7({
+       
+          filteredAppLocations: updatedLocations,
+          appFirmApplication: appFirmApplicationData, // Include the extracted appFirmApplication data
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        // Handle error (e.g., navigate or display a message)
+      })
+      .finally(() => {
+        setLoading(false); // Ensure loading state is set to false
+      });
+  } else {
+    // Handle the case where `userName` is not available
+    // Example: navigate('/admin/state', { replace: true });
+  }
+}, [userName]);
+
+  console.log(basicDetailsFormValues7)
+
+  const [basicDetailsFormValues8, setBasicDetailsFormValues8] = useState([]);
+  useEffect(() => {
+    if (userName) {
+      console.log(userName);
+      setLoading(true);
+
+      FirmApplicationForm.getAllFirmApplication4(userName)
+        .then((response) => {
+          const filteredAppLocations = response.data?.addressDTOs || [];
+          const FirmAuthorizedRepresentative=response.data?.FirmAuthorizedRepresentative	||[];
+          console.log("FirmAuthorizedRepresentative:", FirmAuthorizedRepresentative);
+          const updatedLocations = filteredAppLocations.map((location) => {
+            console.log("Location:", location); // Log each location object
+
+            // Get the first addressDTO if available
+            const addressDTO = location || {}; 
+            console.log("addressDTO:", addressDTO); 
+            const firmAuthorizedRepresentative = FirmAuthorizedRepresentative.map(rep => ({
+              name: `${rep.salutation} ${rep.firstName} ${rep.middleName} ${rep.lastName}`.trim(),
+              telephoneNo: rep.telephoneNo,
+              fax: rep.fax,
+              nationality: rep.nationality,
+              natureOfBusiness: rep.natureOfBusiness,
+            }));
+
+            return {
+              ...location,
+              addressDTO: addressDTO, // Directly use the first addressDTO
+              firmAuthorizedRepresentative: firmAuthorizedRepresentative || [],
+            };
+          });
+
+          // Structure the data for display
+          const authorizedRepresentativeData = updatedLocations.map((location) => ({
+            name: location.firmAuthorizedRepresentative[0]?.name || '',
+            blockNo: location.addressDTO?.blockNo || '',
+            village: location.addressDTO?.village || '',
+            postOffice: location.addressDTO?.postOffice || '',
+            subDivision: location.addressDTO?.subDivision || '',
+            city: `${location.addressDTO?.city || ''}`,
+            state: ` ${location.addressDTO?.state || ''}`,
+            pin: ` ${location.addressDTO?.pin || ''}`,
+            telephoneNo: location.firmAuthorizedRepresentative[0]?.telephoneNo || '',
+            fax: location.firmAuthorizedRepresentative[0]?.fax || '',
+            natureOfBusiness: location.firmAuthorizedRepresentative[0]?.natureOfBusiness || '',
+          }));
+
+          setBasicDetailsFormValues8(authorizedRepresentativeData);
+        })
+        .catch((err) => {
+          console.error(err);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [userName]);
+
+  
+  
+
+  console.log("basicDetailsFormValues8",basicDetailsFormValues8);
+
+const [basicDetailsFormValues3, setBasicDetailsFormValues3] = useState({indivAdditionalDetails:{},
+  applicationDocument:[]
+})
+ // get third application form by userName
+ useEffect(() => {
+  if (userName) {
+      setLoading(true);
+      ApplicationForm.getApplicationForm3ByUsername(userName)
+          .then((response) => {
+              console.log(response.data);
+              const { indivAdditionalDetails, applicationDocument } = response.data;
+
+              
+
+              // Set the state with the extracted data
+              setBasicDetailsFormValues3({
+                  indivAdditionalDetails,
+                  applicationDocument,
+              });
+          })
+          .catch((err) => {
+              console.error(err);
+              // Handle error (optional)
+          })
+          .finally(() => {
+              setLoading(false);
+          });
+  }
+}, [userName]);
+
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''; // Handle cases where dateString is null or undefined
+
+  const date = new Date(dateString);
+  
+  // Ensure the date is valid
+  if (isNaN(date.getTime())) return ''; // Invalid date
+
+  const day = String(date.getDate()).padStart(2, '0'); // Get day and pad with zero if needed
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Get month and pad with zero
+  const year = date.getFullYear(); // Get year
+
+  return `${day}/${month}/${year}`; // Format as dd/mm/yyyy
+};
+ // get Fourth application form by userName
+ const [bankDetails, setBankDetails] = useState(null);
+ const [bankDraft, setBankDraft] = useState(null);
+
+ useEffect(() => {
+   if (userName) {
+     setLoading(true);
+
+     ApplicationForm.getApplicationForm4ByUsername(userName)
+       .then((response) => {
+         console.log(response.data);
+
+         const {
+           bankDetails: responseBankDetails,
+           bankDraft: responseBankDraft,
+         } = response.data;
+
+         // Set bank details and bank draft in state
+         setBankDetails(responseBankDetails);
+         setBankDraft(responseBankDraft);
+       })
+       .catch((err) => {
+         console.log(err);
+       })
+       .finally(() => {
+         setLoading(false);
+       });
+   }
+ }, [userName]);
+
+// get Fifth application form by userName
+const [mappedLocations, setMappedLocations] = useState([]);
+useEffect(() => {
+ if (userName) {
+     console.log(userName);
+     setLoading(true);
+
+     ApplicationForm.getApplicationForm5ByUsername(userName)
+         .then((response) => {
+             console.log(response.data);
+
+             const formData = response.data;
+
+             // Extract and map addressDTOList
+             const addressDTOList = formData.addressDTOList || [];
+             const locationMap = formData.LocationMap || [];
+
+             // Map locationMap and find matching addressDTOList based on addressId
+             const mappedLocations = locationMap
+                 .map((location) => {
+                     const matchingAddress = addressDTOList.find(
+                         (address) => address.addressId === location.addressId
+                     );
+
+                     // Only return location if a matchingAddress is found
+                     if (matchingAddress) {
+                         return {
+                             ...location,
+                             matchingAddress,
+                         };
+                     }
+                     return null; // Return null for locations without matching address
+                 })
+                 .filter((location) => location !== null); // Filter out locations that don't have a matching address
+
+             // Set the mapped locations in state
+             setMappedLocations(mappedLocations);
+         })
+         .catch((err) => {
+             console.log(err);
+             // Handle error (e.g., navigate or display a message)
+         })
+         .finally(() => {
+             setLoading(false);
+         });
+ }
+}, [userName]);
+
+// get Sixth application form by userName
+const [cpsDocument, setCpsDocument] = useState(null);
+
+   useEffect(() => {
+       if (userName) {
+           setLoading(true);
+           ApplicationForm.getApplicationForm6ByUsername(userName)
+               .then((response) => {
+                   console.log(response.data);
+                   const documents = response.data.documents;
+
+                   // Filter for CPSDocument
+                   const cpsDoc = documents.find(doc => doc.documentTitle === "CPSDocument");
+                   setCpsDocument(cpsDoc);  // Set the CPSDocument if found
+               })
+               .catch((err) => {
+                   console.error(err);
+                   // Handle error
+               })
+               .finally(() => {
+                   setLoading(false);
+               });
+       }
+   }, [userName]);
+if (!basicDetailsFormValues || Object.keys(basicDetailsFormValues).length === 0) {
+  return <Typography>No data available</Typography>;
+}
+
+// const handleViewDocument = async (appDocId,documentTitle) => {
+//   try {
+//       const response = await ApplicationForm.viewFile(appDocId);
+//       console.log(response.data);
+//       const blob = new Blob([response.data], { type: response.headers['content-type'] });
+
+//       // Create a link element
+//       const link = document.createElement('a');
+//       link.href = window.URL.createObjectURL(blob);
+
+//       // Extract the filename from the Content-Disposition header
+//       const contentDisposition = response.headers['content-disposition'];
+
+//       console.log(JSON.stringify(contentDisposition))
+
+//       const filename = documentTitle;
+
+//       link.setAttribute('download', filename);
+//       document.body.appendChild(link);
+//       link.click();
+//       link.parentNode.removeChild(link);
+//   } catch (error) {
+//       console.error('Error fetching document:', error);
+//   }
+// };
+
+
+const handleDownload = async (appDocId, documentTitle) => {
+  try {
+      // Fetch the file from the server
+      const response = await ApplicationForm.viewFile(appDocId);
+
+      // Create a blob from the response data
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+
+      // Create a link element
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+
+      // Extract the filename from the Content-Disposition header
+      const contentDisposition = response.headers['content-disposition'];
+
+      console.log(JSON.stringify(contentDisposition))
+
+      const filename = documentTitle;
+
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+  } catch (error) {
+      console.error('Error downloading file:', error);
+  }
+};
+
+
+
+
+    const getEmailAddresses = (emailIdArray) => {
+        if (Array.isArray(emailIdArray) && emailIdArray.length > 0) {
+          return emailIdArray.map(item => item.email).join(', ');
+        }
+        return 'No emails provided';
+      };
+
+
+      
+
+
+
+      const handleCheckboxChange = (event, row) => {
+        setCheckedRows((prev) => ({
+          ...prev,
+          [row]: event.target.checked ? row : null, // Store the row name if checked, otherwise set to null
+        }));
+      };
+      
+      const handleCheckboxChanges = (event, rowId, appDocId) => {
+
+        const obj = checkedRows[rowId];
+        
+        let updatedObj = null;
+        if(obj){
+            updatedObj = {...checkedRows};
+            delete updatedObj[rowId];
+            setCheckedRows((updatedObj));
+            
+        }else{
+
+          // Update the checkedRows state based on the checkbox state
+          setCheckedRows((prevCheckedRows) => ({
+            ...prevCheckedRows,
+            [rowId]: appDocId,
+          }));
+
+        }
+        
+       
+      };
+      
+      
+
+
+      const handleChanges = (e, fieldName) => {
+        const { value } = e.target;
+        setCheckedRows((prevValues) => ({
+          ...prevValues,
+          [fieldName]: value,
+        }));
+      };
+    
+
+      const handleFormSubmit = () => {
+        ApplicationReview.addFirmApplicationReview(checkedRows)
+            .then((response) => {
+                console.log(response.data);
+                showAlert({
+                    messageTitle: 'Submitted',
+                    messageContent: "Data to be submitted to user",
+                    confirmText: 'Ok',
+                });
+            })
+            .catch((err) => {
+                showAlert({
+                    messageTitle: 'Error',
+                    messageContent: err.response?.data 
+                        ? (typeof err.response.data === 'object' 
+                            ? 'Your request cannot be processed at this time. Please try again later.' 
+                            : err.response.data)
+                        : 'Your request cannot be processed at this time. Please try again later.',
+                    confirmText: 'Ok',
+                });
+            })
+            .finally(() => {
+                setLoading(false);  // Set loading state to false after the operation completes
+            });
+    };
+    
+
+
+
+      
+  return (
+        <Box sx={{ width: '100%' }}>
+
+<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+    <Typography variant="h4" sx={{  overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        For Company/Firm/Body of Individuals/Association of Persons/Local Authority
+    </Typography>
+    <Box sx={{ borderBottom: '2px solid #000', width: '93%', marginTop: '1px' }} />
+</Box>
+
+<Box display="flex" alignItems="center">
+  <Typography variant="h6" style={{ marginRight: '8px' ,marginTop:'10px'}}>18. Registration Number*:</Typography>
+  <Typography variant="body1" style={{ marginRight: '8px' ,marginTop:'10px'}}>{basicDetailsFormValues?.firmApplication?.registrationNo || 'N/A'}</Typography>
+  <Checkbox
+        checked={checkedRows['registrationNumber'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'registrationNumber')}
+        inputProps={{ 'aria-label': 'Registration Number Checkbox' }}
+        style={{ marginTop: '10px' }}
+      />
+</Box>
+<Box display="flex" alignItems="center">
+  <Typography variant="h6" style={{ marginRight: '8px' ,marginTop:'10px'}}>19. Date of Incorporation/Agreement/Partnership *:</Typography>
+  <Typography variant="body1" style={{ marginRight: '8px' ,marginTop:'10px'}}>{formatDate(basicDetailsFormValues?.firmApplication?.incorporationDate || 'N/A')}</Typography>
+  <Checkbox
+         checked={checkedRows['dateofPartnership'] || false}
+         onChange={(e) => handleCheckboxChange(e, 'dateofPartnership')}
+         inputProps={{ 'aria-label': 'Date of Partnership Checkbox' }}
+        style={{ marginTop: '10px' }}
+      />
+</Box>
+<Box >
+             <Typography variant="h6" style={{ marginTop:'10px'}} >20.  Particulars of Business, if any:*</Typography>
+  <Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">Name of Office:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues.firmApplication.officeName || 'N/A'}
+      </Typography>
+    </Grid>
+
+    <Grid item sm={7}  justifyContent="flex-start">
+    <Checkbox
+              checked={checkedRows['officeName'] || false}
+              onChange={(e) => handleCheckboxChange(e, 'officeName')}
+              inputProps={{ 'aria-label': 'Name of Office Checkbox' }}
+            />
+    </Grid>
+  </Grid>
+</Grid>
+
+    <Grid container spacing={2} sx={{ ml: 1 }}>
+    <Grid item sm={5}>
+        <Typography variant="body1">Flat/Door/Block No.:</Typography>
+    </Grid>
+    <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+        <Typography variant="body1">
+            {basicDetailsFormValues.residential.blockNo || 'N/A'}
+        </Typography>
+    </Grid>
+    <Grid item sm={7}  justifyContent="flex-start">
+    <Checkbox
+              checked={checkedRows['blockNo'] || false}
+              onChange={(e) => handleCheckboxChange(e, 'blockNo')}
+              inputProps={{ 'aria-label': 'Flat/Door/Block No. Checkbox' }}
+            />
+    </Grid>
+    </Grid>
+    </Grid>
+    <Grid container spacing={2} sx={{ ml: 1 }}>
+    <Grid item sm={5}>
+        <Typography variant="body1">Name of Premises/Building/Village:</Typography>
+    </Grid>
+    <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+        <Typography variant="body1">
+            {basicDetailsFormValues.residential.village || 'N/A'}
+        </Typography>
+    </Grid>
+    <Grid item sm={7}  justifyContent="flex-start">
+    <Checkbox
+              checked={checkedRows['premisesName'] || false}
+              onChange={(e) => handleCheckboxChange(e, 'premisesName')}
+              inputProps={{ 'aria-label': 'Name of Premises Checkbox' }}
+            />
+    </Grid>
+    </Grid>
+    </Grid>
+    <Grid container spacing={2} sx={{ ml: 1 }}>
+    <Grid item sm={5}>
+        <Typography variant="body1">Road/Street/Lane/Post Office:</Typography>
+    </Grid>
+    <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+        <Typography variant="body1">
+            {basicDetailsFormValues.residential.postOffice || 'N/A'}
+        </Typography>
+    </Grid>
+    <Grid item sm={7}  justifyContent="flex-start">
+    <Checkbox
+              checked={checkedRows['road'] || false}
+              onChange={(e) => handleCheckboxChange(e, 'road')}
+              inputProps={{ 'aria-label': 'Road/Street/Lane Checkbox' }}
+            />
+    </Grid>
+    </Grid>
+    </Grid>
+    <Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">Area/Locality/Taluka/Sub-Division:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues.residential.subDivision || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['subDivision'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'subDivision')}
+        inputProps={{ 'aria-label': 'Area/Locality/Taluka/Sub-Division Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">Town/City/District:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {getCityNameById(basicDetailsFormValues.residential.city || 'N/A')}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['city'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'city')}
+        inputProps={{ 'aria-label': 'Town/City/District Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">Pin:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues.residential.pin || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['pin'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'pin')}
+        inputProps={{ 'aria-label': 'Pin Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">State/Union Territory:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {getStateNameById(basicDetailsFormValues.residential.state || 'N/A')}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['state'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'state')}
+        inputProps={{ 'aria-label': 'State/Union Territory Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">Telephone No.:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues.firmApplication.telephoneNo || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['telephoneNo'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'telephoneNo')}
+        inputProps={{ 'aria-label': 'Telephone No. Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">Fax:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues.firmApplication.fax || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['fax'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'fax')}
+        inputProps={{ 'aria-label': 'Fax Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">Web page URL address, if any:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues.firmApplication.webPageURL || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['webPageURL'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'webPageURL')}
+        inputProps={{ 'aria-label': 'Web page URL Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={5}>
+    <Typography variant="body1">No. of Branches:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues.firmApplication.noOfBranches || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['noOfBranches'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'noOfBranches')}
+        inputProps={{ 'aria-label': 'No. of Branches Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1}}>
+  <Grid item sm={5}>
+    <Typography variant="body1">Nature of Business:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues.firmApplication.natureOfBusiness || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['natureOfBusiness'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'natureOfBusiness')}
+        inputProps={{ 'aria-label': 'Nature of Business Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+</Box>
+
+       
+<Box>
+<Grid container spacing={2}>
+  {/* Paid Up Capital */}
+  <Grid item sm={5}>
+    <Typography variant="h6" style={{ marginTop: '10px' }}>
+      21. Income Tax PAN No.:*
+    </Typography>
+  </Grid>
+
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues2.pan || 'N/A'}
+      </Typography>
+    </Grid>
+
+    <Grid item sm={4} container alignItems="center">
+      {basicDetailsFormValues2.applicationDocuments?.map((doc, index) =>
+        doc.documentTitle === 'firmPanCardDocument' && (
+          <React.Fragment key={index}>
+            <Link
+              onClick={() => handleDownload(doc.appDocId, doc.documentTitle)} // Change the handler function if needed
+              sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline', marginRight: '8px' }} // Set text color to red and underline
+            >
+              View
+            </Link>
+            <Checkbox
+              checked={checkedRows['firmPanCardDocument'] || false}
+              onChange={(e) => handleCheckboxChanges(e, 'firmPanCardDocument', doc.appDocId)} // Pass appDocId here
+              inputProps={{ 'aria-label': 'Income Tax PAN Checkbox' }}
+            />
+          </React.Fragment>
+        )
+      )}
+    </Grid>
+  </Grid>
+</Grid>
+
+
+
+<Grid container spacing={2}>
+  {/* Turnover in the last financial year */}
+  <Grid item sm={8}>
+    <Typography variant="h6" style={{ marginTop: '10px' }}>
+      22. Turnover in the last financial year (Rs):*
+    </Typography>
+  </Grid>
+  <Grid item sm={4} container alignItems="center">
+    <Grid item sm={8}>
+      <Typography variant="body1" style={{ marginTop: '10px' }}>
+        {basicDetailsFormValues2.firmTurnover || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={4} justifyContent="flex-start">
+      <Checkbox
+        checked={checkedRows['Turnover'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'Turnover')}
+        inputProps={{ 'aria-label': 'Turnover Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+
+<Grid container spacing={2}>
+      {/* Net Worth */}
+      <Grid item sm={5}>
+        <Typography variant="h6" style={{ marginTop: '10px' }}>
+          23. Net Worth (Rs):*
+        </Typography>
+      </Grid>
+      <Grid item sm={6} container alignItems="center">
+        <Grid item sm={5}>
+          <Typography variant="body1">
+            {basicDetailsFormValues2.firmNetWorth || 'N/A'}
+          </Typography>
+        </Grid>
+        <Grid item sm={7} container alignItems="center">
+          {basicDetailsFormValues2.applicationDocuments?.map((doc, index) =>
+            doc.documentTitle === "firmNetWorthDocument" && (
+              <React.Fragment key={index}>
+                <Link
+                  onClick={() => handleDownload(doc.appDocId, doc.documentTitle)} // Change the handler function if needed
+                  sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
+                >
+                  View
+                </Link>
+                <Grid item sm={3} container justifyContent="flex-start">
+                
+   
+<Checkbox
+      checked={checkedRows['firmNetWorthDocument'] || false}
+      onChange={(e) => handleCheckboxChanges(e, 'firmNetWorthDocument', doc.appDocId)} // Pass appDocId here
+      inputProps={{ 'aria-label': 'Net Worth Checkbox' }}
+    />
+                </Grid>
+              </React.Fragment>
+            )
+          )}
+        </Grid>
+      </Grid>
+    </Grid>
+
+
+    <Grid container spacing={2}>
+  {/* Paid Up Capital */}
+  <Grid item sm={5}>
+    <Typography variant="h6" style={{ marginTop: '10px' }}>
+      24. Paid Up Capital (Rs):*
+    </Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues2.paidUpCapital || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7} container alignItems="center">
+      {basicDetailsFormValues2.applicationDocuments?.map((doc, index) => {
+        // Check if the document title matches "firmPaidUpCapitalDocument"
+        if (doc.documentTitle === "firmNetWorthDocument") {
+          return (
+            <React.Fragment key={index}>
+              <Link
+                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)} // Change the handler function if needed
+                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline', marginRight: '8px' }} // Set text color to red and underline, add margin
+              >
+                View
+              </Link>
+              <Grid item sm={3} container justifyContent="flex-start">
+              {/* <Checkbox
+      checked={checkedRows['firmPaidUpCapitalDocument'] === basicDetailsFormValues2.applicationDocuments?.find(doc => doc.documentTitle ==='firmPaidUpCapitalDocument')?.appDocId || false}
+      onChange={(e) => handleCheckboxChangesForDocument(e, basicDetailsFormValues2.applicationDocuments?.find(doc => doc.documentTitle ==='firmPaidUpCapitalDocument')?.appDocId,'firmPaidUpCapitalDocument')}
+      inputProps={{ 'aria-label': 'Paid Up Capital Checkbox' }}
+    /> */}
+
+<Checkbox
+      checked={checkedRows['firmPaidUpCapitalDocument'] || false}
+      onChange={(e) => handleCheckboxChanges(e, 'firmPaidUpCapitalDocument', doc.appDocId)} // Pass appDocId here
+      inputProps={{ 'aria-label': 'Paid Up Capital Checkbox' }}
+    />
+              </Grid>
+            </React.Fragment>
+          );
+        }
+        // Return null for other documents to avoid rendering checkboxes for them
+        return null;
+      })}
+    </Grid>
+  </Grid>
+</Grid>
+
+      {/* <Grid container spacing={2} sx={{ ml: 1 }}> */}
+        {/* Insurance Details */}
+       
+          <Typography variant="h6" style={{ marginTop:'10px'}}>25. Insurance Details:</Typography>
+          <Grid container spacing={2} sx={{ ml: 1 }}>
+  {/* Insurance Policy No. */}
+  <Grid item sm={6}>
+    <Typography variant="body1">Insurance Policy No.*:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues2.insurancePolicyNo || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['insurancePolicyNo'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'insurancePolicyNo')}
+        inputProps={{ 'aria-label': 'Insurance Policy No Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  {/* Insurer Company */}
+  <Grid item sm={6}>
+    <Typography variant="body1">Insurer Company*:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">
+        {basicDetailsFormValues2.insuranceCompany || 'N/A'}
+      </Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['insuranceCompany'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'insuranceCompany')}
+        inputProps={{ 'aria-label': 'Insurer Company Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+    </Box>
+          
+
+          {basicDetailsFormValues8.map((data, index) => (
+        <Grid item xs={12} sm={6} md={4} key={index}>
+         
+         <Typography variant="h6" style={{ marginTop:'10px'}}>27. Authorized Representative*</Typography>
+        {/* Name */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Name:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.name || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationName'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationName')}
+        inputProps={{ 'aria-label': 'authorizedReprestationName Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Flat/Door/Block No. */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Flat/Door/Block No.:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.blockNo || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationBlockNo'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationBlockNo')}
+        inputProps={{ 'aria-label': 'Block No Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Name of Premises/Building/Village */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Name of Premises/Building/Village:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.village || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationVillage'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationVillage')}
+        inputProps={{ 'aria-label': 'Village Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Road/Street/Lane/Post Office */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Road/Street/Lane/Post Office:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.postOffice || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationPostOffice'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationPostOffice')}
+        inputProps={{ 'aria-label': 'Post Office Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Area/Locality/Taluka/Sub-Division */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Area/Locality/Taluka/Sub-Division:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.subDivision || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationSubDivision'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationSubDivision')}
+        inputProps={{ 'aria-label': 'Sub Division Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Town/City/District */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Town/City/District:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{getCityNameById(data.city) || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationCity'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationCity')}
+        inputProps={{ 'aria-label': 'City Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Pin */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Pin:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.pin || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationPin'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationPin')}
+        inputProps={{ 'aria-label': 'Pin Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* State/Union Territory */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">State/Union Territory:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{getStateNameById(data.state) || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationState'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationState')}
+        inputProps={{ 'aria-label': 'State Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Telephone No. */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Telephone No.:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.telephoneNo || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationTelephoneNo'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationTelephoneNo')}
+        inputProps={{ 'aria-label': 'Telephone No Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Fax */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Fax:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.fax || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationFax'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationFax')}
+        inputProps={{ 'aria-label': 'Fax Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+{/* Nature of Business */}
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Nature of Business:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{data.natureOfBusiness || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['authorizedReprestationNatureOfBusiness'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'authorizedReprestationNatureOfBusiness')}
+        inputProps={{ 'aria-label': 'Nature of Business Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>    
+        </Grid>
+      ))}
+
+       <Box sx={{ width: '100%' }}>
+      {/* Bank Details Section */}
+      <Typography variant="h6" style={{ marginTop: '10px' }}>
+        29. Bank Details
+      </Typography>
+      <Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Bank Name*:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{bankDetails?.bankName || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['bankName'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'bankName')}
+        inputProps={{ 'aria-label': 'Bank Name Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Branch*:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{bankDetails?.branchName || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['branchName'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'branchName')}
+        inputProps={{ 'aria-label': 'Branch Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Bank Account No.*:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{bankDetails?.bankAccountNo || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['bankAccountNo'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'bankAccountNo')}
+        inputProps={{ 'aria-label': 'Bank Account No Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Type of Bank Account*:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{bankDetails?.bankAccountType || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['bankAccountType'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'bankAccountType')}
+        inputProps={{ 'aria-label': 'Bank Account Type Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+
+
+      {/* Bank Draft Section */}
+      <Typography variant="h6" style={{ marginTop: '10px' }}>
+        30. Whether bank draft/pay order for licence fee enclosed: {bankDraft ? 'Y' : 'N'}
+      </Typography>
+
+      {bankDraft && (
+        <>
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Name of Bank:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{bankDraft?.bankName || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['bankName'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'bankName')}
+        inputProps={{ 'aria-label': 'Bank Name Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Draft/Pay Order No.:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{bankDraft?.draftNumber || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['draftNumber'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'draftNumber')}
+        inputProps={{ 'aria-label': 'Draft Number Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Date of Issue:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{bankDraft?.issueDate || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['issueDate'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'issueDate')}
+        inputProps={{ 'aria-label': 'Issue Date Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+<Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Amount:</Typography>
+  </Grid>
+  <Grid item sm={6} container alignItems="center">
+    <Grid item sm={5}>
+      <Typography variant="body1">{bankDraft?.amount || 'N/A'}</Typography>
+    </Grid>
+    <Grid item sm={7}>
+      <Checkbox
+        checked={checkedRows['amount'] || false}
+        onChange={(e) => handleCheckboxChange(e, 'amount')}
+        inputProps={{ 'aria-label': 'Amount Checkbox' }}
+      />
+    </Grid>
+  </Grid>
+</Grid>
+
+        </>
+      )}
+    </Box>
+    <Box>
+    <Typography variant="h6" gutterBottom style={{ marginTop: '10px' }}>
+            31.  Location of facility in India for generation of Digital Signature Certificate *
+          </Typography>
+    <TableContainer>
+    <Table>
+      <TableHead>
+        <TableRow sx={{ backgroundColor: "tablecolor.main", color: "tablecolor.text" }}>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Location Type</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Block No</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Village</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Post Office</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Subdivision</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Country</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>State</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>City</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>PinCode</TableCell>
+          <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Action</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {mappedLocations && mappedLocations.length > 0 ? (
+          mappedLocations.map((location, index) => (
+            <TableRow key={index}>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{location.locationName}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{location.matchingAddress.blockNo || '-'}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{location.matchingAddress.village || '-'}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{location.matchingAddress.postOffice || '-'}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{location.matchingAddress.subDivision || '-'}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{getCountryNameById(location.matchingAddress.country || '-')}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{getStateNameById(location.matchingAddress.state || '-')}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{getCityNameById(location.matchingAddress.city || '-')}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{location.matchingAddress.pin || '-'}</TableCell>
+              <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}><Checkbox
+                checked={checkedRows[location.locationName] || false}
+                onChange={(e) => handleCheckboxChange(e, location.locationName)}
+                inputProps={{ 'aria-label': `Select ${location.locationName}` }}
+              /></TableCell>
+              
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={10} sx={{ textAlign: 'center' }}>No data available</TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  </TableContainer>
+  </Box>
+<Box>
+<Grid container alignItems="center" sx={{ marginTop: '10px' }}>
+  <Grid item sm={8}>
+    <Typography variant="h6" sx={{ display: 'inline' }}>
+      34. Whether Certification Practice Statement is enclosed *:
+    </Typography>
+  </Grid>
+  <Grid item sm={4}>
+    <Box display="flex" alignItems="center">
+      <Typography variant="body1" sx={{ marginRight: '12px' }}>
+        {cpsDocument ? 'Y' : 'N'}
+      </Typography>
+      {cpsDocument && (
+        <Link
+          onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)}
+          sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline', marginRight: '12px' }} // Increased margin
+        >
+          View
+        </Link>
+      )}
+       <Checkbox
+      checked={checkedRows['firmCPSDocument'] || false}
+      onChange={(e) => handleCheckboxChanges(e, 'firmCPSDocument', cpsDocument.appDocId)} // Pass appDocId here
+      inputProps={{ 'aria-label': 'Certification Practice Statement Checkbox' }}
+    />
+    </Box>
+  </Grid>
+</Grid>
+
+</Box>
+
+
+          <Typography variant="body1" gutterBottom >
+            <b>Undertakings:</b>
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Box>
+                <Typography variant="body1">
+                  1. Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both.
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+
+            {/* Notes Section */}
+            <Grid container spacing={2}>
+  <Grid item xs={12}>
+    <Typography variant="h6" style={{ marginTop: '10px' }}>
+      Remarks
+    </Typography>
+    <TextField
+      multiline
+      rows={4} // Adjust the number of rows as needed
+      variant="outlined"
+      fullWidth
+      onChange={(e) => handleChanges(e, 'remarks')} // Pass appDocId here
+      InputProps={{
+        style: {
+          padding: '10px', // Ensure there's enough padding
+        },
+      }}
+    />
+  </Grid>
+</Grid>
+        </Box>
+
+  );
+});
+
+export default FirmViewData;
