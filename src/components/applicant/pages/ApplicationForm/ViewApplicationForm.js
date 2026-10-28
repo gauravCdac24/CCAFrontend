@@ -37,6 +37,8 @@ import Esign from '../../../global/pages/Esign';
 import CallComponent from '../../../global/common/CallComponent/CallComponent';
 import EsignService from '../../../../service/EsignService/EsignService';
 import OfflinePaymentPage from './OfflinePaymentPage';
+import { canSelectAuditAgency, hasLicenseAction } from '../../../global/util/licenseAcquisitionWorkflow';
+import printApplicationPreview from '../../../global/util/printApplicationPreview';
 
 
 const ViewApplicationForm = () => {
@@ -125,6 +127,7 @@ const ViewApplicationForm = () => {
         ApplicationForm.getApplicationDetailsFormByUsername(userName)
             .then((response) => {
                 const intentApp = response.data.intentApp;
+                const workflow = response.data.workflow || {};
                 console.log("-=---->",allApplicationTypeList)
                 if (intentApp) {
                     const matchedType = allApplicationTypeList.find(
@@ -139,17 +142,25 @@ const ViewApplicationForm = () => {
                         created: dateFormatter(intentApp.created),
                         updated: dateFormatter(intentApp.updated),
                         status: intentApp.applicationStatus,
-                        applicationType: applicationType, // Set the application type name
-                        //------Manish
+                        applicationType: applicationType,
                         intentAppId: intentApp.intentAppId,
+                        allowedActions: workflow.allowedActions || [],
+                        currentStep: workflow.currentStep,
+                        readOnly: workflow.readOnly,
                     };
     
                    
                     setAllApplicationFormList([formattedIntentApp]); 
+                } else {
+                    setAllApplicationFormList([]);
                 }
             })
             .catch((err) => {
-               // setAllApplicationFormList([]); 
+                if (err.response?.status === 404) {
+                    setAllApplicationFormList([]);
+                } else {
+                    console.error("Error fetching application details:", err);
+                }
             })
             .finally(() => {
                 setLoading(false);
@@ -191,7 +202,25 @@ const ViewApplicationForm = () => {
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true,
                 maxWidth:'md',
-                fullWidth:true
+                fullWidth:true,
+                headerButtonText: 'Print PDF',
+                onHeaderButtonClick: async ({ contentElement }) => {
+                    try {
+                        await printApplicationPreview({
+                            contentElement: contentElement(),
+                            fetchFile: (appDocId) => ApplicationForm.viewFile(appDocId),
+                            userName,
+                            title: 'Application Form Preview',
+                        });
+                    } catch (error) {
+                        showAlert({
+                            messageTitle: 'Print PDF',
+                            messageContent: error?.message || 'Unable to prepare the application for printing.',
+                            confirmText: 'Ok',
+                            enableHeaderCloseBtn: true,
+                        });
+                    }
+                },
             });
         } else {
             showAlert({
@@ -610,173 +639,140 @@ const createIndivReport = async (userName) => {
 
     const columns = useMemo(
         () => [
-            { field: 'id', headerName: 'Sl. No.', resizable: false, width: 80 },
-            { field: 'applicationType', headerName: 'Application Type Name', resizable: false, width: 150 },
-            { field: 'created', headerName: 'Submitted', resizable: false, width: 150 },
-            { field: 'updated', headerName: 'Updated', resizable: false, width: 150 },
+            { field: 'id', headerName: 'Sl. No.', resizable: false, flex: 0.4, minWidth: 90 },
+            { field: 'applicationType', headerName: 'Application Type Name', resizable: false, flex: 1.4, minWidth: 200 },
+            { field: 'created', headerName: 'Submitted', resizable: false, flex: 1.2, minWidth: 170 },
+            { field: 'updated', headerName: 'Updated', resizable: false, flex: 1.2, minWidth: 170 },
             {
                 field: 'status',
                 headerName: 'Status',
                 resizable: false,
-                width: 100,
+                flex: 1.2,
+                minWidth: 180,
             },
             {
                 field: 'action',
                 headerName: 'Action',
                 resizable: false,
-                minWidth: 200,
+                flex: 1,
+                minWidth: 120,
                 sortable: false,
                 renderCell: (params) => {
-                    
+                    const actions = params.row.allowedActions || [];
                     const actionButtons = [];
 
-                    if (params.row.status !== 'pending') {
-                        actionButtons.push (
+                    if (hasLicenseAction(actions, 'VIEW')) {
+                        actionButtons.push(
                             <Tooltip key="view" title="View">
-                                <GridActionsCellItem 
-                                    icon={<VisibilityIcon color="success" />} 
-                                    label="View" 
-                                    onClick={() => viewApplicationForm(params.row)} 
+                                <GridActionsCellItem
+                                    icon={<VisibilityIcon color="success" />}
+                                    label="View"
+                                    onClick={() => viewApplicationForm(params.row)}
                                 />
-                            </Tooltip>,
+                            </Tooltip>
+                        );
+                    }
+
+                    if (hasLicenseAction(actions, 'DOWNLOAD')) {
+                        actionButtons.push(
                             <Tooltip key="download" title="Download Application Form">
-                            <GridActionsCellItem 
-                                icon={<DownloadIcon color="info" />} 
-                                label="Edit" 
-                                onClick={() => handleDownload(params.row.intentAppId)} 
-                            />
-                            </Tooltip>,
-
-
-                           <Tooltip key="tracker" title="Application Tracker">
-                            <GridActionsCellItem 
-                                icon={<TrackChangesIcon color="info" />} 
-                                label="Application Tracker" 
-                                onClick={() => viewTracker(params.row.intentAppId)} 
-                            />
+                                <GridActionsCellItem
+                                    icon={<DownloadIcon color="info" />}
+                                    label="Download"
+                                    onClick={() => handleDownload(params.row.intentAppId)}
+                                />
                             </Tooltip>
-                            
                         );
-                    } 
-                    
-                    if (params.row.status === 'pending') {
-                        actionButtons.push (
+                    }
+
+                    if (hasLicenseAction(actions, 'TRACKER')) {
+                        actionButtons.push(
+                            <Tooltip key="tracker" title="Application Tracker">
+                                <GridActionsCellItem
+                                    icon={<TrackChangesIcon color="info" />}
+                                    label="Application Tracker"
+                                    onClick={() => viewTracker(params.row.intentAppId)}
+                                />
+                            </Tooltip>
+                        );
+                    }
+
+                    if (hasLicenseAction(actions, 'EDIT_FORM')) {
+                        actionButtons.push(
                             <Tooltip key="edit" title="Edit">
-                                <GridActionsCellItem 
-                                    icon={<EditIcon color="info" />} 
-                                    label="Edit" 
-                                    onClick={() => handleEditApplicationForm()} 
-                                />
-                            </Tooltip>,
-
-                          <Tooltip key="tracker-pending" title="Application Tracker">
-                            <GridActionsCellItem 
-                                icon={<TrackChangesIcon color="info" />} 
-                                label="Application Tracker" 
-                                onClick={() => viewTracker(params.row.intentAppId)} 
-                            />
-                            </Tooltip>
-
-                        );
-                    } 
-
-                    if (params.row.status === 'Edit Upon Review') {
-                        actionButtons.push (
-                            <Tooltip key="edit-review" title="Edit">
-                                <GridActionsCellItem 
-                                    icon={<EditIcon color="info" />} 
-                                    label="Edit" 
-                                    onClick={() => handleEditApplicationForm()} 
+                                <GridActionsCellItem
+                                    icon={<EditIcon color="info" />}
+                                    label="Edit"
+                                    onClick={() => handleEditApplicationForm()}
                                 />
                             </Tooltip>
                         );
-                    } 
+                    }
 
-                    if (params.row.status === 'Submitted') {
-                        actionButtons.push (
+                    if (hasLicenseAction(actions, 'PAYMENT')) {
+                        actionButtons.push(
                             <Tooltip key="payment" title="Payment">
-                                <GridActionsCellItem 
-                                    icon={<PaymentIcon color="info" />} 
-                                    label="Payment" 
-                                    onClick={() => handlePaymentApplicationForm(params.row.intentAppId)} 
+                                <GridActionsCellItem
+                                    icon={<PaymentIcon color="info" />}
+                                    label="Payment"
+                                    onClick={() => handlePaymentApplicationForm(params.row.intentAppId)}
                                 />
                             </Tooltip>
                         );
-                    } 
+                    }
 
-                    if (params.row.status === 'Fee Payment') {
-                        actionButtons.push (
+                    if (hasLicenseAction(actions, 'UPLOAD_PAYMENT_PROOF')) {
+                        actionButtons.push(
                             <Tooltip key="payment-proof" title="Payment Proof">
-                                <GridActionsCellItem 
-                                    icon={<CloudUploadIcon color="info" />} 
-                                    label="Payment Proof" 
-                                    onClick={() => handlePaymentProofForm(params.row.intentAppId)} 
+                                <GridActionsCellItem
+                                    icon={<CloudUploadIcon color="info" />}
+                                    label="Payment Proof"
+                                    onClick={() => handlePaymentProofForm(params.row.intentAppId)}
                                 />
                             </Tooltip>
                         );
-                    } 
-
-
-                    //------Manish
-                    if(params.row.status === "RECOMMENDED_IN_PRINCIPLE_APPROVAL"){
-
-                        actionButtons.push (
-                            <Tooltip key="upload-docs" title="Upload Required Documents">
-                                <GridActionsCellItem 
-                                    icon={<FileUploadIcon color="danger" />} 
-                                    label="Upload" 
-                                    onClick={() => uploadRequiredDocuments(params.row.intentAppId)} 
-                                />
-                            </Tooltip>
-                        );
-
                     }
 
-                    if(params.row.status === "RECOMANDED_FOR_AUDIT"){
+                    if (hasLicenseAction(actions, 'UPLOAD_LICENSE_DOCUMENTS')) {
+                        actionButtons.push(
+                            <Tooltip key="upload-docs" title="Submission of Bank Guarantee, Agreement & CSR">
+                                <GridActionsCellItem
+                                    icon={<FileUploadIcon color="danger" />}
+                                    label="Upload"
+                                    onClick={() => uploadRequiredDocuments(params.row.intentAppId)}
+                                />
+                            </Tooltip>
+                        );
+                    }
 
-                        actionButtons.push (
+                    if (
+                        hasLicenseAction(actions, 'SELECT_AUDIT_AGENCY') &&
+                        canSelectAuditAgency(params.row.status)
+                    ) {
+                        actionButtons.push(
                             <Tooltip key="select-audit" title="Select the Audit Agency">
-                                <GridActionsCellItem 
-                                    icon={<FileUploadIcon color="danger" />} 
-                                    label="select the audit agency" 
-                                    onClick={() => selectAuditAgency(params.row.intentAppId)} 
+                                <GridActionsCellItem
+                                    icon={<FileUploadIcon color="danger" />}
+                                    label="Select Audit Agency"
+                                    onClick={() => selectAuditAgency(params.row.intentAppId)}
                                 />
                             </Tooltip>
                         );
-
                     }
 
-                    if(params.row.status === "NC Issued By Auditor"){
-
-                        actionButtons.push (
+                    if (hasLicenseAction(actions, 'NC_ACTION')) {
+                        actionButtons.push(
                             <Tooltip key="nc-issued" title="NC Issued By Auditor">
-                                <GridActionsCellItem 
-                                    icon={<ManageAccountsIcon  color="danger" />} 
-                                    label="select the audit agency" 
-                                    onClick={() => auditorControls(userName)} 
+                                <GridActionsCellItem
+                                    icon={<ManageAccountsIcon color="danger" />}
+                                    label="NC Action"
+                                    onClick={() => auditorControls(userName)}
                                 />
                             </Tooltip>
                         );
-
                     }
-
-                    if(params.row.status === "Review NC Report"){
-
-                        actionButtons.push (
-                            <Tooltip key="review-nc" title="Review NC Report">
-                                <GridActionsCellItem 
-                                    icon={<ManageAccountsIcon  color="danger" />} 
-                                    label="select the audit agency" 
-                                    onClick={() => applicationAuditorControls(userName)} 
-                                />
-                            </Tooltip>
-                        );
-
-                    }
-
 
                     return <Box sx={{ display: 'flex', gap: '10px', mt: 1 }}>{actionButtons}</Box>;
-
                 },
             },
         ],
@@ -786,7 +782,15 @@ const createIndivReport = async (userName) => {
 
     return (
         <>
-            <CustomTable columns={columns} rows={allApplicationFormList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} hidePagination={true} hideToolbar={true}/>
+            {allApplicationFormList.length > 0 ? (
+                <CustomTable columns={columns} rows={allApplicationFormList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} hidePagination={true} hideToolbar={true}/>
+            ) : (
+                !isLoading && (
+                    <Typography variant="body1" sx={{ mt: 2, color: 'text.secondary' }}>
+                        No application found.
+                    </Typography>
+                )
+            )}
         </>
     );
 };

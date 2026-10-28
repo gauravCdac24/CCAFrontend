@@ -43,10 +43,10 @@ const updateCity = (obj)=>{
 
 	const obj1 = {...obj};
 
-	obj1.cityId = encrypt(obj1.cityId);
-	obj1.stateId = encrypt(obj1.stateId);
+	obj1.cityId = encrypt(String(obj1.cityId));
+	obj1.stateId = encrypt(String(obj1.stateId));
 
-	return API.post(ADMIN_SERVICE+UPDATE_CITY, obj);
+	return API.post(ADMIN_SERVICE+UPDATE_CITY, obj1);
 }
 
 

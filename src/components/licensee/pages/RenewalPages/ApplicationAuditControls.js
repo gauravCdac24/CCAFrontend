@@ -335,7 +335,7 @@ const handleConfrimSubmit = () => {
 
             <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"netWorthDoc"}>
-                        <Typography variant='body1'>Attached Any Document (Only PDF and Max allowed size 5 MB)*</Typography>
+                        <Typography variant='body1'>Attached Any Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
                     <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>

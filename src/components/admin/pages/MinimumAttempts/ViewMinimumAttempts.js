@@ -136,7 +136,7 @@ const ViewMinimumAttempts = () => {
             { field: 'applicationScrutiny', headerName: 'Application Scrutiny', resizable: false, width: 150, align:'center' },
             { field: 'applicationReview', headerName: 'Application Review', resizable: false, width: 150, align:'center' },
             { field: 'applicationAudit', headerName: 'Application Audit', resizable: false, width: 150, align:'center' },
-            { field: 'esignApplicationReview', headerName: 'EsignApplication Review', resizable: false, width: 150, align:'center' },
+            { field: 'esignApplicationReview', headerName: 'eSign Application Review', resizable: false, width: 150, align:'center' },
             { field: 'annualAuditReview', headerName: 'Annual Audit Review', resizable: false, width: 150, align:'center' },
             { field: 'created', headerName: 'Created', resizable: false, width: 150 },
             { field: 'updated', headerName: 'Updated', resizable: false, width: 150 },

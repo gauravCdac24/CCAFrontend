@@ -18,7 +18,7 @@ import { decrypt } from '../../../global/util/EncryptDecrypt';
 //Errors
 const errorMsg = {
     ekycModeTitle: {
-        blank: "Please enter EKYC Mode.",
+        blank: "Please enter eKYC Mode.",
         length: "The length must be between 3 and 150 characters.",
         format: "Only alphabets and space are allowed."
     },
@@ -154,7 +154,7 @@ const EditEKYCMode = () => {
                 .then((response)=>{
 
                     showAlert({
-                        messageTitle: 'Edit EKYC Mode',
+                        messageTitle: 'Edit eKYC Mode',
                         messageContent: response.data,
                         confirmText: 'Ok',
                         onConfirm: () => {navigate(`${rolePath}/ekycmode`)},
@@ -217,8 +217,8 @@ const EditEKYCMode = () => {
 
                 </Box>
 
-            
-                <FormWrapper headingText="Edit EKYC Mode">
+
+                <FormWrapper headingText="Edit eKYC Mode">
 
 
                     <Box component="form" noValidate sx={{ mt: 2, p: 2}} onSubmit={handleFormSubmit} >
@@ -227,14 +227,14 @@ const EditEKYCMode = () => {
 
                             <Grid item xs={12} sm>
                                 <InputLabel shrink={false} htmlFor={"ekycModeTitle"}>
-                                    <Typography variant='body1'>EKYC Mode*</Typography>
+                                    <Typography variant='body1'>eKYC Mode*</Typography>
                                 </InputLabel>
                                 <TextField
                                     id="ekycModeTitle"
                                     margin="dense"
                                     required
                                     fullWidth
-                                    placeholder='EKYC Mode'
+                                    placeholder='eKYC Mode'
                                     name="ekycModeTitle"
                                     variant='outlined'
                                     error={!!formErrors.ekycModeTitle}

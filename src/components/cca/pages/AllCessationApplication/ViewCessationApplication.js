@@ -79,6 +79,7 @@ const ViewCessationApplication = () => {
       })
     }
     const[getAllActiveDataForCCAOfficer,setAllActiveDataForCCAOfficer]=useState([]);
+    const [getAllCessationAppUndertakings, setAllCessationAppUndertakings] = useState([]);
 
     const getReviewData = (id) => {
 
@@ -89,7 +90,7 @@ const ViewCessationApplication = () => {
 
          // setReviewData(response.data);
        console.log("vfhfg-=-=-=-->",response.data)
-          const cessationDocuments = response.data?.reviewDocuments;
+          const cessationDocuments = response.data?.reviewDocuments || [];
           setAllActiveDataForCCAOfficer(cessationDocuments)
 
         })
@@ -541,10 +542,10 @@ useEffect(()=>{
 
   if(cessationAppId){
     previewApplication(cessationAppId);
-    getReviewData(decrypt(id));
+    getReviewData(cessationAppId);
     getMinAttemptList();
   }else{
-    navigate(`${routeRootPath}/cessationapplicationforcca`, { replace: true })
+    navigate(`${routeRootPath}/allcessationapplicationcca`, { replace: true })
   }
 
 
@@ -565,10 +566,8 @@ const allyProps = (index) =>{
 }
 
 const handleBack = () => {
-  navigate(`${routeRootPath}/cessationapplicationforcca`, { replace: true })
+  navigate(`${routeRootPath}/allcessationapplicationcca`, { replace: true })
 }
-
-const [getAllCessationAppUndertakings, setAllCessationAppUndertakings] = useState([]);
 
 const getAllCessationAppUndertaking = () => {
   setLoading(true);
@@ -580,7 +579,7 @@ const getAllCessationAppUndertaking = () => {
       })
       .catch((err) => {
           console.error(err);
-          setAllCessationAppUndertakings(null);
+          setAllCessationAppUndertakings([]);
       })
       .finally(() => {
         setLoading(false);
@@ -624,6 +623,86 @@ const handleDownloadClick = async(id) => {
   }
 };
 
+  const undertakings = Array.isArray(getAllCessationAppUndertakings) ? getAllCessationAppUndertakings : [];
+  const officerReviewDocuments = getAllActiveForCCAOfficer?.cessationDocument || [];
+  const reviewDocumentList = Array.isArray(getAllActiveForCCAOfficer?.reviewDocument)
+    ? getAllActiveForCCAOfficer.reviewDocument
+    : getAllActiveForCCAOfficer?.reviewDocument
+      ? [getAllActiveForCCAOfficer.reviewDocument]
+      : [];
+  const reviewHistory = Array.isArray(getAllActiveDataForCCAOfficer) ? getAllActiveDataForCCAOfficer : [];
+
+  const getOfficerRemarks = () => {
+    const activeWithRemarks = reviewDocumentList.find(
+      (doc) => doc?.status === 'Active' && doc?.remarks
+    );
+    if (activeWithRemarks?.remarks) {
+      return activeWithRemarks.remarks;
+    }
+
+    const sortedHistory = [...reviewHistory].sort(
+      (a, b) => new Date(b?.created || 0) - new Date(a?.created || 0)
+    );
+    const latestWithRemarks = sortedHistory.find((doc) => doc?.remarks);
+    return latestWithRemarks?.remarks || '';
+  };
+
+  const officerRemarks = getOfficerRemarks();
+
+  const isItemApprovedByOfficer = (itemId, relatedUndertaking) => {
+    if (officerReviewDocuments.some((doc) => String(doc.undertakingId).trim() === String(itemId).trim())) {
+      return true;
+    }
+    return officerReviewDocuments.length === 0 && relatedUndertaking.length > 0;
+  };
+
+  const renderChecklistRows = () =>
+    Object.keys(checklist).map((key) => {
+      const item = checklist[key];
+      const relatedUndertaking = undertakings.filter(
+        (undertaking) => String(undertaking.undertakingId) === String(item.id)
+      );
+      const approvedByOfficer = isItemApprovedByOfficer(item.id, relatedUndertaking);
+
+      return (
+        <Grid item xs={12} key={item.id}>
+          <Box>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={6}>
+                <Typography variant="h6" fontWeight="bold">
+                  {`${item.id}. ${item.label}`}
+                </Typography>
+              </Grid>
+              <Grid item xs={4}>
+                {relatedUndertaking.length > 0 ? (
+                  <Link
+                    href="#"
+                    underline="hover"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDownloadClick(relatedUndertaking[0].appUndertakingId);
+                    }}
+                  >
+                    Download Document
+                  </Link>
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    No Document Available
+                  </Typography>
+                )}
+              </Grid>
+              <Grid item xs={2}>
+                <FormControlLabel
+                  control={<Checkbox checked={approvedByOfficer} disabled />}
+                  label=""
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </Grid>
+      );
+    });
+
   return (
     <Box p={3}>
       <LoaderProgress open={isLoading} />
@@ -637,174 +716,141 @@ const handleDownloadClick = async(id) => {
             </Grid>
         </Grid>
     </Box>
-  
-    {
-     getAllActiveDataForCCAOfficer && Array.isArray(getAllActiveDataForCCAOfficer) && getAllActiveDataForCCAOfficer.length > 0 ? (<>
-    {
-      getAllActiveDataForCCAOfficer.map((element, index)=>(
-      
-        <Box sx={{ mb: 1, pb: 2, color: 'primary.text' }} key={index}>
 
-        <Box sx={{ display: "flex", 
-                   alignItems: "center", 
-                   backgroundColor: "primary.main", p:1, 
-                   borderRadius: '5px',
-                   boxShadow: 'rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px;', cursor: 'pointer'}}
-                   
-                   onClick={() =>
-                    setCollapseItem((prev) => {
-                      const newCollapseItem = [...prev]; 
-                      newCollapseItem[index] = !newCollapseItem[index]; 
-                      return newCollapseItem; 
-                    })
-                  }
+      <Tabs value={tabValue} onChange={handleTabChange} aria-label="tabs" variant="fullWidth">
+        <Tab label="Review Application" {...allyProps(0)} />
+        <Tab label="Previous Reviewed Details" {...allyProps(1)} />
+      </Tabs>
 
-                   >
-                      <Typography variant="h6" sx={{flexGrow: 1 }}>
-                        Reviewd on {dateFormatter(element.created)}
-                      </Typography>
-                      <IconButton 
-                        
-                      sx={{ backgroundColor: "transparent",
-                        '&:hover': {
-                            backgroundColor: "transparent"
-                          },
-                          fontSize: '20px',
-                          color: 'primary.text'
-                      }}>
-                        {collapseItem[index] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                      </IconButton>
+      <CustomTabPanel value={tabValue} index={0}>
+        <Box sx={{ mt: 2, p: 2 }}>
+          {undertakings.length > 0 ? (
+            <Grid container spacing={2}>
+              {renderChecklistRows()}
 
-                    
-        </Box>
-
-        <Collapse in={collapseItem[index]} sx={{pl: 1, pr: 1, backgroundColor: 'primary.light', color: 'bodycolor.text'}}>
-        
-        <Grid container spacing={2}>
-  {Object.keys(checklist).map((key) => {
-    const item = checklist[key];
-
-    // Filter related undertakings and cessation documents
-    const relatedUndertaking = getAllCessationAppUndertakings.filter(
-      (undertaking) => undertaking.undertakingId === String(item.id)
-    );
-
-    const cessationDocuments = getAllActiveForCCAOfficer?.cessationDocument || [];
-    const relatedUndertakings = cessationDocuments.filter(
-      (undertaking) => String(undertaking.undertakingId).trim() === String(item.id).trim()
-    );
-
-    console.log("relatedUndertaking-=-=-=-=-=->", relatedUndertaking);
-    console.log("String(item.id)-=-=-=-=-=->", item.id);
-
-    // Determine if the checkbox is disabled or checked
-    const isDisabled = relatedUndertakings.length === 0;
-
-    return (
-      <Grid item xs={12} key={item.id}>
-        <Box>
-          {/* Checklist Item */}
-          <Grid container spacing={2} alignItems="center">
-            {/* Label */}
-            <Grid item xs={6}>
-              <Typography
-                variant="h6"
-                fontWeight="bold"
-              >
-                {`${item.id}. ${item.label}`}
-              </Typography>
-            </Grid>
-
-            {/* Download Link */}
-            <Grid item xs={4}>
-              {relatedUndertaking.length > 0 ? (
-                <Link
-                  href="#"
-                  underline="hover"
-                  onClick={() => handleDownloadClick(relatedUndertaking[0].appUndertakingId)}
-                >
-                  Download Document
-                </Link>
-              ) : (
-                <Typography variant="body2" color="textSecondary">
-                  No Document Available
+              <Grid item xs={12}>
+                <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
+                  Remarks by O/o CCA
                 </Typography>
-              )}
-            </Grid>
+                <TextField
+                  multiline
+                  rows={3}
+                  sx={{ width: '100%', mt: 1 }}
+                  disabled
+                  value={officerRemarks}
+                  placeholder="No remarks provided"
+                />
+              </Grid>
 
-            {/* Checkbox */}
-            <Grid item xs={2}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={!isDisabled} 
-                    onChange={handleCheckboxChange(key)}
-                    disabled={!isDisabled} 
-                  />
-                }
-                label=""
-              />
-            </Grid>
-          </Grid>
+              <Grid item xs={12}>
+                <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
+                  Remarks by CCA
+                </Typography>
+                <TextField
+                  multiline
+                  rows={3}
+                  sx={{ width: '100%', mt: 1 }}
+                  onChange={(e) =>
+                    setFormValues((prev) => ({
+                      ...prev,
+                      remarks: e.target.value,
+                    }))
+                  }
+                  onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9,./ ]+$/)}
+                  value={formValues.remarks}
+                  inputProps={{ maxLength: 500 }}
+                  placeholder="Write your remarks..."
+                />
+                {formError.remarks && <FormHelperText error>{formError.remarks}</FormHelperText>}
+              </Grid>
 
-          {/* Additional Info (File and Error Messages) */}
-          {item.file && (
-            <Typography variant="body2" sx={{ mt: 1, ml: 2 }}>
-              {item.file.name}
-            </Typography>
-          )}
-          {item.error && (
-            <Typography variant="body2" sx={{ mt: 1, ml: 2, color: "red" }}>
-              {item.error}
-            </Typography>
+              <Grid container direction="row" sx={{ mt: 4 }} spacing={2} justifyContent="center" alignItems="center">
+                <Grid item>
+                  <Button
+                    variant="contained"
+                    sx={{ maxWidth: '120px', height: '40px' }}
+                    onClick={handleReject}
+                  >
+                    Approval
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    variant="contained"
+                    sx={{ maxWidth: '120px', height: '40px', color: '#FFFFFF', backgroundColor: '#FF5722' }}
+                    onClick={handleApprove}
+                  >
+                    Reject
+                  </Button>
+                </Grid>
+              </Grid>
+            </Grid>
+          ) : (
+            <Box sx={{ textAlign: 'center', mt: 4 }}>No Records Found</Box>
           )}
         </Box>
-      </Grid>
-    );
-  })}
+      </CustomTabPanel>
 
-  {/* Remarks Section */}
-  <Grid container sx={{ mt: 2 }}>
-    <Grid item xs>
-      <Typography variant="h6" fontWeight="bold">
-        Remarks by O/o CCA
-      </Typography>
-    </Grid>
-  </Grid>
+      <CustomTabPanel value={tabValue} index={1}>
+        {reviewHistory.length > 0 ? (
+          reviewHistory.map((element, index) => (
+            <Box sx={{ mb: 1, pb: 2, color: 'primary.text' }} key={index}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  backgroundColor: 'primary.main',
+                  p: 1,
+                  borderRadius: '5px',
+                  boxShadow: 'rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px;',
+                  cursor: 'pointer',
+                }}
+                onClick={() =>
+                  setCollapseItem((prev) => {
+                    const newCollapseItem = [...prev];
+                    newCollapseItem[index] = !newCollapseItem[index];
+                    return newCollapseItem;
+                  })
+                }
+              >
+                <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                  Reviewed on {dateFormatter(element.created)}
+                </Typography>
+                <IconButton
+                  sx={{
+                    backgroundColor: 'transparent',
+                    '&:hover': { backgroundColor: 'transparent' },
+                    fontSize: '20px',
+                    color: 'primary.text',
+                  }}
+                >
+                  {collapseItem[index] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
 
-  <Grid container sx={{ mt: 2 }}>
-    <Grid item xs>
-      <TextField
-        multiline
-        rows={3}
-        sx={{ width: "100%", color: "primary.text" }}
-        onChange={(e) =>
-          setFormValues((prev) => ({
-            ...prev,
-            remarks: e.target.value,
-          }))
-        }
-        onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9,./ ]+$/)}
-        disabled
-        value={element.remarks}
-        inputProps={{ maxLength: 500 }}
-        placeholder="Write your remarks..."
-      />
-    </Grid>
-  </Grid>
-
-  {formError.remarks && <FormHelperText error>{formError.remarks}</FormHelperText>}
-</Grid>
-
-
-        </Collapse>
-      </Box>
-    ))
-  }</>):(<Box sx={{textAlign: 'center', mt: 4}}>
-    No Records Found
-  </Box>)
-
-}
+              <Collapse in={collapseItem[index]} sx={{ pl: 1, pr: 1, backgroundColor: 'primary.light', color: 'bodycolor.text' }}>
+                <Grid container spacing={2}>
+                  {renderChecklistRows()}
+                  <Grid item xs={12}>
+                    <Typography variant="h6" fontWeight="bold" sx={{ mt: 2 }}>
+                      Remarks by O/o CCA
+                    </Typography>
+                    <TextField
+                      multiline
+                      rows={3}
+                      sx={{ width: '100%', mt: 1 }}
+                      disabled
+                      value={element.remarks || ''}
+                    />
+                  </Grid>
+                </Grid>
+              </Collapse>
+            </Box>
+          ))
+        ) : (
+          <Box sx={{ textAlign: 'center', mt: 4 }}>No Previous Reviews Found</Box>
+        )}
+      </CustomTabPanel>
 
     </Box>
   );

@@ -92,22 +92,24 @@ const DCDetails = () => {
     getCaLocationDetails();
   }, []);
 
-  // Validation functions
+  // Validation functions — format only when value present; files optional
   const validateLocation = (location) => {
     const pattern = /^[A-Za-z0-9().,&\-\s]+$/;
     if (!location || location.trim() === '') {
-      return 'Location cannot be empty.';
-    } else if (location.length < 3 || location.length > 100) {
+      return '';
+    }
+    if (location.length < 3 || location.length > 100) {
       return 'Location length must be between 3 and 100 characters.';
-    } else if (!pattern.test(location)) {
+    }
+    if (!pattern.test(location)) {
       return 'Location can only contain alphabets, numbers, and characters ().,&-';
     }
     return '';
   };
 
   const validateFile = (file) => {
-    if (!file) return 'Please upload a file.';
-    if (!file.name.endsWith('.xlsx')) return 'Invalid file format. Only .xlsx files are allowed.';
+    if (!file || typeof file === 'string') return '';
+    if (!file.name?.endsWith('.xlsx')) return 'Invalid file format. Only .xlsx files are allowed.';
     if (file.size > 5 * 1024 * 1024) return 'File size must be less than 5 MB.';
     return '';
   };
@@ -155,9 +157,9 @@ const DCDetails = () => {
       const caManpowerFileError = validateFile(row.caManpowerCount);
       if (caManpowerFileError) errors.caManpowerCount = caManpowerFileError;
 
-      // If there are errors, mark the form as invalid
+      // If there are format errors, mark the form as invalid
       if (Object.keys(errors).length > 0) {
-        isValid = true;
+        isValid = false;
       }
 
       return { ...row, errors };

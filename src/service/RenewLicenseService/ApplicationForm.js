@@ -31,6 +31,7 @@ import {encrypt} from "../../components/global/util/EncryptDecrypt" ;
 	const GET_APPLICATION_DETAILS_FORM_BY_USERNAME="/get-application-details-by-username";
 
 	const VIEW_FILE="/view-the-file"
+	const GET_PAYMENT_APPLICATION_FORM = "/get-payment-application-form";
 
 
 	const sconfig={
@@ -201,6 +202,10 @@ import {encrypt} from "../../components/global/util/EncryptDecrypt" ;
 		})
 	}
 
+	const getApplicationPayment = (paymentObj) => {
+		return API.post(RENEW_LICENSE_SERVICE + GET_PAYMENT_APPLICATION_FORM, paymentObj);
+	};
+
 
 export default{
                 addNewApplicationForm,
@@ -229,4 +234,5 @@ export default{
 				viewFile,
 				getApplicationDetailsFormByUsername,
 				addApplicationForm,
+				getApplicationPayment,
             };

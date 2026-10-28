@@ -113,11 +113,11 @@ const CAServiceDetails = () => {
   const handleFileChange = (id, field, file) => {
     const updatedErrors = { ...errors };
   
-    // File validation
+    // File optional; validate format/size only when a file is selected
     if (!file) {
       updatedErrors[id] = {
         ...updatedErrors[id],
-        [field]: 'Please upload a file.',
+        [field]: '',
       };
     } else if (file.size > 5 * 1024 * 1024) {
       updatedErrors[id] = {
@@ -151,58 +151,48 @@ const CAServiceDetails = () => {
   
 
   const validateData = () => {
-    let valid = true;
     const newErrors = {}; // Create an empty object to store error messages
 
     caData.forEach((row) => {
       const rowErrors = {};
 
-      // Validate description
-      if (!row.description || row.description.trim().length === 0) {
-        rowErrors.description = 'Description cannot be empty';
-      } else if (row.description.length < 3 || row.description.length > 50) {
-        rowErrors.description = 'Description length must be between 3 and 50 characters';
-      } else if (!DESCRIPTION_PATTERN.test(row.description)) {
-        rowErrors.description = 'Only alphabets, numbers, and characters ( ),&.- are allowed';
+      // Description (optional; format/length only when present)
+      if (row.description && row.description.trim().length > 0) {
+        if (row.description.length < 3 || row.description.length > 50) {
+          rowErrors.description = 'Description length must be between 3 and 50 characters';
+        } else if (!DESCRIPTION_PATTERN.test(row.description)) {
+          rowErrors.description = 'Only alphabets, numbers, and characters ( ),&.- are allowed';
+        }
       }
 
-      // Validate internalOnly
-      if (!row.internalOnly || (row.internalOnly !== 'Yes' && row.internalOnly !== 'No')) {
+      // internalOnly / externalOnly optional; validate only when a value is set
+      if (row.internalOnly && row.internalOnly !== 'Yes' && row.internalOnly !== 'No') {
         rowErrors.internalOnly = 'Please select Yes or No for Internal Only';
       }
 
-      // Validate externalService
-      if (!row.externalOnly || (row.externalOnly !== 'Yes' && row.externalOnly !== 'No')) {
+      if (row.externalOnly && row.externalOnly !== 'Yes' && row.externalOnly !== 'No') {
         rowErrors.externalOnly = 'Please select Yes or No for External Service';
       }
 
-      // Validate ASP count
-      if (!row.aspOrgCount || row.aspOrgCount.trim().length === 0) {
-        rowErrors.aspOrgCount = 'No of ASPs/Organizations cannot be empty';
-      } else if (!DIGITS_PATTERN.test(row.aspOrgCount)) {
-        rowErrors.aspOrgCount = 'Only digits are allowed';
-      } else if (row.aspOrgCount.length > 9) {
-        rowErrors.aspOrgCount = 'Maximum 9 digits are allowed';
+      // ASP count (optional; format only when present)
+      if (row.aspOrgCount && row.aspOrgCount.trim().length > 0) {
+        if (!DIGITS_PATTERN.test(row.aspOrgCount)) {
+          rowErrors.aspOrgCount = 'Only digits are allowed';
+        } else if (row.aspOrgCount.length > 9) {
+          rowErrors.aspOrgCount = 'Maximum 9 digits are allowed';
+        }
       }
 
-      // // Validate file upload (if a file is provided)
-      // if (row.aspOrgCountFile == null && row.aspOrgCount.trim().length > 0) {
-      //   rowErrors.aspOrgCountFile = 'Please upload a file';
-      // } else if (row.aspOrgCountFile && row.aspOrgCountFile.size > 5 * 1024 * 1024) {
-      //   rowErrors.aspOrgCountFile = 'File size cannot exceed 5MB';
-      // } else if (row.aspOrgCountFile && !row.aspOrgCountFile.name.endsWith('.xlsx')) {
-      //   rowErrors.aspOrgCountFile = 'Only .xlsx files are allowed';
-      // }
+      // File upload optional
 
       // If there are errors for this row, add them to newErrors
       if (Object.keys(rowErrors).length > 0) {
         newErrors[row.caServicesDetailsId] = rowErrors;
-        valid = true;
       }
     });
 
     setErrors(newErrors); // Update the errors state
-    return valid;
+    return newErrors;
   };
 
   const handleSubmit = async() => {

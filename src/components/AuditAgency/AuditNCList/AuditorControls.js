@@ -30,8 +30,16 @@ import { decrypt, encrypt } from "../../global/util/EncryptDecrypt";
 import AuditService from "../../../service/AuditService/AuditService";
 import Esign from "../../global/pages/Esign";
 import CallComponent from "../../global/common/CallComponent/CallComponent";
+import AnnexureA2Main from "../UploadUndertaking/AnnexureA2/AnnexureA2Main";
+import stringToDateFormat from "../../global/util/DateUtil";
 
-
+const formatScheduleDate = (dateStr) => {
+  if (!dateStr) {
+    return "";
+  }
+  const formatted = stringToDateFormat(dateStr, "dd-MM-yyyy");
+  return formatted && formatted !== "Unsupported Format" ? formatted : "";
+};
 
 const AuditorControls = () => {
   const { id } = useParams();
@@ -46,9 +54,16 @@ const AuditorControls = () => {
   const [lastSubIndex, setLastSubIndex] = useState(null);
   //alert(ApplicantUserName);
   const [open, setOpen] = useState([]);
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setLoading] = useState(true);
   const [allAuditControlList, setAllAuditControlList] = useState([]);
   const [openSubCriteria, setOpenSubCriteria] = useState({});
+  const [controlsLoadError, setControlsLoadError] = useState("");
+  const [showAnnexureA2, setShowAnnexureA2] = useState(true);
+  const [undertakingAuditForm, setUndertakingAuditForm] = useState({
+    auditorDesscription: [],
+    auditScope: [],
+    undertakingFileName: "",
+  });
   const [radioValue, setRadioValue] = useState({
     compliance: "",
     applicantUserName: ApplicantUserName,
@@ -56,37 +71,158 @@ const AuditorControls = () => {
     remarks: '',
     isRejected: false,
     auditCoverReport: null,
-    mainAuditReport: null,
-    annexureA1: null,
-    annexureA2: null,
-    annexureA4: null,
-    annexureA3: null,
     annexureA5: null,
     annexureA6: null,
     annexureVI: null,
-    annexureVIII: null,
-    annexureVIIIRepeat: null,
-    annexureVIIIUndertaking: null,
   });
   const [selectedFiles, setSelectedFiles] = useState([]); // Track files per row
   let controlCounter = 0;
-  // Fetching audit control data
-  const getAllAuditControl = () => {
-    //setLoading(true);
-    AuditControlService.NCData(ApplicantUserName)
-      .then((response) => {
-        setAllAuditControlList(response.data);
-      })
-      .catch((err) => {
-        showAlert({
-          messageTitle: 'Error',
-          messageContent: 'Error fetching audit control list. Please try again later.',
-          confirmText: 'OK',
-        });
-      })
-      .finally(() => {
-        setLoading(false);
+
+  const extractMasterControlId = (auditControlId) => {
+    if (!auditControlId || typeof auditControlId !== "string") {
+      return "";
+    }
+    const value = auditControlId.trim();
+    const lastDash = value.lastIndexOf("-");
+    if (lastDash >= 0 && lastDash < value.length - 1) {
+      return value.substring(lastDash + 1).trim();
+    }
+    return value;
+  };
+
+  // Auto-expand criteria/subcriteria that contain NC controls so auditor can
+  // review applicant responses (Approve/Reject) without hunting nested collapses.
+  const expandNcControlSections = (criteriaList) => {
+    if (!Array.isArray(criteriaList) || criteriaList.length === 0) {
+      setOpen([]);
+      setOpenSubCriteria({});
+      return;
+    }
+
+    const openCriteria = [];
+    const openSubs = {};
+
+    criteriaList.forEach((criteria, criteriaIndex) => {
+      const subList = criteria?.auditSubCriteria || [];
+      let criteriaHasControls = false;
+
+      subList.forEach((subCriteria, subIndex) => {
+        const controlCount = (subCriteria?.auditParameterPayload || []).reduce(
+          (total, parameter) =>
+            total + (parameter?.auditControlPayload?.length || 0),
+          0
+        );
+        if (controlCount > 0) {
+          criteriaHasControls = true;
+          openSubs[`${criteriaIndex}-${subIndex}`] = true;
+        }
       });
+
+      openCriteria[criteriaIndex] = criteriaHasControls || subList.length > 0;
+    });
+
+    setOpen(openCriteria);
+    setOpenSubCriteria(openSubs);
+  };
+
+  /**
+   * Keep only controls whose master ids are in idSet (from saved NC criteria /
+   * applicant action-taken). Used as a client-side fallback when /nc-data is empty.
+   */
+  const filterTreeByControlIds = (tree, idSet) => {
+    if (!Array.isArray(tree) || !(idSet instanceof Set) || idSet.size === 0) {
+      return [];
+    }
+
+    return tree
+      .map((criteria) => ({
+        ...criteria,
+        auditSubCriteria: (criteria.auditSubCriteria || [])
+          .map((subCriteria) => ({
+            ...subCriteria,
+            auditParameterPayload: (subCriteria.auditParameterPayload || [])
+              .map((parameter) => ({
+                ...parameter,
+                auditControlPayload: (parameter.auditControlPayload || []).filter((control) => {
+                  const masterId = String(control?.auditControllId ?? "").trim();
+                  return masterId && idSet.has(masterId);
+                }),
+              }))
+              .filter((parameter) => (parameter.auditControlPayload || []).length > 0),
+          }))
+          .filter((subCriteria) => (subCriteria.auditParameterPayload || []).length > 0),
+      }))
+      .filter((criteria) => (criteria.auditSubCriteria || []).length > 0);
+  };
+
+  const collectRelevantMasterControlIds = (criteriaRows, actionRows) => {
+    const ids = new Set();
+
+    (criteriaRows || []).forEach((item) => {
+      const masterId = extractMasterControlId(item?.auditControlId);
+      if (masterId) {
+        ids.add(masterId);
+      }
+    });
+
+    (actionRows || []).forEach((item) => {
+      const raw = item?.auditReportCriteriaEntity?.auditControlId;
+      const masterId = extractMasterControlId(raw);
+      if (masterId) {
+        ids.add(masterId);
+      }
+    });
+
+    return ids;
+  };
+
+  // Fetching audit control data (NC tree + applicant action context)
+  const getAllAuditControl = async () => {
+    setLoading(true);
+    setControlsLoadError("");
+
+    try {
+      const [ncResponse, criteriaResponse, actionResponse, fullTreeResponse] =
+        await Promise.all([
+          AuditControlService.NCData(ApplicantUserName).catch(() => ({ data: [] })),
+          AuditService.getByApplicantUserNames(ApplicantUserName).catch(() => ({ data: [] })),
+          AuditService.getByApplicantActionTaken(ApplicantUserName).catch(() => ({ data: [] })),
+          AuditControlService.data(ApplicantUserName).catch(() => ({ data: [] })),
+        ]);
+
+      const criteriaRows = Array.isArray(criteriaResponse?.data) ? criteriaResponse.data : [];
+      const actionRows = Array.isArray(actionResponse?.data) ? actionResponse.data : [];
+      setApplicantCriteria(criteriaRows);
+      setApplicantActionTaken(actionRows);
+
+      let criteriaList = Array.isArray(ncResponse?.data) ? ncResponse.data : [];
+
+      // Fallback: build NC review tree from full control master + saved criteria / action-taken
+      if (criteriaList.length === 0) {
+        const idSet = collectRelevantMasterControlIds(criteriaRows, actionRows);
+        const fullTree = Array.isArray(fullTreeResponse?.data) ? fullTreeResponse.data : [];
+        criteriaList = filterTreeByControlIds(fullTree, idSet);
+      }
+
+      setAllAuditControlList(criteriaList);
+      expandNcControlSections(criteriaList);
+
+      if (criteriaList.length === 0) {
+        setControlsLoadError(
+          "No NC detailed audit controls are available for review yet. Controls appear here after the auditor saves NC findings and/or the applicant submits action-taken responses."
+        );
+      }
+    } catch (err) {
+      console.error("Error loading NC audit controls:", err);
+      setControlsLoadError("Error fetching audit control list. Please try again later.");
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Error fetching audit control list. Please try again later.",
+        confirmText: "OK",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const [auditorTracker, setAuditorTracker] = useState(null);
@@ -126,10 +262,45 @@ const AuditorControls = () => {
       );
   };
 
+  const loadUndertakingAuditForm = () => {
+    AuditService.getAuditorApplicationbyApplicatantUserName(ApplicantUserName)
+      .then((response) => {
+        const data = response?.data || {};
+        setUndertakingAuditForm({
+          auditorDesscription: Array.isArray(data.auditorDesscription)
+            ? data.auditorDesscription.map((item) => ({
+                auditorDescriptionId: item?.auditorDescriptionId ?? "",
+                auditorName: item?.auditorName ?? "",
+                certificateType: item?.certificateType ?? "",
+                certificateName: item?.certificateName ?? "",
+                certificateExpiry: formatScheduleDate(
+                  item?.certificateExpiry || item?.date || ""
+                ),
+              }))
+            : [],
+          auditScope: Array.isArray(data.auditScope)
+            ? data.auditScope.map((item) => ({
+                auditScopeId: item?.auditScopeId ?? "",
+                auditTitle: item?.auditTitle ?? "",
+                description: item?.description ?? "",
+                startDate: formatScheduleDate(item?.startDate),
+                endDate: formatScheduleDate(item?.endDate),
+              }))
+            : [],
+          undertakingFileName: data.undertakingFileName || "",
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to load undertaking / CA details / schedule:", err);
+      });
+  };
+
   useEffect(() => {
     getAllAuditControl();
     getAllApplicationForm();
     loadAuditEsignStatus();
+    loadUndertakingAuditForm();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleToggle = (index) => {
@@ -201,9 +372,15 @@ const AuditorControls = () => {
 
   // Function to reset the form data
   const resetFormData = () => {
-    setRadioValue({ compliance: [], applicantUserName: '' }); // Reset the radioValue state
-    setSelectedFiles([]); // Clear the selected files array
-    console.log("Form data has been reset.");
+    setRadioValue((prev) => ({
+      ...prev,
+      compliance: [],
+      auditCoverReport: null,
+      annexureA5: null,
+      annexureA6: null,
+      annexureVI: null,
+    }));
+    setSelectedFiles([]);
   };
 
   const handleRejectData = (e, controlId) => {
@@ -298,57 +475,10 @@ const AuditorControls = () => {
       })
       .finally(() => setLoading(false));
   };
-  //temporary state
+  // temporary state — populated by getAllAuditControl()
   const [applicantCriteria, setApplicantCriteria] = useState([]);
   const [fileName, setFileName] = useState([]);
-
-  const getByApplicantUserNames = () => {
-    //setLoading(true);
-    AuditService.getByApplicantUserNames(ApplicantUserName)
-      .then((response) => {
-        setApplicantCriteria(response.data);
-      })
-      .catch((err) => {
-        showAlert({
-          messageTitle: 'Error',
-          messageContent: 'Error fetching audit control list. Please try again later.',
-          confirmText: 'OK',
-        });
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    getByApplicantUserNames();
-  }, []);
-
-
-
   const [applicantActionTaken, setApplicantActionTaken] = useState([]);
-
-  const getByApplicationActionTaken = () => {
-    //setLoading(true);
-    AuditService.getByApplicantActionTaken(ApplicantUserName)
-      .then((response) => {
-        setApplicantActionTaken(response.data);
-      })
-      .catch((err) => {
-        showAlert({
-          messageTitle: 'Error',
-          messageContent: 'Error fetching audit control list. Please try again later.',
-          confirmText: 'OK',
-        });
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    getByApplicationActionTaken();
-  }, []);
 
 
   const handleForwordToApplicant = (e) => {
@@ -448,17 +578,15 @@ const AuditorControls = () => {
       const formData = new FormData();
       formData.append("applicantUserName", radioValue.applicantUserName);
       formData.append("auditCoverReport", radioValue.auditCoverReport);
-      formData.append("mainAuditReport", radioValue.mainAuditReport);
-      formData.append("annexureA1", radioValue.annexureA1);
-      formData.append("annexureA2", radioValue.annexureA2);
-      formData.append("annexureA3", radioValue.annexureA3);
-      formData.append("annexureA4", radioValue.annexureA4);
-      formData.append("annexureA5", radioValue.annexureA5);
-      formData.append("annexureA6", radioValue.annexureA6);
-      formData.append("annexureVI", radioValue.annexureVI);
-      formData.append("annexureVIII", radioValue.annexureVIII);
-      formData.append("annexureVIIIRepeat", radioValue.annexureVIIIRepeat);
-      formData.append("annexureVIIIUndertaking", radioValue.annexureVIIIUndertaking);
+      if (radioValue.annexureA5) {
+        formData.append("annexureA5", radioValue.annexureA5);
+      }
+      if (radioValue.annexureA6) {
+        formData.append("annexureA6", radioValue.annexureA6);
+      }
+      if (radioValue.annexureVI) {
+        formData.append("annexureVI", radioValue.annexureVI);
+      }
 
       //alert(radioValue.applicantUserName) 
 
@@ -627,19 +755,60 @@ const AuditorControls = () => {
 
 
 
+  // Remaining upload-only annexures (A5, A6, VI) — numbered after the view-only sections
   const uploadSections = [
-    { label: "Main Audit Report", key: "mainAuditReport" },
-    { label: "Annexure A1 - Non-Compliance Summary", key: "annexureA1" },
-    { label: "Annexure A2 - CA Details", key: "annexureA2" },
-    { label: "Annexure A4 - Audit Schedule", key: "annexureA4" },
-    { label: "Annexure A3 - Auditor Notes", key: "annexureA3" },
-    { label: "Annexure A5 - DSC Compliance", key: "annexureA5" },
-    { label: "Annexure A6 - eSign API Compliance", key: "annexureA6" },
-    { label: "Annexure VI - Security Evaluation", key: "annexureVI" },
-    { label: "Annexure VIII - Financial Status Report", key: "annexureVIII" },
-    { label: "Same as above (Annexure VIII)", key: "annexureVIIIRepeat" },
-    { label: "Annexure VIII - Auditor Undertaking", key: "annexureVIIIUndertaking" },
+    { label: "Annexure A5 - DSC Compliance", key: "annexureA5", number: 5 },
+    { label: "Annexure A6 - eSign API Compliance", key: "annexureA6", number: 6 },
+    { label: "Annexure VI - Security Evaluation", key: "annexureVI", number: 7 },
   ];
+
+  const downloadUndertakingFile = async () => {
+    const documentTitle = undertakingAuditForm.undertakingFileName;
+    if (!documentTitle) {
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Undertaking file is not available for download.",
+        confirmText: "Ok",
+      });
+      return;
+    }
+
+    try {
+      const response = await AuditService.viewFiles(documentTitle);
+      const blob = new Blob([response.data], { type: response.headers["content-type"] });
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute("download", documentTitle || "AgencyUndertaking.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading undertaking file:", error);
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Unable to download the undertaking file. Please try again.",
+        confirmText: "Ok",
+      });
+    }
+  };
+
+  const downloadAuditorCertificate = async (auditorDescriptionId, certificateName) => {
+    if (!auditorDescriptionId) {
+      return;
+    }
+    try {
+      const response = await AuditService.viewFile(auditorDescriptionId);
+      const blob = new Blob([response.data], { type: response.headers["content-type"] });
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute("download", certificateName || "AuditorCertificate.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading auditor certificate:", error);
+    }
+  };
 
 
 
@@ -703,12 +872,15 @@ const AuditorControls = () => {
 
   return (
     <>
-      {isLoading && <LoaderProgress open={isLoading} />}
+      <LoaderProgress open={isLoading} />
       {!isLoading && (
+        <FormWrapper headingText="3. Detailed Audit Controls">
         <Box component="form" noValidate onSubmit={handleSubmit}>
-          <Typography variant="h4" gutterBottom sx={{ color: "rgb(80, 0, 0)" }}>
-            3. Detailed Audit Controls
-          </Typography>
+          {controlsLoadError ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {controlsLoadError}
+            </Alert>
+          ) : null}
           {allAuditControlList.map((criteria, criteriaIndex) => (
             <React.Fragment key={`criteria-${criteriaIndex}`}>
               <Box sx={{ mb: 2 }}>
@@ -840,20 +1012,25 @@ const AuditorControls = () => {
                                           }.${subIndex + 1}.${controlCounter}`;
 
                                         const matchedData = applicantCriteria.find(
-                                          (item) => item.auditControlId.split("-")[1] === control.auditControllId
+                                          (item) =>
+                                            extractMasterControlId(item?.auditControlId) ===
+                                              String(control.auditControllId) ||
+                                            item?.auditControlId ===
+                                              `${parameterKey}-${control.auditControllId}`
                                         );
-                                        console.log("applicantActionTaken", applicantActionTaken)
 
                                         const actionTakenData = applicantActionTaken.find((item) => {
-                                          const auditControlId = item?.auditReportCriteriaEntity?.auditControlId;
-
-                                          if (auditControlId && auditControlId.includes("-")) {
-                                            const parts = auditControlId.split("-");
-
-                                            return parts[1] === control.auditControllId;
+                                          const auditControlId =
+                                            item?.auditReportCriteriaEntity?.auditControlId;
+                                          if (!auditControlId) {
+                                            return false;
                                           }
-
-                                          return false;
+                                          return (
+                                            extractMasterControlId(auditControlId) ===
+                                              String(control.auditControllId) ||
+                                            auditControlId ===
+                                              `${parameterKey}-${control.auditControllId}`
+                                          );
                                         });
 
                                         const complianceValue = complianceValues[parameterKey] ?? matchedData?.compliance ?? "";
@@ -1006,9 +1183,15 @@ const AuditorControls = () => {
             </React.Fragment>
           ))}
 
-          {/* ---------------------------- upload files ---------------------------- */}
+          {/* ---------------------------- upload / view annexures ---------------------------- */}
+          <Typography
+            variant="h5"
+            sx={{ color: "rgb(80, 0, 0)", mt: 3, mb: 1 }}
+          >
+            Upload Audit Report &amp; Annexures
+          </Typography>
 
-
+          {/* 1. Audit Cover Report — upload */}
           <Box
             sx={{
               display: "flex",
@@ -1028,27 +1211,22 @@ const AuditorControls = () => {
                 mr: 1,
               }}
             >
-            1.  Audit Cover Report: <span style={{ color: "red" }}>*</span>
+              1. Audit Cover Report: <span style={{ color: "red" }}>*</span>
             </Typography>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {/* Hidden input */}
               <input
                 accept=".pdf"
                 id="auditCoverReport"
                 type="file"
                 style={{ display: "none" }}
-                onChange={(e) => handleFilesChanges(e, 'auditCoverReport')}
+                onChange={(e) => handleFilesChanges(e, "auditCoverReport")}
               />
-
-              {/* Choose File Button */}
               <label htmlFor="auditCoverReport">
                 <Button variant="contained" component="span" sx={{ minWidth: 140 }}>
                   Choose File
                 </Button>
               </label>
-
-              {/* File name display */}
               {radioValue.auditCoverReport && (
                 <Typography variant="body2" noWrap>
                   {radioValue.auditCoverReport.name}
@@ -1057,61 +1235,212 @@ const AuditorControls = () => {
             </Box>
           </Box>
 
+          {/* 2. Main Audit Report — Annexure A2 with auditor remarks (view) */}
+          <Box sx={{ my: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ color: "rgb(80, 0, 0)", flexGrow: 1 }}
+              >
+                2. Main Audit Report — Annexure A2 (Approved by Auditor Remarks):
+              </Typography>
+              <IconButton
+                onClick={() => setShowAnnexureA2((prev) => !prev)}
+                size="small"
+                disableRipple
+                sx={{ backgroundColor: "info.main", color: "white" }}
+              >
+                {showAnnexureA2 ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </Box>
+            <Collapse in={showAnnexureA2}>
+              <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1 }}>
+                <AnnexureA2Main />
+              </Box>
+            </Collapse>
+          </Box>
 
+          {/* 3. CA Details — auditor details from undertaking (view) */}
+          <Box sx={{ my: 2 }}>
+            <Typography variant="h6" sx={{ color: "rgb(80, 0, 0)", mb: 1 }}>
+              3. Annexure A2 — CA Details (filled by auditor, approved by CA):
+            </Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: "tablecolor.main" }}>
+                    <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Auditor Name</TableCell>
+                    <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Certificate Type</TableCell>
+                    <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Certificate Expiry</TableCell>
+                    <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Certificate File</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {undertakingAuditForm.auditorDesscription.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} sx={{ border: 0.5 }}>
+                        No auditor / CA details available.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    undertakingAuditForm.auditorDesscription.map((row, index) => (
+                      <TableRow key={`auditor-${row.auditorDescriptionId || index}`}>
+                        <TableCell sx={{ border: 0.5 }}>{row.auditorName || ""}</TableCell>
+                        <TableCell sx={{ border: 0.5 }}>{row.certificateType || ""}</TableCell>
+                        <TableCell sx={{ border: 0.5 }}>{row.certificateExpiry || ""}</TableCell>
+                        <TableCell sx={{ border: 0.5 }}>
+                          {row.certificateName ? (
+                            <Button
+                              variant="text"
+                              size="small"
+                              sx={{ textTransform: "none" }}
+                              onClick={() =>
+                                downloadAuditorCertificate(
+                                  row.auditorDescriptionId,
+                                  row.certificateName
+                                )
+                              }
+                            >
+                              {row.certificateName}
+                            </Button>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
 
+          {/* 4. Audit Schedule — from undertaking (view) */}
+          <Box sx={{ my: 2 }}>
+            <Typography variant="h6" sx={{ color: "rgb(80, 0, 0)", mb: 1 }}>
+              4. Annexure A4 — Audit Schedule (filled by audit agency, approved by CA):
+            </Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: "tablecolor.main" }}>
+                    <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Audit Title</TableCell>
+                    <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Description</TableCell>
+                    <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Start Date</TableCell>
+                    <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>End Date</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {undertakingAuditForm.auditScope.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} sx={{ border: 0.5 }}>
+                        No audit schedule available.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    undertakingAuditForm.auditScope.map((row, index) => (
+                      <TableRow key={`scope-${row.auditScopeId || index}`}>
+                        <TableCell sx={{ border: 0.5 }}>{row.auditTitle || ""}</TableCell>
+                        <TableCell sx={{ border: 0.5 }}>{row.description || ""}</TableCell>
+                        <TableCell sx={{ border: 0.5 }}>{row.startDate || ""}</TableCell>
+                        <TableCell sx={{ border: 0.5 }}>{row.endDate || ""}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
 
-         {uploadSections.map(({ label, key }, index) => (
-  <Box
-    key={key}
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      my: 1,
-      flexWrap: "wrap",
-      gap: 1,
-    }}
-  >
-    {/* Numbered Label */}
-    <Typography
-      variant="h6"
-      sx={{
-        color: "rgb(80, 0, 0)",
-        mb: -1,
-        width: "40%",
-        minWidth: 250,
-        mr: 1,
-      }}
-    >
-      {`${index + 2}. ${label}`}:
-    </Typography>
+          {/* 5–7. Remaining annexure uploads */}
+          {uploadSections.map(({ label, key, number }) => (
+            <Box
+              key={key}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                my: 1,
+                flexWrap: "wrap",
+                gap: 1,
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{
+                  color: "rgb(80, 0, 0)",
+                  mb: -1,
+                  width: "40%",
+                  minWidth: 250,
+                  mr: 1,
+                }}
+              >
+                {`${number}. ${label}`}:
+              </Typography>
 
-    {/* File input and button container */}
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      {/* Hidden input */}
-      <input
-        accept=".pdf"
-        id={key}
-        type="file"
-        style={{ display: "none" }}
-        onChange={(e) => handleFileChanges(e, key)}
-      />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <input
+                  accept=".pdf"
+                  id={key}
+                  type="file"
+                  style={{ display: "none" }}
+                  onChange={(e) => handleFileChanges(e, key)}
+                />
+                <label htmlFor={key}>
+                  <Button variant="contained" component="span" sx={{ minWidth: 140 }}>
+                    Choose File
+                  </Button>
+                </label>
+                {radioValue[key] && (
+                  <Typography variant="body2" noWrap>
+                    {radioValue[key].name}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          ))}
 
-      {/* Choose File Button */}
-      <label htmlFor={key}>
-        <Button variant="contained" component="span" sx={{ minWidth: 140 }}>
-          Choose File
-        </Button>
-      </label>
-
-      {/* File name display */}
-      {radioValue[key] && (
-        <Typography variant="body2" noWrap>
-          {radioValue[key].name}
-        </Typography>
-      )}
-    </Box>
-  </Box>
-))}
+          {/* 8. Auditor Undertaking — download previously submitted / CCA-approved file */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              my: 1,
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                color: "rgb(80, 0, 0)",
+                mb: -1,
+                width: "40%",
+                minWidth: 250,
+                mr: 1,
+              }}
+            >
+              8. Annexure VIII — Auditor Undertaking:
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Button
+                variant="contained"
+                sx={{ minWidth: 140 }}
+                onClick={downloadUndertakingFile}
+                disabled={!undertakingAuditForm.undertakingFileName}
+              >
+                Download File
+              </Button>
+              {undertakingAuditForm.undertakingFileName ? (
+                <Typography variant="body2" noWrap>
+                  {undertakingAuditForm.undertakingFileName}
+                </Typography>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No undertaking file on record
+                </Typography>
+              )}
+            </Box>
+          </Box>
 
 
 
@@ -1173,6 +1502,7 @@ const AuditorControls = () => {
           </Grid>
 
         </Box>
+        </FormWrapper>
       )}
     </>
   );

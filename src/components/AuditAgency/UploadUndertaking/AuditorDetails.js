@@ -16,12 +16,12 @@ import {
     Tooltip,
     IconButton,
 } from '@mui/material';
-import react, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import react, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import Captcha from '../../global/util/Captcha';
 import LoaderProgress from '../../global/common/LoaderProgress';
 import showAlert from '../../global/common/MessageBox/AlertService';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import FormWrapper from '../../global/util/FormWrapper';
 import AuditAgency from '../../../service/AdminService/AuditAgency';
 import AuditorCertificateTypeService from '../../../service/AdminService/AuditorCertificateTypeService';
@@ -29,8 +29,60 @@ import AuditService from '../../../service/AuditService/AuditService';
 
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import styled from '@emotion/styled';
-import API from '../../../api/ApplicationAPI';
 import { decrypt } from '../../global/util/EncryptDecrypt';
+
+const EMPTY_AUDITOR_ROW = { auditorName: '', certificateType: '', file: null, date: '' };
+const FALLBACK_CERTIFICATE_TYPES = ['ISO 27001', 'CISA'];
+
+const normalizeCert = (value) => (value || '').trim().toLowerCase();
+
+const isBothCert = (value) => {
+    const v = normalizeCert(value);
+    return (
+        v === 'both' ||
+        (v.includes('iso') && (v.includes('cisa') || v.includes('ciso')))
+    );
+};
+
+const isIsoCert = (value) => {
+    const v = normalizeCert(value);
+    return v.includes('iso') && !isBothCert(value);
+};
+
+const isOtherCert = (value) => {
+    const v = normalizeCert(value);
+    if (!v || isBothCert(value) || isIsoCert(value)) return false;
+    return (
+        v.includes('cisa') ||
+        v.includes('ciso') ||
+        v.includes('disa') ||
+        v.includes('cissp')
+    );
+};
+
+const isSameCertFamily = (a, b) => {
+    if (!a || !b) return false;
+    if (isIsoCert(a) && isIsoCert(b)) return true;
+    if (isOtherCert(a) && isOtherCert(b)) return true;
+    return normalizeCert(a) === normalizeCert(b);
+};
+
+const getAuditorDisplayName = (auditor) =>
+    `${auditor?.firstName || ''} ${auditor?.lastName || ''}`.trim();
+
+const getAuditorCertProfile = (auditor) => auditor?.certificateType || '';
+
+const auditorHoldsCert = (auditor, selectedCert) => {
+    if (!selectedCert) return true;
+    const profile = getAuditorCertProfile(auditor);
+    if (!profile) return true;
+    if (isBothCert(profile)) {
+        return isIsoCert(selectedCert) || isOtherCert(selectedCert);
+    }
+    if (isIsoCert(selectedCert)) return isIsoCert(profile);
+    if (isOtherCert(selectedCert)) return isOtherCert(profile);
+    return normalizeCert(profile) === normalizeCert(selectedCert);
+};
 
 const VisuallyHiddenInput = styled('input')({
     position: 'absolute',
@@ -70,13 +122,22 @@ const AuditorDetails = (() => {
     const{id}=useParams();
     const ApplicantUserName = id ? decrypt(decodeURIComponent(id)) : '';
     console.log(ApplicantUserName)
-    const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({ auditAgencyName: '',applicantUserName:ApplicantUserName, intentAppId: '', undertakingFile: null, auditors: [], auditorDesscription: [{ auditorName: '', certificateType: '', file: null }], auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }] });
+    const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({
+        auditAgencyName: '',
+        applicantUserName: ApplicantUserName,
+        intentAppId: '',
+        undertakingFile: null,
+        auditors: [],
+        auditorDesscription: [{ ...EMPTY_AUDITOR_ROW }, { ...EMPTY_AUDITOR_ROW }],
+        auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }],
+    });
     const [formErrors, setFormErrors] = useState({});
     const [captchaText, setCaptchaText] = useState('');
     const [captchaInput, setCaptchaInput] = useState('');
     const [isLoading, setLoading] = useState(false);
     const [allAuditAgencyList, setAllAuditAgencyList] = useState([]);
     const [allAuditAgencySelectionList, setAllAuditAgencySelectionList] = useState([]);
+    const [certificateTypes, setCertificateTypes] = useState(FALLBACK_CERTIFICATE_TYPES);
     const loggedInUsername = useSelector((state) => state.jwtAuthentication.username);
    
    
@@ -128,22 +189,130 @@ const AuditorDetails = (() => {
         console.log("After Update:", audiAgencyFormValues); // Debugging state after update
     };
 
-    // Options for dropdowns
-    const auditorNames = ['John Doe', 'Jane Smith', 'Alice Johnson'];
-    const certificateTypes = ['ISO 9001', 'ISO 27001', 'ISO 14001'];
-
-    // Handle dropdown changes
     const handleSelectChange = (index, field, value) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditorDesscription[index][field] = value;  // Access the first object and update the auditorDesscription array
-        setAudiAgencyFormValues(updatedRows);
+        setAudiAgencyFormValues((prev) => {
+            const updatedRows = (prev.auditorDesscription || []).map((row, i) =>
+                i === index ? { ...row } : row
+            );
+            const row = { ...updatedRows[index], [field]: value };
+            const auditors = prev.auditors || [];
+
+            if (field === 'auditorName') {
+                const auditor = auditors.find(
+                    (item) => getAuditorDisplayName(item) === value
+                );
+                if (
+                    row.certificateType &&
+                    auditor &&
+                    !auditorHoldsCert(auditor, row.certificateType)
+                ) {
+                    row.certificateType = '';
+                }
+            }
+
+            if (field === 'certificateType') {
+                const auditor = auditors.find(
+                    (item) => getAuditorDisplayName(item) === (row.auditorName || '').trim()
+                );
+                if (row.auditorName && auditor && !auditorHoldsCert(auditor, value)) {
+                    row.auditorName = '';
+                }
+            }
+
+            updatedRows[index] = row;
+            return { ...prev, auditorDesscription: updatedRows };
+        });
     };
 
-    // Handle file upload
     const handleFileChange = (index, event) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditorDesscription[index].file = event.target.files[0];  // Update file in auditorDesscription
-        setAudiAgencyFormValues(updatedRows);
+        const file = event.target.files?.[0] || null;
+        setAudiAgencyFormValues((prev) => {
+            const updatedRows = (prev.auditorDesscription || []).map((row, i) =>
+                i === index ? { ...row, file } : row
+            );
+            return { ...prev, auditorDesscription: updatedRows };
+        });
+    };
+
+    const getAvailableAuditorsForRow = (rowIndex) => {
+        const rows = audiAgencyFormValues.auditorDesscription || [];
+        const allAuditors = audiAgencyFormValues.auditors || [];
+        const currentRow = rows[rowIndex] || {};
+        const currentName = (currentRow.auditorName || '').trim();
+
+        const usedAuditorNames = new Set(
+            rows
+                .map((row, i) =>
+                    i !== rowIndex && row.auditorName ? row.auditorName.trim() : null
+                )
+                .filter(Boolean)
+        );
+
+        const usedCertTypes = rows
+            .map((row, i) => (i !== rowIndex ? row.certificateType : null))
+            .filter(Boolean);
+
+        return allAuditors.filter((auditor) => {
+            const name = getAuditorDisplayName(auditor);
+            if (!name) return false;
+
+            // Keep the currently selected value visible in its own row
+            if (currentName && name === currentName) return true;
+
+            // Rule 3: once chosen (including Both for one cert), auditor cannot appear again
+            if (usedAuditorNames.has(name)) return false;
+
+            const profile = getAuditorCertProfile(auditor);
+
+            // Rules 1, 2, 4: hide auditors of a cert family already used in another row.
+            // Both-profile auditors remain eligible for the other certification.
+            for (const usedCert of usedCertTypes) {
+                if (isIsoCert(usedCert) && isIsoCert(profile)) return false;
+                if (isOtherCert(usedCert) && isOtherCert(profile)) return false;
+            }
+
+            if (
+                currentRow.certificateType &&
+                !auditorHoldsCert(auditor, currentRow.certificateType)
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+    };
+
+    const getAvailableCertificateTypesForRow = (rowIndex) => {
+        const rows = audiAgencyFormValues.auditorDesscription || [];
+        const currentRow = rows[rowIndex] || {};
+        const usedCertTypes = rows
+            .map((row, i) => (i !== rowIndex ? row.certificateType : null))
+            .filter(Boolean);
+
+        let types = (certificateTypes || []).filter((type) => !isBothCert(type));
+
+        // Rule 4: once a certification type is selected, hide it in other rows
+        types = types.filter((type) => {
+            if (
+                currentRow.certificateType &&
+                normalizeCert(type) === normalizeCert(currentRow.certificateType)
+            ) {
+                return true;
+            }
+            return !usedCertTypes.some((used) => isSameCertFamily(used, type));
+        });
+
+        if (currentRow.auditorName) {
+            const auditor = (audiAgencyFormValues.auditors || []).find(
+                (item) =>
+                    getAuditorDisplayName(item) === currentRow.auditorName.trim()
+            );
+            if (auditor) {
+                types = types.filter((type) => auditorHoldsCert(auditor, type));
+            }
+        }
+
+        return types;
     };
 
     const [selectedIndex, setSelectedIndex] = useState(null); // Track the selected row index
@@ -182,18 +351,14 @@ const AuditorDetails = (() => {
   
 
 
-    // Add a new row
     const handleAddRow = () => {
-        setAudiAgencyFormValues((prevState) => {
-            const updatedRows = { ...prevState };
-            updatedRows.auditorDesscription.push({
-                auditorName: '',
-                certificateType: '',
-                file: null,
-                date: '', 
-            });
-            return updatedRows;
-        });
+        setAudiAgencyFormValues((prevState) => ({
+            ...prevState,
+            auditorDesscription: [
+                ...(prevState.auditorDesscription || []),
+                { ...EMPTY_AUDITOR_ROW },
+            ],
+        }));
     };
 
     const handleAddAuditScopeRow = () => {
@@ -208,9 +373,17 @@ const AuditorDetails = (() => {
     };
     const handleDeleteRow = (index) => {
         setAudiAgencyFormValues((prevState) => {
-            const updatedRows = { ...prevState };
-            updatedRows.auditorDesscription = updatedRows.auditorDesscription.filter((_, i) => i !== index);  // Remove the row
-            return updatedRows;
+            const remaining = (prevState.auditorDesscription || []).filter(
+                (_, i) => i !== index
+            );
+            return {
+                ...prevState,
+                // Keep at least two rows so minimum requirement is visible in UI
+                auditorDesscription:
+                    remaining.length >= 2
+                        ? remaining
+                        : [...remaining, { ...EMPTY_AUDITOR_ROW }].slice(0, 2),
+            };
         });
     };
 
@@ -302,11 +475,10 @@ const AuditorDetails = (() => {
                     emailId: selectedAgency?.emailId || [],
                     auditors: selectedAgency?.auditors || [],
                     undertakingFile: null,
-                    auditorDesscription: [{ auditorName: '', certificateType: '', file: null }],
+                    auditorDesscription: [{ ...EMPTY_AUDITOR_ROW }, { ...EMPTY_AUDITOR_ROW }],
                     auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }],
                     applicantUserName: ApplicantUserName || '',
                     intentAppId: '',
-
                 });
     
                 return prevAgencyList; // Keep state unchanged
@@ -321,7 +493,25 @@ const AuditorDetails = (() => {
             setLoading(false);
         }
     };
+    const loadCertificateTypes = async () => {
+        try {
+            const response = await AuditorCertificateTypeService.getAllAuditorCertificateTypeList();
+            const list = Array.isArray(response?.data) ? response.data : [];
+            const activeTypes = list
+                .filter((item) => item?.status === 'Active' && item?.certificateName)
+                .map((item) => item.certificateName)
+                .filter((name) => !isBothCert(name));
+            if (activeTypes.length > 0) {
+                setCertificateTypes(activeTypes);
+            }
+        } catch (error) {
+            // Keep fallback certificate types when master API is unavailable
+            console.warn('Failed to load auditor certificate types, using fallback list.', error);
+        }
+    };
+
     useEffect(() => {
+        loadCertificateTypes();
         getAllAuditAgency().then(() => getAllAuditAgencySelection());
     }, []);
 
@@ -343,10 +533,24 @@ const AuditorDetails = (() => {
         }
 
         const auditorRows = audiAgencyFormValues.auditorDesscription || [];
-        if (!auditorRows.length) {
-            errors.auditors = 'Please add at least one auditor.';
+        const completedAuditorRows = auditorRows.filter(
+            (row) =>
+                row.auditorName?.trim() &&
+                row.certificateType?.trim() &&
+                row.file
+        );
+
+        if (completedAuditorRows.length < 2) {
+            errors.auditors = 'Minimum 2 Auditor Details are Required';
         } else {
             auditorRows.forEach((row, index) => {
+                const hasAnyValue =
+                    row.auditorName?.trim() ||
+                    row.certificateType?.trim() ||
+                    row.file ||
+                    row.date;
+                if (!hasAnyValue) return;
+
                 if (!row.auditorName?.trim()) {
                     errors[`auditorName_${index}`] = `Auditor name is required for row ${index + 1}.`;
                 }
@@ -355,6 +559,9 @@ const AuditorDetails = (() => {
                 }
                 if (!row.file) {
                     errors[`auditorFile_${index}`] = `Certificate file is required for row ${index + 1}.`;
+                }
+                if (!(row.certificateExpiry || row.date)) {
+                    errors[`certificateExpiry_${index}`] = `Certificate expiry is required for row ${index + 1}.`;
                 }
             });
         }
@@ -397,9 +604,10 @@ const AuditorDetails = (() => {
         const errors = validateForm();
         if (Object.keys(errors).length > 0) {
             setFormErrors(errors);
-            const firstError = Object.values(errors)[0];
+            const firstError =
+                errors.auditors || Object.values(errors)[0];
             showAlert({
-                messageTitle: 'Validation Error',
+                messageTitle: 'Error',
                 messageContent: firstError,
                 confirmText: 'Ok',
             });
@@ -437,6 +645,11 @@ const AuditorDetails = (() => {
 audiAgencyFormValues.auditorDesscription.forEach((item, index) => {
     formData.append(`auditorDesscription[${index}].auditorName`, item.auditorName);
     formData.append(`auditorDesscription[${index}].certificateType`, item.certificateType);
+    // UI field is `date`; API/DTO field is certificateExpiry
+    const expiry = item.certificateExpiry || item.date || '';
+    if (expiry) {
+        formData.append(`auditorDesscription[${index}].certificateExpiry`, expiry);
+    }
     if (item.file) {
         formData.append(`auditorDesscription[${index}].file`, item.file);
     }
@@ -552,14 +765,17 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                         displayEmpty
                                         fullWidth
                                         size="small"
+                                        error={!!formErrors[`auditorName_${index}`]}
                                     >
                                         <MenuItem value="" disabled>Select Auditor</MenuItem>
-                                        {Array.isArray(audiAgencyFormValues?.auditors) &&
-                                        audiAgencyFormValues.auditors.map((auditor, auditorIndex) => (
-                                            <MenuItem key={auditorIndex} value={`${auditor.firstName} ${auditor.lastName || ''}`.trim()}>
-                                            {auditor.firstName || auditor.lastName ? `${auditor.firstName} ${auditor.lastName || ''}`.trim() : 'Unnamed Auditor'}
-                                            </MenuItem>
-                                        ))}
+                                        {getAvailableAuditorsForRow(index).map((auditor, auditorIndex) => {
+                                            const displayName = getAuditorDisplayName(auditor);
+                                            return (
+                                                <MenuItem key={`${displayName}-${auditorIndex}`} value={displayName}>
+                                                    {displayName || 'Unnamed Auditor'}
+                                                </MenuItem>
+                                            );
+                                        })}
                                     </Select>
                                     </TableCell>
 
@@ -571,10 +787,11 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                         displayEmpty
                                         fullWidth
                                         size="small"
+                                        error={!!formErrors[`certificateType_${index}`]}
                                     >
                                         <MenuItem value="" disabled>Select Certificate Type</MenuItem>
-                                        {certificateTypes.map((type) => (
-                                        <MenuItem key={type} value={type}>{type}</MenuItem>
+                                        {getAvailableCertificateTypesForRow(index).map((type) => (
+                                            <MenuItem key={type} value={type}>{type}</MenuItem>
                                         ))}
                                     </Select>
                                     </TableCell>

@@ -14,6 +14,7 @@ import IssueLicense from './IssueLicense';
 import FirmApplicationForm from '../../../../service/NewLicenseService/FirmApplicationForm';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import GovernmentAgencyForm from '../../../../service/NewLicenseService/GovernmentAgencyForm';
+import { hasLicenseAction } from '../../../global/util/licenseAcquisitionWorkflow';
 
 const NewApplication = () => {
     const [allApplicationList, setAllApplicationList] = useState([]);
@@ -139,7 +140,7 @@ const NewApplication = () => {
     }
     
     
-    const viewApplication = async (username, apptype, status, intentAppId) =>{
+    const viewApplication = async (username, apptype, status, intentAppId, allowedActions = []) =>{
 
         let component = null;
 
@@ -171,8 +172,8 @@ const NewApplication = () => {
                 showAlert({
                     messageTitle: 'View Application',
                     messageContent: component,
-                    buttonOneText: status==='BANK_GUARANTEE_PROOF_UPLOADED'?'Submit License Details':'Ok',
-                    onButtonOneClick: status==='BANK_GUARANTEE_PROOF_UPLOADED'?() => submitLicenseDetails(intentAppId, username, applicantName):'',
+                    buttonOneText: hasLicenseAction(allowedActions, 'ISSUE_LICENSE') ? 'Submit License Details' : 'Ok',
+                    onButtonOneClick: hasLicenseAction(allowedActions, 'ISSUE_LICENSE') ? () => submitLicenseDetails(intentAppId, username, applicantName) : undefined,
                     enableHeaderCloseBtn: true,
                     disableOutsideKeyDown: true,
                     maxWidth:'md',
@@ -208,7 +209,7 @@ const NewApplication = () => {
                 renderCell: (params) => (
                     <>
                         <Tooltip title="View">
-                            <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="View" onClick={() => viewApplication(params.row.applicantUserName, params.row.applicationType, params.row.applicationCurrentStatus, params.row.intentAppId)} />
+                            <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="View" onClick={() => viewApplication(params.row.applicantUserName, params.row.applicationType, params.row.applicationCurrentStatus, params.row.intentAppId, params.row.allowedActions)} />
                         </Tooltip>
                         
                     </>

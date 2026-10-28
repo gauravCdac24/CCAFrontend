@@ -1360,15 +1360,15 @@ const downloads = async (momFile) => {
         }
       />
       <FormControlLabel
-        value="Office"
+        value="Official"
         control={
           <Radio
-            checked={basicDetailsFormValues2.communicationAddress === 'Office'}
+            checked={basicDetailsFormValues2.communicationAddress === 'Official'}
           />
         }
         label={
           <span>
-            Office {basicDetailsFormValues2.communicationAddress === 'Office' && <span>✓</span>}
+            Office {basicDetailsFormValues2.communicationAddress === 'Official' && <span>✓</span>}
           </span>
         }
       />

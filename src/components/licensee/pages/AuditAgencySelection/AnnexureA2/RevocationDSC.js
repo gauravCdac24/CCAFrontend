@@ -82,33 +82,30 @@ const RevocationDSC = () => {
     setAuditorRemarks(value);
   };
 
-  // Validation function
+  // Validation function (optional fields; format/length only when value present)
   const validateForm = () => {
     let newErrors = {};
 
-    // Validate DSC Revoked Count
-    if (!revocationData.dscRevokedCount || revocationData.dscRevokedCount.trim().length === 0) {
-      newErrors.dscRevokedCount = 'Number of DSCs revoked cannot be empty';
-    } else if (!DIGITS_PATTERN.test(revocationData.dscRevokedCount)) {
-      newErrors.dscRevokedCount = 'Only digits are allowed, maximum 9 digits';
+    if (revocationData.dscRevokedCount && revocationData.dscRevokedCount.trim().length > 0) {
+      if (!DIGITS_PATTERN.test(revocationData.dscRevokedCount)) {
+        newErrors.dscRevokedCount = 'Only digits are allowed, maximum 9 digits';
+      }
     }
 
-    // Validate Revocation Request Reason
-    if (!revocationData.revocReqReason || revocationData.revocReqReason.trim().length === 0) {
-      newErrors.revocReqReason = 'Revocation request reasons cannot be empty';
-    } else if (revocationData.revocReqReason.length < 3 || revocationData.revocReqReason.length > 200) {
-      newErrors.revocReqReason = 'The length must be between 3 and 200 characters';
-    } else if (!STRING_PATTERN.test(revocationData.revocReqReason)) {
-      newErrors.revocReqReason = 'Only alphabets, numbers, and characters (.,&-) are allowed';
+    if (revocationData.revocReqReason && revocationData.revocReqReason.trim().length > 0) {
+      if (revocationData.revocReqReason.length < 3 || revocationData.revocReqReason.length > 200) {
+        newErrors.revocReqReason = 'The length must be between 3 and 200 characters';
+      } else if (!STRING_PATTERN.test(revocationData.revocReqReason)) {
+        newErrors.revocReqReason = 'Only alphabets, numbers, and characters (.,&-) are allowed';
+      }
     }
 
-    // Validate DSC Revoked Reason
-    if (!revocationData.dscRevokedReason || revocationData.dscRevokedReason.trim().length === 0) {
-      newErrors.dscRevokedReason = 'DSC revoked reasons cannot be empty';
-    } else if (revocationData.dscRevokedReason.length < 3 || revocationData.dscRevokedReason.length > 200) {
-      newErrors.dscRevokedReason = 'The length must be between 3 and 200 characters';
-    } else if (!STRING_PATTERN.test(revocationData.dscRevokedReason)) {
-      newErrors.dscRevokedReason = 'Only alphabets, numbers, and characters (.,&-) are allowed';
+    if (revocationData.dscRevokedReason && revocationData.dscRevokedReason.trim().length > 0) {
+      if (revocationData.dscRevokedReason.length < 3 || revocationData.dscRevokedReason.length > 200) {
+        newErrors.dscRevokedReason = 'The length must be between 3 and 200 characters';
+      } else if (!STRING_PATTERN.test(revocationData.dscRevokedReason)) {
+        newErrors.dscRevokedReason = 'Only alphabets, numbers, and characters (.,&-) are allowed';
+      }
     }
 
     return newErrors;

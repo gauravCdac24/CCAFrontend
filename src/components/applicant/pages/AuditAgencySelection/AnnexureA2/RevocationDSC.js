@@ -114,41 +114,32 @@ const RevocationDSC = () => {
   const validateForm = () => {
     let newErrors = {};
 
-    // --- FIX 1: Convert to String() before trimming ---
-    // This prevents crash if the value is a Number (e.g., 10)
+    // Format/type only when value present
     const countStr = String(revocationData.dscRevokedCount || "");
-
-    if (!revocationData.dscRevokedCount || countStr.trim().length === 0) {
-      newErrors.dscRevokedCount = "Number of DSCs revoked cannot be empty";
-    } else if (!DIGITS_PATTERN.test(countStr)) {
+    if (countStr.trim().length > 0 && !DIGITS_PATTERN.test(countStr)) {
       newErrors.dscRevokedCount = "Only digits are allowed, maximum 9 digits";
     }
 
-    // Validate Revocation Request Reason
     const reqReasonStr = String(revocationData.revocReqReason || "");
-    if (!revocationData.revocReqReason || reqReasonStr.trim().length === 0) {
-      newErrors.revocReqReason = "Revocation request reasons cannot be empty";
-    } else if (reqReasonStr.length < 3 || reqReasonStr.length > 200) {
-      newErrors.revocReqReason =
-        "The length must be between 3 and 200 characters";
-    } else if (!STRING_PATTERN.test(reqReasonStr)) {
-      newErrors.revocReqReason =
-        "Only alphabets, numbers, and characters (.,&-) are allowed";
+    if (reqReasonStr.trim().length > 0) {
+      if (reqReasonStr.length < 3 || reqReasonStr.length > 200) {
+        newErrors.revocReqReason =
+          "The length must be between 3 and 200 characters";
+      } else if (!STRING_PATTERN.test(reqReasonStr)) {
+        newErrors.revocReqReason =
+          "Only alphabets, numbers, and characters (.,&-) are allowed";
+      }
     }
 
-    // Validate DSC Revoked Reason
     const revokedReasonStr = String(revocationData.dscRevokedReason || "");
-    if (
-      !revocationData.dscRevokedReason ||
-      revokedReasonStr.trim().length === 0
-    ) {
-      newErrors.dscRevokedReason = "DSC revoked reasons cannot be empty";
-    } else if (revokedReasonStr.length < 3 || revokedReasonStr.length > 200) {
-      newErrors.dscRevokedReason =
-        "The length must be between 3 and 200 characters";
-    } else if (!STRING_PATTERN.test(revokedReasonStr)) {
-      newErrors.dscRevokedReason =
-        "Only alphabets, numbers, and characters (.,&-) are allowed";
+    if (revokedReasonStr.trim().length > 0) {
+      if (revokedReasonStr.length < 3 || revokedReasonStr.length > 200) {
+        newErrors.dscRevokedReason =
+          "The length must be between 3 and 200 characters";
+      } else if (!STRING_PATTERN.test(revokedReasonStr)) {
+        newErrors.dscRevokedReason =
+          "Only alphabets, numbers, and characters (.,&-) are allowed";
+      }
     }
 
     return newErrors;

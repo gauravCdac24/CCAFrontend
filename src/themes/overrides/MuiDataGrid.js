@@ -28,6 +28,9 @@ const MuiDataGrid = (theme) =>{
                     backgroundColor: theme.palette.tablecolor.body,
                     color: theme.palette.tablecolor.text,
                   },   
+                columnHeaders: {
+                   backgroundColor: theme.palette.tablecolor.main,
+                },
                 columnHeader: { 
                    backgroundColor: theme.palette.tablecolor.main,
                    color: theme.palette.tablecolor.text,

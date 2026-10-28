@@ -17,7 +17,7 @@ import { useSelector } from 'react-redux';
 //Errors
 const errorMsg = {
     ekycModeTitle: {
-        blank: "Please enter EKYC Mode.",
+        blank: "Please enter eKYC Mode.",
         length: "The length must be between 3 and 150 characters.",
         format: "Only alphabets and space are allowed."
     },
@@ -116,7 +116,7 @@ const AddEKYCMode = () => {
                 .then((response)=>{
 
                     showAlert({
-                        messageTitle: 'Add EKYC Mode',
+                        messageTitle: 'Add eKYC Mode',
                         messageContent: response.data,
                         confirmText: 'Ok',
                         onConfirm: () => {navigate(`${rolePath}/ekycmode`)},
@@ -180,7 +180,7 @@ const AddEKYCMode = () => {
                 </Box>
 
             
-                <FormWrapper headingText="Add EKYC Mode">
+                <FormWrapper headingText="Add eKYC Mode">
 
 
                     <Box component="form" noValidate sx={{ mt: 2, p: 2}} onSubmit={handleFormSubmit} >
@@ -189,14 +189,14 @@ const AddEKYCMode = () => {
 
                             <Grid item xs={12} sm>
                                 <InputLabel shrink={false} htmlFor={"ekycModeTitle"}>
-                                    <Typography variant='body1'>EKYC Mode*</Typography>
+                                    <Typography variant='body1'>eKYC Mode*</Typography>
                                 </InputLabel>
                                 <TextField
                                     id="ekycModeTitle"
                                     margin="dense"
                                     required
                                     fullWidth
-                                    placeholder='EKYC Mode'
+                                    placeholder='eKYC Mode'
                                     name="ekycModeTitle"
                                     variant='outlined'
                                     error={!!formErrors.ekycModeTitle}

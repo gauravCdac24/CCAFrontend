@@ -51,7 +51,7 @@ const Dashboard = () =>{
         data: [20, 5, 10, 0, 30, 0, 17, 0, 15, 0, 0, 0]
     },
     {
-        name: 'Esign Issued',
+        name: 'eSign Issued',
         data: [3, 2, 10, 60, 0, 0, 40, 0, 70, 0, 0, 0]
     },
     

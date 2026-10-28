@@ -6,6 +6,7 @@ import Undertaking from '../../../../service/AdminService/Undertaking';
 import { useSelector } from 'react-redux';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import { useNavigate } from 'react-router-dom';
+import printApplicationPreview from '../../../global/util/printApplicationPreview';
 
 const Declarization = ({ handlePreview, handleNext, handleBack, data }) => {
   const [checkedState, setCheckedState] = useState({});
@@ -150,6 +151,24 @@ const Yes = () => {
       disableOutsideKeyDown: true,
       maxWidth: 'md',
       fullWidth: true,
+      headerButtonText: 'Print PDF',
+      onHeaderButtonClick: async ({ contentElement }) => {
+        try {
+          await printApplicationPreview({
+            contentElement: contentElement(),
+            fetchFile: (appDocId) => ApplicationForm.viewFile(appDocId),
+            userName,
+            title: 'Renewal Application Form Preview',
+          });
+        } catch (error) {
+          showAlert({
+            messageTitle: 'Print PDF',
+            messageContent: error?.message || 'Unable to prepare the application for printing.',
+            confirmText: 'Ok',
+            enableHeaderCloseBtn: true,
+          });
+        }
+      },
     });
   };
 

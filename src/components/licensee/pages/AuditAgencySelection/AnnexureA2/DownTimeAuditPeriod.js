@@ -65,36 +65,37 @@ const DownTimeAuditPeriod = () => {
   const validate = () => {
     let newErrors = {};
     
-    if (!caData.downTimeSecond.trim()) {
-      newErrors.downTimeSecond = 'Second cannot be empty.';
-    } else if (!DIGITS_PATTERN.test(caData.downTimeSecond)) {
-      newErrors.downTimeSecond = 'Only digits are allowed.';
-    } else if (parseInt(caData.downTimeSecond) > 59) {
-      newErrors.downTimeSecond = 'Maximum 59 seconds.';
+    // Optional fields; format/range only when value present
+    if (caData.downTimeSecond && caData.downTimeSecond.trim()) {
+      if (!DIGITS_PATTERN.test(caData.downTimeSecond)) {
+        newErrors.downTimeSecond = 'Only digits are allowed.';
+      } else if (parseInt(caData.downTimeSecond) > 59) {
+        newErrors.downTimeSecond = 'Maximum 59 seconds.';
+      }
     }
     
-    if (!caData.downTimeMinute.trim()) {
-      newErrors.downTimeMinute = 'Minute cannot be empty.';
-    } else if (!DIGITS_PATTERN.test(caData.downTimeMinute)) {
-      newErrors.downTimeMinute = 'Only digits are allowed.';
-    } else if (parseInt(caData.downTimeMinute) > 59) {
-      newErrors.downTimeMinute = 'Maximum 59 minutes.';
+    if (caData.downTimeMinute && caData.downTimeMinute.trim()) {
+      if (!DIGITS_PATTERN.test(caData.downTimeMinute)) {
+        newErrors.downTimeMinute = 'Only digits are allowed.';
+      } else if (parseInt(caData.downTimeMinute) > 59) {
+        newErrors.downTimeMinute = 'Maximum 59 minutes.';
+      }
     }
     
-    if (!caData.downTimeHour.trim()) {
-      newErrors.downTimeHour = 'Hour cannot be empty.';
-    } else if (!DIGITS_PATTERN.test(caData.downTimeHour)) {
-      newErrors.downTimeHour = 'Only digits are allowed.';
-    } else if (caData.downTimeHour.length > 4) {
-      newErrors.downTimeHour = 'Only 4 digits are allowed.';
+    if (caData.downTimeHour && caData.downTimeHour.trim()) {
+      if (!DIGITS_PATTERN.test(caData.downTimeHour)) {
+        newErrors.downTimeHour = 'Only digits are allowed.';
+      } else if (caData.downTimeHour.length > 4) {
+        newErrors.downTimeHour = 'Only 4 digits are allowed.';
+      }
     }
     
-    if (!caData.reasonAndMeasuresTaken.trim()) {
-      newErrors.reasonAndMeasuresTaken = 'Explanation cannot be empty.';
-    } else if (caData.reasonAndMeasuresTaken.length < 3 || caData.reasonAndMeasuresTaken.length > 500) {
-      newErrors.reasonAndMeasuresTaken = 'The length must be between 3 and 500 characters.';
-    } else if (!STRING_PATTERN.test(caData.reasonAndMeasuresTaken)) {
-      newErrors.reasonAndMeasuresTaken = 'Only alphabets, numbers, characters ().,&- are allowed';
+    if (caData.reasonAndMeasuresTaken && caData.reasonAndMeasuresTaken.trim()) {
+      if (caData.reasonAndMeasuresTaken.length < 3 || caData.reasonAndMeasuresTaken.length > 500) {
+        newErrors.reasonAndMeasuresTaken = 'The length must be between 3 and 500 characters.';
+      } else if (!STRING_PATTERN.test(caData.reasonAndMeasuresTaken)) {
+        newErrors.reasonAndMeasuresTaken = 'Only alphabets, numbers, characters ().,&- are allowed';
+      }
     }
     
     setErrors(newErrors);

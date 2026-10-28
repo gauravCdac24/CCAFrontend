@@ -143,7 +143,7 @@ const ViewESignAPIVersion = () => {
         () => [
             { field: 'id', headerName: 'Sl. No.', resizable: false, width: 90 },
             { field: 'apiVersion', headerName: 'API Version', resizable: false, width: 150 },
-            { field: 'esignApiSpecId', headerName: 'Esign API Specification', resizable: false, width: 150,
+            { field: 'esignApiSpecId', headerName: 'eSign API Specification', resizable: false, width: 150,
                 renderCell: (params) => (
                     <>{params.row.esignApiSpecId.apiSpecification}</>
                 ), },

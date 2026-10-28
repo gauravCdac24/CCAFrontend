@@ -37,7 +37,7 @@ const ViewMinimumAttemptsDetails = ({ countryObj }) => {
 
             <Grid container spacing={2}>
                 <Grid item sm={6}>
-                    <Typography color="primary.tabletext" variant="h6">eSignApplication Review:</Typography>
+                    <Typography color="primary.tabletext" variant="h6">eSign Application Review:</Typography>
                 </Grid>
                 <Grid item sm={6}>
                     <Typography  variant="h6">{countryObj.esignApplicationReview}</Typography>

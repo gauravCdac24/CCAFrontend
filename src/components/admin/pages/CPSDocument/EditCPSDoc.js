@@ -112,8 +112,6 @@ const EditCPSDoc = () => {
             if (file.size > maxSize) {
                 errors.file = errorMsg.file.length;
             }
-        } else {
-            errors.file = errorMsg.file.blank;
         }
     };
 
@@ -170,13 +168,13 @@ const EditCPSDoc = () => {
             if (captchaInput === captchaText) {
                 setLoading(true);
                 const form = new FormData();
-                form.append('file', cpsDocFormValues.file);
-                const date = new Date(cpsDocFormValues.publishDate);
-                const formattedDate = date.toISOString().split('T')[0];
-                form.append('publishDate', formattedDate);
-                form.append('version', cpsDocFormValues.version);
-                form.append('cpsDocId',encrypt(cpsDocFormValues.cpsDocId))
-                form.append('created',cpsDocFormValues.created)
+                if (cpsDocFormValues.file) {
+                    form.append('file', cpsDocFormValues.file);
+                }
+                form.append('publishDate', dayjs(cpsDocFormValues.publishDate).format('YYYY-MM-DD'));
+                form.append('version', cpsDocFormValues.version.trim());
+                form.append('cpsDocId', encrypt(cpsDocFormValues.cpsDocId));
+                form.append('created', cpsDocFormValues.created);
                 
 
                 CPSDocService.updateCpsDoc(form)
@@ -282,7 +280,7 @@ const EditCPSDoc = () => {
                         </Grid>
                         <Grid item  xs={12} sm>
                                     <InputLabel shrink={false} htmlFor={"pdffile"}>
-                                        <Typography variant='body1'>Upload File*</Typography>
+                                        <Typography variant='body1'>Upload File (optional — leave blank to keep existing)</Typography>
                                     </InputLabel>
 
                                     <Grid container direction="row" sx={{border: '1px solid #cfcfcf', borderRadius: '5px'}}>

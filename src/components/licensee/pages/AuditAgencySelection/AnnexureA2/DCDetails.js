@@ -92,11 +92,11 @@ const DCDetails = () => {
     getCaLocationDetails();
   }, []);
 
-  // Validation functions
+  // Validation functions (optional; format only when value/file present)
   const validateLocation = (location) => {
     const pattern = /^[A-Za-z0-9().,&\-\s]+$/;
     if (!location || location.trim() === '') {
-      return 'Location cannot be empty.';
+      return '';
     } else if (location.length < 3 || location.length > 100) {
       return 'Location length must be between 3 and 100 characters.';
     } else if (!pattern.test(location)) {
@@ -106,7 +106,7 @@ const DCDetails = () => {
   };
 
   const validateFile = (file) => {
-    if (!file) return 'Please upload a file.';
+    if (!file) return '';
     if (!file.name.endsWith('.xlsx')) return 'Invalid file format. Only .xlsx files are allowed.';
     if (file.size > 5 * 1024 * 1024) return 'File size must be less than 5 MB.';
     return '';

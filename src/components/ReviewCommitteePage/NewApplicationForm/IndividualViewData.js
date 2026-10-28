@@ -63,6 +63,7 @@ const ViewCessationApplication = ()=> {
     userName:userName,
     reviewerUserName:reviewerUserName,
     isRejected:false,
+    isApproved:false,
     reviewDate:'',
     file1:''
   });
@@ -111,7 +112,7 @@ const handleFileChange1 = (e) => {
     }
 };
 
-  const initialKeys = ['userName', 'reviewerUserName', 'isRejected','reviewDate','file1','remarks'];
+  const initialKeys = ['userName', 'reviewerUserName', 'isRejected', 'isApproved', 'reviewDate','file1','remarks'];
   const hasExtraKeys = Object.keys(checkedRows).some(key => !initialKeys.includes(key));
 
 
@@ -763,6 +764,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
 
     const formData=new FormData();
     checkedRows.isRejected = false;
+    checkedRows.isApproved = true;
     Object.entries(checkedRows).forEach(([key, value]) => {
       if (key === 'file1') {
         formData.append(key, value);
@@ -770,7 +772,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
         formData.append(key, String(value));
       }
     });
-    ApplicationForm.addAllAproved(formData)
+    ApplicationReview.addNewIndividualReview(formData)
     .then((response) => {
       //console.log(response.data)
         showAlert({
@@ -813,6 +815,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
   const handleSubmit = () => {
     
     const formData=new FormData();
+    checkedRows.isApproved = false;
     if(2<=  basicDetailesValues?.reviewApplications.length){
       checkedRows.isRejected = true;
     }
@@ -1419,15 +1422,15 @@ const handleDownloads = async (appDocId, documentTitle) => {
         }
       />
       <FormControlLabel
-        value="Office"
+        value="Official"
         control={
           <Radio
-            checked={basicDetailsFormValues2.communicationAddress === 'Office'}
+            checked={basicDetailsFormValues2.communicationAddress === 'Official'}
           />
         }
         label={
           <span>
-            Office {basicDetailsFormValues2.communicationAddress === 'Office' && <span>✓</span>}
+            Office {basicDetailsFormValues2.communicationAddress === 'Official' && <span>✓</span>}
           </span>
         }
       />
@@ -3124,15 +3127,15 @@ const handleDownloads = async (appDocId, documentTitle) => {
         }
       />
       <FormControlLabel
-        value="Office"
+        value="Official"
         control={
           <Radio
-            checked={basicDetailsFormValues2.communicationAddress === 'Office'}
+            checked={basicDetailsFormValues2.communicationAddress === 'Official'}
           />
         }
         label={
           <span>
-            Office {basicDetailsFormValues2.communicationAddress === 'Office' && <span>✓</span>}
+            Office {basicDetailsFormValues2.communicationAddress === 'Official' && <span>✓</span>}
           </span>
         }
       />

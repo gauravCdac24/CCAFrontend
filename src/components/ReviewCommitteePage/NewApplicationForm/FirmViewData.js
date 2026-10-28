@@ -44,6 +44,7 @@ const FirmViewData = () => {
     userName:userName,
     reviewerUserName:reviewerUserName,
     isRejected:false,
+    isApproved:false,
     reviewDate:'',
     file1:''
   });
@@ -92,7 +93,7 @@ const handleFileChange1 = (e) => {
 };
 
 
-  const initialKeys = ['userName', 'reviewerUserName', 'isRejected','reviewDate','file1','remarks'];
+  const initialKeys = ['userName', 'reviewerUserName', 'isRejected', 'isApproved', 'reviewDate','file1','remarks'];
 const hasExtraKeys = Object.keys(checkedRows).some(key => !initialKeys.includes(key));
 
  const [tabValue, setTabValue] = useState(0);
@@ -828,6 +829,7 @@ console.log("dgghgf=-->",checkedRows)
       const formData=new FormData();
 
       checkedRows.isRejected = false;
+      checkedRows.isApproved = true;
       Object.entries(checkedRows).forEach(([key, value]) => {
         if (key === 'file1') {
           formData.append(key, value);
@@ -838,7 +840,7 @@ console.log("dgghgf=-->",checkedRows)
 
       console.log("yruurui==-=->",formData)
       console.log("yruurui checkedRows==-=->",checkedRows)
-      ApplicationForm.addAllAproved(formData)
+      ApplicationReview.addFirmApplicationReview(formData)
       .then((response) => {
         //console.log(response.data)
           showAlert({
@@ -881,6 +883,7 @@ console.log("dgghgf=-->",checkedRows)
     const handleSubmit = () => {
       
       const formData=new FormData();
+      checkedRows.isApproved = false;
       if(2<=  basicDetailesValues?.reviewApplications.length){
         checkedRows.isRejected = true;
       }

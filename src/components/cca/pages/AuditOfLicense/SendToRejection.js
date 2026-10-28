@@ -195,7 +195,7 @@ const handleRejectedSubmit = (e) => {
   e.preventDefault();
   showAlert({
     messageTitle: "Confirm",
-    messageContent: "Are you sure you want to send this to the applicant?",
+    messageContent: "Are you sure you want to send this application back to the applicant to re-fill the NC report?",
     confirmText: "Yes",
     closeText: "No",
     fullWidth: true,
@@ -207,12 +207,8 @@ const handleRejectedSubmit = (e) => {
 const handleConfrimSubmit = () => {
   
   const applicantRemarks=new FormData();
-  const remarks="Application has been rejected"
-  const isreject=false;
-  applicantRemarks.append("remarks",remarks);
-  applicantRemarks.append("applicantUserName",radioValue.applicantUserName);
-  applicantRemarks.append("isreject",isreject);
-  AuditService.changeTheStatusRejected(applicantRemarks)
+  applicantRemarks.append("applicantUserName", radioValue.applicantUserName);
+  AuditService.ccaSendBackToApplicant(applicantRemarks)
   .then((response) => {
     //console.log(response.data)
       showAlert({
@@ -224,7 +220,7 @@ const handleConfrimSubmit = () => {
      
   })
   .catch((err) => {
-      const errorMessage = err.response?.data?.message || 'Request failed. Please try again later.';
+      const errorMessage = err.response?.data?.message || err.response?.data || 'Request failed. Please try again later.';
       showAlert({
           messageTitle: 'Error',
           messageContent: errorMessage,

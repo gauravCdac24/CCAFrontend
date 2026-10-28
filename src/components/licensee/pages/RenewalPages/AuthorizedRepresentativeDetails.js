@@ -15,6 +15,7 @@ import { styled } from '@mui/material/styles';
 import { useSelector } from 'react-redux';
 import FirmApplicationForm from '../../../../service/NewLicenseService/FirmApplicationForm';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import validatePattern from '../../../global/util/ValidatePattern';
 const VisuallyHiddenInput = styled('input')({
     position: 'absolute',
@@ -216,22 +217,24 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
             requestMethod(communicationAddressFormValues)
             .then((response) => {
                 console.log(response.data);
+                const { messageTitle, messageContent } = getStepSuccessAlert(
+                    appTypeMasterId,
+                    'authorizedRepresentative',
+                    !!communicationAddressFormValues.authorizedRepresentativeId,
+                );
                 showAlert({
-                    messageTitle: 'Successful',
-                    messageContent: `data  saved  successfully`,
+                    messageTitle,
+                    messageContent,
                     confirmText: 'Ok',
                     onConfirm: () => { handleNext(); }
                 });
             })
             .catch((err) => {
                 console.log(err);
+                const errorAlert = getStepErrorAlert(appTypeMasterId, 'authorizedRepresentative', err);
                 showAlert({
-                    messageTitle: 'Error',
-                    messageContent: err.response?.data
-                        ? typeof err.response.data === 'object'
-                            ? 'Your request cannot be processed at this time. Please try again later.'
-                            : err.response.data
-                        : 'Your request cannot be processed at this time. Please try again later.',
+                    messageTitle: errorAlert.messageTitle,
+                    messageContent: errorAlert.messageContent,
                     confirmText: 'Ok',
                 });
               
@@ -261,7 +264,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
                 <Grid item xs={12} sm={3}>
 
                     <InputLabel shrink={false} htmlFor={"salutation"}>
-                        <Typography variant='body1' >Salutation*</Typography>
+                        <Typography variant='body1' >Salutation<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select defaultValue="" id="salutation"
@@ -285,7 +288,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
                 </Grid>
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor={"firstName"}>
-                        <Typography variant='body1'>First Name*</Typography>
+                        <Typography variant='body1'>First Name<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="firstName"
@@ -322,7 +325,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
                 </Grid>
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor={"lastName"}>
-                        <Typography variant='body1'>Last Name/Surname*</Typography>
+                        <Typography variant='body1'>Last Name/Surname<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="lastName"
@@ -349,7 +352,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="blockNo">
-                        <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                        <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="blockNo"
@@ -369,7 +372,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="village">
-                        <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                        <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="village"
@@ -391,7 +394,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="postOffice">
-                        <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                        <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="postOffice"
@@ -411,7 +414,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="subDivision">
-                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="subDivision"
@@ -433,7 +436,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="country">
-                        <Typography variant='body1'>Country*</Typography>
+                        <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -458,7 +461,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="state">
-                        <Typography variant='body1'>State/Province*</Typography>
+                        <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -483,7 +486,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="city">
-                        <Typography variant='body1'>District*</Typography>
+                        <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -508,7 +511,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="pin">
-                        <Typography variant='body1'>Pin*</Typography>
+                        <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="pin"
@@ -529,7 +532,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
-                        <Typography variant='body1'>Telephone No*</Typography>
+                        <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="telephoneNo"
@@ -549,7 +552,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="fax">
-                        <Typography variant='body1'>Fax*</Typography>
+                        <Typography variant='body1'>Fax<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="fax"
@@ -568,7 +571,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="natureOfBusiness">
-                        <Typography variant='body1'>Nature of Business*</Typography>
+                        <Typography variant='body1'>Nature of Business<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="naturesOfBusiness"

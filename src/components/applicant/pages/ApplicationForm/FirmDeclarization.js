@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Box, Grid, FormControlLabel, Checkbox, Typography, Button } from '@mui/material';
 import PreviewModal from './PreviewModal';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getFinalSubmissionSuccessAlert, getFinalSubmissionErrorAlert } from '../../../global/util/applicationFormSteps';
 import FirmPreviewModal from './FirmPreviewModal';
 import Undertaking from '../../../../service/AdminService/Undertaking';
 import { useSelector } from 'react-redux';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import { useNavigate } from 'react-router-dom';
+import printApplicationPreview from '../../../global/util/printApplicationPreview';
 
 const FirmDeclarization = ({ handlePreview, handleNext, handleBack,data  }) => {
   const [checkedState, setCheckedState] = useState([]);
@@ -90,9 +92,10 @@ const FirmDeclarization = ({ handlePreview, handleNext, handleBack,data  }) => {
         .then((response) => {
             console.log(response);
             if (response) {
+                const successAlert = getFinalSubmissionSuccessAlert();
                 showAlert({
-                    messageTitle: 'Success',
-                    messageContent: 'Application Form Submitted Successful',
+                    messageTitle: successAlert.messageTitle,
+                    messageContent: successAlert.messageContent,
                     confirmText: 'OK',
                     onConfirm: () => { navigate("/applicant/applicationform") },
                     enableHeaderCloseBtn: true,
@@ -101,13 +104,10 @@ const FirmDeclarization = ({ handlePreview, handleNext, handleBack,data  }) => {
             }
         })
         .catch((err) => {
+            const errorAlert = getFinalSubmissionErrorAlert(err);
             showAlert({
-                messageTitle: 'Error',
-                messageContent: err.response?.data
-                    ? typeof err.response.data === 'object'
-                        ? 'Your request cannot be processed at this time. Please try again later.'
-                        : err.response.data
-                    : 'Your request cannot be processed at this time. Please try again later.',
+                messageTitle: errorAlert.messageTitle,
+                messageContent: errorAlert.messageContent,
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true
@@ -151,7 +151,25 @@ const FirmDeclarization = ({ handlePreview, handleNext, handleBack,data  }) => {
         enableHeaderCloseBtn: true,
         disableOutsideKeyDown: true,
         maxWidth:'md',
-        fullWidth:true
+        fullWidth:true,
+        headerButtonText: 'Print PDF',
+        onHeaderButtonClick: async ({ contentElement }) => {
+          try {
+            await printApplicationPreview({
+              contentElement: contentElement(),
+              fetchFile: (appDocId) => ApplicationForm.viewFile(appDocId),
+              userName,
+              title: 'Application Form Preview',
+            });
+          } catch (error) {
+            showAlert({
+              messageTitle: 'Print PDF',
+              messageContent: error?.message || 'Unable to prepare the application for printing.',
+              confirmText: 'Ok',
+              enableHeaderCloseBtn: true,
+            });
+          }
+        },
     })
    
 }
@@ -183,6 +201,17 @@ const FirmDeclarization = ({ handlePreview, handleNext, handleBack,data  }) => {
           ))
         }
       </Grid>
+
+            <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Box>
+                <Typography variant="h6">
+                <b>Note:</b> <br /> 1. Application will proceed once the payment will be verified by CCA. <br />
+                2. Online Submitted application must be submitted physical to CCA office.
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3, ml: 1 }}>
         <Button

@@ -14,6 +14,7 @@ import { decrypt, encrypt } from "../../../global/util/EncryptDecrypt";
 import { useNavigate, useParams } from "react-router-dom";
 import dateFormatter from "../../../global/util/DateFormatter";
 import { useSelector } from "react-redux";
+import { hasLicenseAction } from "../../../global/util/licenseAcquisitionWorkflow";
 
 const PaymentProof = () => {
 
@@ -29,6 +30,8 @@ const intentAppId = decrypt(id);
     transactionNumber: "",
   });
   const [applicantPaymentProofList, setApplicantPaymentProofList] = useState({});
+  const [allowedActions, setAllowedActions] = useState([]);
+  const [readOnly, setReadOnly] = useState(true);
   const [fileInputKey, setFileInputKey] = useState(Date.now()); // Reset input on invalid file
   const [isLoading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
@@ -80,7 +83,13 @@ useEffect(() => {
          setLoading(true);
          ApplicationForm.getApplicantPaymentProofByIntentId(encrypt(intentAppId))
              .then((res) => {
-              setApplicantPaymentProofList(res.data);
+              const data = res.data || {};
+              const paymentProof = data.paymentProof || data;
+              setApplicantPaymentProofList({
+                ...paymentProof,
+                transactionType: data.transactionType ?? paymentProof.transactionType,
+                draftNo: data.draftNo ?? paymentProof.draftNo,
+              });
               console.log("res.data", res.data)
              })
              .catch((err) => {
@@ -94,8 +103,18 @@ useEffect(() => {
      }
      useEffect(() => {
       getApplicantPaymentProofByIntentId();
-          
+      ApplicationForm.getLicenseAcquisitionWorkflow(intentAppId, 'CCA_OFFICER')
+        .then((res) => {
+          setAllowedActions(res.data?.allowedActions || []);
+          setReadOnly(Boolean(res.data?.readOnly));
+        })
+        .catch(() => {
+          setAllowedActions([]);
+          setReadOnly(true);
+        });
   }, []);
+
+  const canVerifyPayment = hasLicenseAction(allowedActions, 'VERIFY_PAYMENT');
 
   const handleDateChange = (date) => {
     setRequiredDoc((prev) => ({ ...prev, selectedDate: date ? date.toISOString() : "" }));
@@ -198,16 +217,16 @@ console.log(requiredDoc)
   return (
     <>
       <LoaderProgress open={isLoading} />
-      <FormWrapper headingText="Payment Proof Verification Details">
+      <FormWrapper headingText={canVerifyPayment ? "Payment Proof Verification Details" : "Payment Proof Details (View Only)"}>
         <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleApprove}>
           <Grid container spacing={2} sx={{ maxWidth: 600, margin: "auto", p: 3 }}>
             {/* File Upload */}
 
             <Grid item xs={12}>
 
-{/* Date of Payment */}
-<Box display="flex">
-    <Typography variant="body1" sx={{ minWidth: 150 }}>
+{/* UserName */}
+<Box display="flex" mb={1}>
+    <Typography variant="body1" sx={{ minWidth: 200 }}>
       <b>UserName*:</b>
     </Typography>
     <Typography variant="body1">
@@ -217,7 +236,7 @@ console.log(requiredDoc)
 
   {/* Amount */}
   <Box display="flex" mb={1}>
-    <Typography variant="body1" sx={{ minWidth: 150 }}>
+    <Typography variant="body1" sx={{ minWidth: 200 }}>
       <b>Amount*:</b>
     </Typography>
     <Typography variant="body1">
@@ -225,9 +244,29 @@ console.log(requiredDoc)
     </Typography>
   </Box>
 
+  {/* Transaction Type (from bank_draft) */}
+  <Box display="flex" mb={1}>
+    <Typography variant="body1" sx={{ minWidth: 200 }}>
+      <b>Transaction Type*:</b>
+    </Typography>
+    <Typography variant="body1">
+      {applicantPaymentProofList.transactionType || "-"}
+    </Typography>
+  </Box>
+
+  {/* DD/Cheque No/UTR No (from bank_draft.draft_no) */}
+  <Box display="flex" mb={1}>
+    <Typography variant="body1" sx={{ minWidth: 200 }}>
+      <b>DD/Cheque No/UTR No*:</b>
+    </Typography>
+    <Typography variant="body1">
+      {applicantPaymentProofList.draftNo || "-"}
+    </Typography>
+  </Box>
+
   {/* Transaction ID */}
-  <Box display="flex">
-    <Typography variant="body1" sx={{ minWidth: 150 }}>
+  <Box display="flex" mb={1}>
+    <Typography variant="body1" sx={{ minWidth: 200 }}>
       <b>Transaction Id*:</b>
     </Typography>
     <Typography variant="body1">
@@ -235,8 +274,8 @@ console.log(requiredDoc)
     </Typography>
   </Box>
    {/* Date of Payment */}
-   <Box display="flex">
-    <Typography variant="body1" sx={{ minWidth: 150 }}>
+   <Box display="flex" mb={1}>
+    <Typography variant="body1" sx={{ minWidth: 200 }}>
       <b>Date Of Payment*:</b>
     </Typography>
     <Typography variant="body1">
@@ -251,6 +290,7 @@ console.log(requiredDoc)
 
 
 
+            {canVerifyPayment && (
             <Grid item xs={12}>
               <InputLabel shrink={false} htmlFor="netWorthDoc">
                 <Typography variant="body1">Upload Payment Verification Document (Only PDF, Max 5MB)*</Typography>
@@ -288,9 +328,11 @@ console.log(requiredDoc)
                 </Typography>
               )}
             </Grid>
+            )}
 
           </Grid>
 
+          {canVerifyPayment ? (
           <Grid
             container
             direction="row"
@@ -323,6 +365,15 @@ console.log(requiredDoc)
               </Button>
             </Grid>
           </Grid>
+          ) : (
+            <Grid container justifyContent="center" sx={{ mt: 4 }}>
+              <Grid item>
+                <Button type="button" variant="outlined" onClick={handleBack}>
+                  Back
+                </Button>
+              </Grid>
+            </Grid>
+          )}
 
         </Box>
       </FormWrapper>

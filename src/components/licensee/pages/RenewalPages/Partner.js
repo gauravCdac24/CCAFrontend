@@ -13,6 +13,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
 import ValidatePattern from '../../../global/util/ValidatePattern';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import FirmApplicationForm from '../../../../service/NewLicenseService/FirmApplicationForm';
 import { useSelector } from 'react-redux';
 import { decrypt, encrypt } from '../../../global/util/EncryptDecrypt';
@@ -2079,6 +2080,8 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
         if (!partner.passportExpirydate) {
             errors.partnerDetails[index].passportExpiryDate = errorMsg.passportExpiryDate.required;
+        } else if (!dayjs(partner.passportExpirydate).isValid() || !dayjs(partner.passportExpirydate).isAfter(dayjs(), 'day')) {
+            errors.partnerDetails[index].passportExpiryDate = errorMsg.passportExpiryDate.past;
         } else {
             delete errors.partnerDetails[index].passportExpiryDate;
         }
@@ -2607,22 +2610,23 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             requestMethod(formData) // Passing the FormData to the request
                 .then((response) => {
                     // Handling the response
+                    const { messageTitle, messageContent } = getStepSuccessAlert(
+                        appTypeMasterId,
+                        'partner',
+                        !!communicationAddressFormValues.partnerDetails[0]?.partnerDetailId,
+                    );
                     showAlert({
-                        messageTitle: 'Successful',
-                        messageContent: 'Page saved successfully',
+                        messageTitle,
+                        messageContent,
                         confirmText: 'Ok',
                         onConfirm: () => { handleNext(); }
                     });
                 })
                 .catch((err) => {
-                    // Show error message if API fails
+                    const errorAlert = getStepErrorAlert(appTypeMasterId, 'partner', err);
                     showAlert({
-                        messageTitle: 'Error',
-                        messageContent: err.response?.data
-                            ? typeof err.response.data === 'object'
-                                ? 'Your request cannot be processed at this time. Please try again later.'
-                                : err.response.data
-                            : 'Your request cannot be processed at this time. Please try again later.',
+                        messageTitle: errorAlert.messageTitle,
+                        messageContent: errorAlert.messageContent,
                         confirmText: 'Ok',
                     });
                 })
@@ -2718,7 +2722,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         <Grid item xs={12} sm={3}>
 
                             <InputLabel shrink={false} htmlFor={"salutation"}>
-                                <Typography variant='body1' >Salutation*</Typography>
+                                <Typography variant='body1' >Salutation<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                                 <Select defaultValue="" id="salutation"
@@ -2749,7 +2753,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         </Grid>
                         <Grid item xs={12} sm={3}>
                             <InputLabel shrink={false} htmlFor={"firstName"}>
-                                <Typography variant='body1'>First Name*</Typography>
+                                <Typography variant='body1'>First Name<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="firstName"
@@ -2790,7 +2794,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         </Grid>
                         <Grid item xs={12} sm={3}>
                             <InputLabel shrink={false} htmlFor={"lastName"}>
-                                <Typography variant='body1'>Last Name/Surname*</Typography>
+                                <Typography variant='body1'>Last Name/Surname<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="lastName"
@@ -2819,7 +2823,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="blockNo">
-                                <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                                <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="blockNo"
@@ -2841,7 +2845,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="village">
-                                <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                                <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="village"
@@ -2865,7 +2869,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     <Grid container spacing={2} sx={{ mt: 0.1 }}>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="postOffice">
-                                <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                                <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="postOffice"
@@ -2887,7 +2891,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="subDivision">
-                                <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                                <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="subDivision"
@@ -2912,7 +2916,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     {/* Country Dropdown */}
     <Grid item xs={12} sm={3}>
         <InputLabel shrink={false} htmlFor="country">
-            <Typography variant='body1'>Country*</Typography>
+            <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
         </InputLabel>
         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
             <Select
@@ -2946,7 +2950,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     {/* State Dropdown */}
     <Grid item xs={12} sm={3}>
         <InputLabel shrink={false} htmlFor="state">
-            <Typography variant='body1'>State/Province*</Typography>
+            <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
         </InputLabel>
         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
             <Select
@@ -2980,7 +2984,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     {/* City Dropdown */}
     <Grid item xs={12} sm={3}>
         <InputLabel shrink={false} htmlFor="city">
-            <Typography variant='body1'>District*</Typography>
+            <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
         </InputLabel>
         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
             <Select
@@ -3014,7 +3018,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     {/* Pin Code Input */}
     <Grid item xs={12} sm={3}>
         <InputLabel shrink={false} htmlFor="pin">
-            <Typography variant='body1'>Pin*</Typography>
+            <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
         </InputLabel>
         <TextField
             id="pin"
@@ -3038,7 +3042,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="telephoneNo">
-                                <Typography variant='body1'>Telephone No*</Typography>
+                                <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="telephoneNo"
@@ -3060,7 +3064,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="fax">
-                                <Typography variant='body1'>Fax*</Typography>
+                                <Typography variant='body1'>Fax<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="fax"
@@ -3081,7 +3085,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         </Grid>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="mobile">
-                                <Typography variant='body1'>Mobile*</Typography>
+                                <Typography variant='body1'>Mobile<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="mobile"
@@ -3107,7 +3111,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="emailId">
-                                <Typography variant='body1'>Email Address*</Typography>
+                                <Typography variant='body1'>Email Address<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <TextField
                                 id="email"
@@ -3147,7 +3151,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         </Grid>
                         <Grid item xs={12} sm>
   <InputLabel shrink={false} htmlFor="nationality">
-    <Typography variant='body1'>Nationality*</Typography>
+    <Typography variant='body1'>Nationality<span className="req-asterisk">*</span></Typography>
   </InputLabel>
 
   <FormControl sx={{ mt: 1, width: '100%' }}>
@@ -3194,7 +3198,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
      <Grid container spacing={2}>
     <Grid item xs={12} sm>
       <InputLabel shrink={false} htmlFor="visaType">
-        <Typography variant='body1'>Visa Type*</Typography>
+        <Typography variant='body1'>Visa Type<span className="req-asterisk">*</span></Typography>
       </InputLabel>
       <TextField
         id="visaType"
@@ -3209,7 +3213,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
     <Grid item xs={12} sm>
       <InputLabel shrink={false} htmlFor="visaNumber">
-        <Typography variant='body1'>Visa Number*</Typography>
+        <Typography variant='body1'>Visa Number<span className="req-asterisk">*</span></Typography>
       </InputLabel>
       <TextField
         id="visaNumber"
@@ -3225,7 +3229,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     <Grid container spacing={2}>
     <Grid item xs={12} sm>
       <InputLabel shrink={false} htmlFor="visaIssueDate">
-        <Typography variant='body1'>Visa Issue Date*</Typography>
+        <Typography variant='body1'>Visa Issue Date<span className="req-asterisk">*</span></Typography>
       </InputLabel>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <DatePicker
@@ -3251,7 +3255,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
     <Grid item xs={12} sm>
       <InputLabel shrink={false} htmlFor="visaExpiryDate">
-        <Typography variant='body1'>Visa Expiry Date*</Typography>
+        <Typography variant='body1'>Visa Expiry Date<span className="req-asterisk">*</span></Typography>
       </InputLabel>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <DatePicker
@@ -3295,7 +3299,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor={"passposrtNo"}>
-                                <Typography variant='body1'>Passport No#</Typography>
+                                <Typography variant='body1'>Passport No</Typography>
                             </InputLabel>
                             <TextField
                                 required
@@ -3316,7 +3320,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         </Grid>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor={"passportIssuingAuthority"}>
-                                <Typography variant='body1'>Passport Issuing Authority#</Typography>
+                                <Typography variant='body1'>Passport Issuing Authority</Typography>
                             </InputLabel>
                             <TextField
                                 required
@@ -3339,12 +3343,13 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor={"passportExpiryDate"}>
-                                <Typography variant='body1'>Passport Expiry Date#</Typography>
+                                <Typography variant='body1'>Passport Expiry Date</Typography>
                             </InputLabel>
                             <LocalizationProvider dateAdapter={AdapterDayjs}>
                                 <DatePicker
                                     id="passportExpirydate"
-                                    disableFuture
+                                    disablePast
+                                    minDate={dayjs().add(1, 'day')}
                                     name="passportExpirydate"
                                     value={
                                         communicationAddressFormValues.partnerDetails[index]?.passportExpirydate
@@ -3370,7 +3375,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         <Grid item xs={12} sm>
     <InputLabel shrink={false} htmlFor={`passportDocument-${index}`}>
         <Typography variant='body1'>
-            Upload Passport Document# (Only PDF and Max allowed size 5 MB)
+            Upload Passport Document (Only PDF and Max allowed size 5 MB)
         </Typography>
     </InputLabel>
 
@@ -3420,7 +3425,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor={"voterCardNo"}>
-                                <Typography variant='body1'>Voter’s Identity Card No.#</Typography>
+                                <Typography variant='body1'>Voter’s Identity Card No.</Typography>
                             </InputLabel>
 
                             <TextField
@@ -3441,7 +3446,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         </Grid>
                         <Grid item xs={12} sm>
             <InputLabel shrink={false} htmlFor={`idCardDocument-${index}`}>
-                <Typography variant='body1'>Upload IdCard Document#(Only PDF and Max allowed size 5 MB)</Typography>
+                <Typography variant='body1'>Upload IdCard Document(Only PDF and Max allowed size 5 MB)</Typography>
             </InputLabel>
 
             <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
@@ -3488,7 +3493,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor={"pancardNo"}>
-                                <Typography variant='body1'>Income Tax PAN No.#</Typography>
+                                <Typography variant='body1'>Income Tax PAN No.</Typography>
                             </InputLabel>
                             <TextField
                                 required
@@ -3508,7 +3513,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         </Grid>
                         <Grid item xs={12} sm>
             <InputLabel shrink={false} htmlFor={`panCardDocument-${index}`}>
-                <Typography variant='body1'>Upload PAN Card Document#(Only PDF and Max allowed size 5 MB)</Typography>
+                <Typography variant='body1'>Upload PAN Card Document(Only PDF and Max allowed size 5 MB)</Typography>
             </InputLabel>
 
             <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
@@ -3578,10 +3583,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             <Grid item xs={12}>
     <InputLabel shrink={false}>
         <Typography variant='body1'>
-            Note: * marked field are mandatory to be filled
-        </Typography>
-        <Typography variant='body1'>
-        Note: # marked field are Optional to be filled
+            Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled
         </Typography>
     </InputLabel>
 </Grid>

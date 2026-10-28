@@ -14,8 +14,6 @@ import FormWrapper from '../../global/util/FormWrapper';
 import { useSelector } from 'react-redux';
 import StateService from '../../../service/AdminService/StateService';
 import CountryService from '../../../service/AdminService/CountryService';
-import ESPApplicationService from '../../../service/ESPApplicationService/ESPApplicationService';
-import { decrypt } from '../../global/util/EncryptDecrypt';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'; 
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -104,7 +102,6 @@ const AddDSCeSignIssued = () => {
     const [countryList, setCountryList] = useState([]);
     const [stateList, setStateList] = useState([]);
     const [filteredState, setFilteredState] = useState([]);
-    const [isESP, setIsESP] = useState(false);
     const [files, setFiles] = useState([{
         file: null,
         fileName: '',
@@ -112,9 +109,54 @@ const AddDSCeSignIssued = () => {
     }]);
     const [selectedMonth, setSelectedMonth] = useState('January');
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [indiaCountryId, setIndiaCountryId] = useState('');
 
     const navigate = useNavigate();
     const rolePath = useSelector((state) => state.jwtAuthentication.rolePath);
+
+    const createEmptyStateRow = (countryId = indiaCountryId) => ({
+        countryId,
+        stateId: '',
+        dscIssued: '',
+        eSignIssued: '',
+    });
+
+    const sanitizeNumericInput = (value) => {
+        const digitsOnly = String(value ?? '').replace(/\D/g, '').slice(0, 10);
+        if (digitsOnly.length > 1 && digitsOnly.startsWith('0')) {
+            return digitsOnly.replace(/^0+/, '') || '0';
+        }
+        return digitsOnly;
+    };
+
+    const getStateNameById = (stateId) => {
+        const state = filteredState.find(
+            (item) => Number(item.stateId) === Number(stateId)
+        );
+        return state?.stateName || '';
+    };
+
+    const getAvailableStatesForRow = (rowIndex) => {
+        const selectedStateIds = formValues
+            .map((row, index) =>
+                index !== rowIndex && row.stateId !== '' && row.stateId != null
+                    ? Number(row.stateId)
+                    : null
+            )
+            .filter((id) => id != null);
+
+        return filteredState.filter(
+            (state) => !selectedStateIds.includes(Number(state.stateId))
+        );
+    };
+
+    const handleAddStateRow = () => {
+        setFormValues((prev) => [...prev, createEmptyStateRow()]);
+    };
+
+    const handleRemoveStateRow = (index) => {
+        setFormValues((prev) => prev.filter((_, i) => i !== index));
+    };
 
     const handleAddRow = () => {
         setFiles((prev) => [
@@ -132,26 +174,6 @@ const AddDSCeSignIssued = () => {
     };
     
 
-    const checkForESP = async () => {
-
-        try{
-
-            const response = await ESPApplicationService.checkForESP();
-            setIsESP(decrypt(response.data) === 'true' ? true: false);
-
-        }catch(err){
-
-        }
-
-    }
-
-    useEffect(()=>{
-
-        checkForESP();
-
-    }, [])
-
-
     const getAllCountryAndState = async() => {
 
                         try {
@@ -166,34 +188,27 @@ const AddDSCeSignIssued = () => {
                             setCountryList(countries.data);
                             setStateList(states.data);
             
-                            const filteredStates = states.data.filter(
-                                state => state.countryId.countryName === 'India'
-                            );
-                            setFilteredState(filteredStates);
-            
                             const filteredCountry = countries.data.find(
                                 country => country.countryName === 'India'
                             );
 
-                            const formValues = [];
-
-                            filteredStates.forEach((row, index)=>{
-
-                                const obj = {                                  
-                                    countryId: filteredCountry.countryId,
-                                    stateId: row.stateId,
-                                    dscIssued: '0',
-                                    eSignIssued: '0'
-                                }
-
-                                formValues.push(obj);
-
-                            })
-
-
-                            
-
-                            setFormValues(formValues);
+                            const filteredStates = states.data.filter((state) => {
+                                const countryName =
+                                    typeof state.countryId === 'object'
+                                        ? state.countryId?.countryName
+                                        : null;
+                                return countryName === 'India';
+                            });
+                            setFilteredState(filteredStates);
+                            setIndiaCountryId(filteredCountry?.countryId || '');
+                            setFormValues([
+                                {
+                                    countryId: filteredCountry?.countryId || '',
+                                    stateId: '',
+                                    dscIssued: '',
+                                    eSignIssued: '',
+                                },
+                            ]);
                             
 
                         } catch (err) {
@@ -219,32 +234,22 @@ const AddDSCeSignIssued = () => {
     
         setFormValues((prevValues) => {
             const updatedArray = [...prevValues];
-            updatedArray[index] = { ...updatedArray[index], [name]: value };
+            let nextValue = value;
+
+            if (name === 'stateId') {
+                nextValue = value === '' ? '' : Number(value);
+            } else if (name === 'dscIssued' || name === 'eSignIssued') {
+                nextValue = sanitizeNumericInput(value);
+            }
+
+            updatedArray[index] = {
+                ...updatedArray[index],
+                [name]: nextValue,
+            };
     
             return updatedArray;
         });
     };
-
-    
-    const handleNumberKeyDown = (e, value) => {
-        
-        if (e.key === 'Backspace' || e.key === 'Tab') {
-            return;
-        }
-        const nextValue = value + e.key;
-        if (/^0[0-9]+$/.test(nextValue)) {
-            e.preventDefault();
-            return;
-        }
-        if (e.key === '0' && value.length === 0) {
-            return;
-        }
-        if (!/^[0-9]$/.test(e.key)) {
-            e.preventDefault();
-        }
-    };
-    
-    
 
     const validateForm = () => {
         const errors = {};
@@ -252,6 +257,10 @@ const AddDSCeSignIssued = () => {
         const ferror = [];
 
         const fileerror = [];
+
+        if (formValues.length === 0) {
+            errors.form = 'Please add at least one state record.';
+        }
 
         files.forEach((item, index)=>{
             if(!fileerror[index]){
@@ -547,34 +556,38 @@ const AddDSCeSignIssued = () => {
                     {
                         formValues.map((row, index)=>(
 
-                        <Grid2 container  spacing={2} direction="row" key={index} sx={{mt: 4}}>
+                        <Grid2 container  spacing={2} direction="row" key={index} sx={{mt: 4}} alignItems="flex-start">
 
 
                                 <Grid2 size={1} >
                                     <b>{index+1}.</b>
                                 </Grid2>
-                                <Grid2 size={{ xs: 12, sm: 6 }} >
-                                    <InputLabel shrink={false} htmlFor="stateId">
+                                <Grid2 size={{ xs: 12, sm: 5 }} >
+                                    <InputLabel shrink={false} htmlFor={`stateId-${index}`}>
                                         <Typography variant='body1'>State/Province*</Typography>
                                     </InputLabel>
                                     <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
                                         <Select
-                                            id="stateId"
+                                            id={`stateId-${index}`}
                                             required
-                                            value={row.stateId}
+                                            value={row.stateId === '' || row.stateId == null ? '' : Number(row.stateId)}
                                             onChange={(e)=>handleInputChange(e, index)}
                                             displayEmpty
                                             name="stateId"
                                             error={!!(formErrors.ferror && formErrors.ferror[index]?.stateId)}
                                             size='small'
-                                            disabled 
-                                            
+                                            renderValue={(selected) => {
+                                                if (selected === '' || selected == null) {
+                                                    return 'Select State/Province';
+                                                }
+                                                return getStateNameById(selected) || 'Select State/Province';
+                                            }}
                                         >
                                             <MenuItem value="">
                                                 Select State/Province
                                             </MenuItem>
-                                            {filteredState.map((state, index) => (
-                                                <MenuItem key={index} value={state.stateId}>
+                                            {getAvailableStatesForRow(index).map((state) => (
+                                                <MenuItem key={state.stateId} value={Number(state.stateId)}>
                                                     {state.stateName}
                                                 </MenuItem>
                                             ))}
@@ -600,15 +613,13 @@ const AddDSCeSignIssued = () => {
                                         error={!!(formErrors.ferror && formErrors.ferror[index]?.dscIssued)}
                                         helperText={(formErrors.ferror && formErrors.ferror[index]?.dscIssued) || ''}
                                         onChange={(e)=>handleInputChange(e, index)}
-                                        onKeyDown={(e) => handleNumberKeyDown(e, row.dscIssued || '')}
-                                        value={row.dscIssued}
+                                        value={row.dscIssued ?? ''}
                                         size="small"
-                                        slotProps={{
-                                            htmlInput: {
-                                                maxLength: 10
-                                            }
+                                        inputProps={{
+                                            inputMode: 'numeric',
+                                            pattern: '[0-9]*',
+                                            maxLength: 10,
                                         }}
-                                        
                                     />
                                 </Grid2>
 
@@ -627,25 +638,38 @@ const AddDSCeSignIssued = () => {
                                         error={!!(formErrors.ferror && formErrors.ferror[index]?.eSignIssued)}
                                         helperText={(formErrors.ferror && formErrors.ferror[index]?.eSignIssued) || ''}
                                         onChange={(e)=>handleInputChange(e, index)}
-                                        onKeyDown={(e) => handleNumberKeyDown(e, row.eSignIssued || '')}
-                                        value={row.eSignIssued}
+                                        value={row.eSignIssued ?? ''}
                                         size="small"
-                                        slotProps={{
-                                            htmlInput: {
-                                                maxLength: 10
-                                            }
+                                        inputProps={{
+                                            inputMode: 'numeric',
+                                            pattern: '[0-9]*',
+                                            maxLength: 10,
                                         }}
-                                        disabled={!isESP}
                                     />
                                 </Grid2>
 
-
-                               
-
-
-
-                                    
-                        
+                                <Grid2 size={{ xs: 12, sm: 2 }} sx={{ display: 'flex', alignItems: 'center', mt: { xs: 0, sm: 4 } }}>
+                                    {formValues.length > 1 ? (
+                                        index === formValues.length - 1 ? (
+                                            <>
+                                                <IconButton onClick={handleAddStateRow} size="small">
+                                                    <AddIcon fontSize="small" color="success" />
+                                                </IconButton>
+                                                <IconButton onClick={() => handleRemoveStateRow(index)} size="small">
+                                                    <RemoveIcon fontSize="small" color="error" />
+                                                </IconButton>
+                                            </>
+                                        ) : (
+                                            <IconButton onClick={() => handleRemoveStateRow(index)} size="small">
+                                                <RemoveIcon fontSize="small" color="error" />
+                                            </IconButton>
+                                        )
+                                    ) : (
+                                        <IconButton onClick={handleAddStateRow} size="small">
+                                            <AddIcon fontSize="small" color="success" />
+                                        </IconButton>
+                                    )}
+                                </Grid2>
                         
                     </Grid2>
 

@@ -13,6 +13,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'; 
 import { styled } from '@mui/material/styles';
+import dayjs from 'dayjs';
 import CPSDocService from '../../../../service/AdminService/CPSDocService';
 
 const VisuallyHiddenInput = styled('input')({
@@ -153,11 +154,9 @@ const AddCPSDoc = () => {
             if (captchaInput === captchaText) {
                 setLoading(true);
                 const form = new FormData();
-            form.append('file', cpsDocFormValues.file);
-            const date = new Date(cpsDocFormValues.publishDate);
-            const formattedDate = date.toISOString().split('T')[0];
-            form.append('publishDate', formattedDate);
-            form.append('version', cpsDocFormValues.version);
+                form.append('file', cpsDocFormValues.file);
+                form.append('publishDate', dayjs(cpsDocFormValues.publishDate).format('YYYY-MM-DD'));
+                form.append('version', cpsDocFormValues.version.trim());
                
                 CPSDocService.addNewCpsDoc(form)
                     .then((response) => {

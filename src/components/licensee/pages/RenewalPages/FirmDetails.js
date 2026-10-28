@@ -13,6 +13,7 @@ import FirmApplicationForm from '../../../../service/NewLicenseService/FirmAppli
 import showAlert from '../../../global/common/MessageBox/AlertService';
 import { useSelector } from 'react-redux';
 import validatePattern from '../../../global/util/ValidatePattern';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import IntentService from '../../../../service/AdminService/IntentService';
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
 
@@ -482,21 +483,23 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                 .then((response) => {
                     handleFormDataChange({ personalDetails: JSON.stringify(response.data) });
     
+                    const { messageTitle, messageContent } = getStepSuccessAlert(
+                        appTypeMasterId,
+                        'firmDetails',
+                        !!communicationAddressFormValues.firmApplicationId,
+                    );
                     showAlert({
-                        messageTitle: 'Successful',
-                        messageContent: 'first page saved successfully',
+                        messageTitle,
+                        messageContent,
                         confirmText: 'Ok',
                         onConfirm: () => { handleNext(); }
                     });
                 })
                 .catch((err) => {
+                    const errorAlert = getStepErrorAlert(appTypeMasterId, 'firmDetails', err);
                     showAlert({
-                        messageTitle: 'Error',
-                        messageContent: err.response?.data
-                            ? typeof err.response.data === 'object'
-                                ? 'Your request cannot be processed at this time. Please try again later.'
-                                : err.response.data
-                            : 'Your request cannot be processed at this time. Please try again later.',
+                        messageTitle: errorAlert.messageTitle,
+                        messageContent: errorAlert.messageContent,
                         confirmText: 'Ok',
                     });
                 })
@@ -520,7 +523,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="registrationNo">
-                        <Typography variant='body1'>Registration Number(18)*</Typography>
+                        <Typography variant='body1'>Registration Number(18)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="registrationNo"
@@ -543,7 +546,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                 </Grid>
                 <Grid item xs={12} sm>
     <InputLabel shrink={false} htmlFor="incorporationDate">
-        <Typography variant='body1'>Date Of Incorporation/Agreement/Partnership (19)*</Typography>
+        <Typography variant='body1'>Date Of Incorporation/Agreement/Partnership (19)<span className="req-asterisk">*</span></Typography>
     </InputLabel>
     <LocalizationProvider dateAdapter={AdapterDayjs}>
         <DatePicker
@@ -570,7 +573,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 </Grid>
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>Particulars of Business*(20)</Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>Particulars of Business<span className="req-asterisk">*</span>(20)</Typography>
                 </Grid>
             </Grid>
 
@@ -581,7 +584,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                 <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="officeName">
-                        <Typography variant='body1'>Office Name*</Typography>
+                        <Typography variant='body1'>Office Name<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="officeName"
@@ -605,7 +608,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="blockNo">
-                        <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                        <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="blockNo"
@@ -628,7 +631,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="village">
-                        <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                        <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="village"
@@ -653,7 +656,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="postOffice">
-                        <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                        <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="postOffice"
@@ -676,7 +679,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="subDivision">
-                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="subDivision"
@@ -701,7 +704,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="country">
-                        <Typography variant='body1'>Country*</Typography>
+                        <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -729,7 +732,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="state">
-                        <Typography variant='body1'>State/Province*</Typography>
+                        <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -757,7 +760,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="city">
-                        <Typography variant='body1'>District*</Typography>
+                        <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -785,7 +788,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="pin">
-                        <Typography variant='body1'>Pin*</Typography>
+                        <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="pin"
@@ -809,7 +812,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
-                        <Typography variant='body1'>Telephone No*</Typography>
+                        <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="telephoneNo"
@@ -888,7 +891,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="noOfBranch">
-                        <Typography variant='body1'>No. Of Branch*</Typography>
+                        <Typography variant='body1'>No. Of Branch<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="noOfBranch"
@@ -925,7 +928,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                         onChange={handleInputChange}
                         value={communicationAddressFormValues.naturesOfBusiness}
                         size="small"
-                        onKeyDown={(e) => validatePattern(e, /^[A-Za-z]+$/)}
+                        onKeyDown={(e) => validatePattern(e, /^[A-Za-z ]+$/)}
                         inputProps={{ maxLength: 35 }}
                     />
                 </Grid>
@@ -942,7 +945,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 </Box>
 <Grid>
             <InputLabel shrink={false} >
-                        <Typography variant='body1'>Note: * marked field are mandatory to be filled </Typography>
+                        <Typography variant='body1'>Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled </Typography>
                     </InputLabel>
             </Grid>
 

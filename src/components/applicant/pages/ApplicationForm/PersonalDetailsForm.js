@@ -7,6 +7,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs from 'dayjs';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import { useSelector } from 'react-redux';
 import validatePattern from '../../../global/util/ValidatePattern';
@@ -2289,21 +2290,23 @@ console.log(basicDetailsFormValues.intentAppId)
                 .then((response) => {
                     handleFormDataChange({ personalDetails: JSON.stringify(response.data) });
     
+                    const { messageTitle, messageContent } = getStepSuccessAlert(
+                        appTypeMasterId,
+                        'personalDetails',
+                        !!basicDetailsFormValues.indivAppId,
+                    );
                     showAlert({
-                        messageTitle: 'First Step Successful',
-                        messageContent: `First step ${basicDetailsFormValues.indivAppId ? 'updated' : 'saved'} successfully`,
+                        messageTitle,
+                        messageContent,
                         confirmText: 'Ok',
                         onConfirm: () => { handleNext(); }
                     });
                 })
                 .catch((err) => {
+                    const errorAlert = getStepErrorAlert(appTypeMasterId, 'personalDetails', err);
                     showAlert({
-                        messageTitle: 'Error',
-                        messageContent: err.response?.data
-                            ? typeof err.response.data === 'object'
-                                ? 'Your request cannot be processed at this time. Please try again later.'
-                                : err.response.data
-                            : 'Your request cannot be processed at this time. Please try again later.',
+                        messageTitle: errorAlert.messageTitle,
+                        messageContent: errorAlert.messageContent,
                         confirmText: 'Ok',
                     });
                 })
@@ -2323,13 +2326,13 @@ console.log(basicDetailsFormValues.intentAppId)
             <Grid container spacing={2}>
                 <Grid container>
                     <Grid item >
-                        <Typography variant='h7' sx={{ mt: 1, mb: 1 }}>Full Name*(1)</Typography>
+                        <Typography variant='h7' sx={{ mt: 1, mb: 1 }}>Full Name<span className="req-asterisk">*</span>(1)</Typography>
                     </Grid>
                 </Grid>
                 <Grid item xs={12} sm>
 
                     <InputLabel shrink={false} htmlFor={"salutation"}>
-                        <Typography variant='body1' >Salutation*</Typography>
+                        <Typography variant='body1' >Salutation<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select defaultValue="" id="salutation"
@@ -2353,7 +2356,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"firstName"}>
-                        <Typography variant='body1'>First Name*</Typography>
+                        <Typography variant='body1'>First Name<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="firstName"
@@ -2396,7 +2399,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"lastName"}>
-                        <Typography variant='body1'>Last Name/Surname*</Typography>
+                        <Typography variant='body1'>Last Name/Surname<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="lastName"
@@ -2518,7 +2521,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         <React.Fragment key={index}>
                             <Grid item xs={12} sm={3.5} sx={{ mt: 2 }}>
                                 <InputLabel shrink={false} htmlFor={`email-${index}`}>
-                                    <Typography variant='body1' >{basicDetailsFormValues.emailId.length > 1 ? `${index + 1}. ` : ''} Email*(10)</Typography>
+                                    <Typography variant='body1' >{basicDetailsFormValues.emailId.length > 1 ? `${index + 1}. ` : ''} Email<span className="req-asterisk">*</span>(10)</Typography>
                                 </InputLabel>
                                 <TextField
                                     id={`email-${index}`}
@@ -2567,7 +2570,7 @@ console.log(basicDetailsFormValues.intentAppId)
                     {/* Date of Birth Field */}
                     <Grid item xs={12} sm>
                         <InputLabel shrink={false} htmlFor={"dob"}>
-                            <Typography variant='body1'>Date Of Birth*(7)</Typography>
+                            <Typography variant='body1'>Date Of Birth<span className="req-asterisk">*</span>(7)</Typography>
                         </InputLabel>
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DatePicker
@@ -2595,7 +2598,7 @@ console.log(basicDetailsFormValues.intentAppId)
                     {/* Gender Field */}
                     <Grid item xs={12} sm>
                         <InputLabel shrink={false} htmlFor={"gender"}>
-                            <Typography variant='body1'>Gender*(6)</Typography>
+                            <Typography variant='body1'>Gender<span className="req-asterisk">*</span>(6)</Typography>
                         </InputLabel>
                         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                             <Select
@@ -2625,12 +2628,12 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid container spacing={2}>
                 <Grid item xs={12}>
-                    <Typography variant="h7" sx={{ mt: 1, mb: 1 }}>Father's Name*(5)</Typography>
+                    <Typography variant="h7" sx={{ mt: 1, mb: 1 }}>Father's Name<span className="req-asterisk">*</span>(5)</Typography>
                 </Grid>
                 <Grid item xs={12} sm>
 
                     <InputLabel shrink={false} htmlFor={"salutation"}>
-                        <Typography variant='body1' >Salutation*</Typography>
+                        <Typography variant='body1' >Salutation<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select defaultValue="" id="fathersSalutation"
@@ -2655,7 +2658,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"firstName"}>
-                        <Typography variant='body1'>First Name*</Typography>
+                        <Typography variant='body1'>First Name<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="fatherFirstName"
@@ -2698,7 +2701,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"lastName"}>
-                        <Typography variant='body1'>Last Name/Surname*</Typography>
+                        <Typography variant='body1'>Last Name/Surname<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="fatherLastName"
@@ -2721,7 +2724,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid item xs={12} sm={6} sx={{ ml: -2 }}>
       <InputLabel shrink={false} htmlFor={"nationality"}>
-        <Typography variant='body1'>Nationality*(8)</Typography>
+        <Typography variant='body1'>Nationality<span className="req-asterisk">*</span>(8)</Typography>
       </InputLabel>
 
       <FormControl sx={{ mt: 1, width: '100%' }}>
@@ -2776,7 +2779,7 @@ console.log(basicDetailsFormValues.intentAppId)
 
             <Grid>
             <InputLabel shrink={false} >
-                        <Typography variant='body1'>Note: * marked field are mandatory to be filled </Typography>
+                        <Typography variant='body1'>Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled </Typography>
                     </InputLabel>
             </Grid>
 

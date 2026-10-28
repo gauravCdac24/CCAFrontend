@@ -50,7 +50,7 @@ const ADD_SELF_ASSESSMENT_DETAILS = "/add-self-assessment-details";
 const GET_SELF_ASSESSMENT_DETAILS = "/get-self-assessment-details";
 
 const ADD_TRUSTED_PERSON_DETAILS = "/add-trusted-person-details";
-const GET_TRUSTED_PERSON_DETAILS = "/add-trusted-person-details";
+const GET_TRUSTED_PERSON_DETAILS = "/get-trusted-person-details";
 
 const ADD_CONNECTIVITY_DETAILS = "/add-connectivity-details";
 const GET_CONNECTIVITY_DETAILS = "/get-connectivity-details";
@@ -835,8 +835,10 @@ const getAnnexureMainByUsername = (userName) => {
 	});
 }
 
-const uploadExcelSheet = (obj) =>{
-	return API.post(AUDIT_SERVICE + UPLOAD_EXCELL_SHEET,obj)
+const uploadExcelSheet = (formData) => {
+	// Backend decrypts userName — always send encrypted value (same as other annexure FormData posts)
+	formData.set('userName', encrypt(auth().username));
+	return API.post(AUDIT_SERVICE + UPLOAD_EXCELL_SHEET, formData);
 }
 
 

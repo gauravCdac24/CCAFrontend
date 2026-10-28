@@ -1,7 +1,7 @@
-import {Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions} from '@mui/material';
+import {Dialog, DialogTitle, DialogContent, DialogActions} from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Typography, CircularProgress } from '@mui/material';
 
 const MessageBox = ({open, 
                      container, 
@@ -25,7 +25,10 @@ const MessageBox = ({open,
                      showFooterBackgroundColor,
                      centerFooterContent,
                      divider,
-                     removeDialogPadding
+                     removeDialogPadding,
+                     headerButtonText = '',
+                     handleHeaderButton,
+                     headerButtonLoading = false,
                     }) => {
 
 
@@ -48,12 +51,31 @@ const MessageBox = ({open,
           <DialogTitle id="alert-dialog-title"  sx={{backgroundColor:"primary.dark", color: "#FFFFFF"}}>
               
           
-            <Box display="flex" alignItems="center" sx={{height: "10px"}}>
+            <Box display="flex" alignItems="center" sx={{minHeight: "40px", gap: 1}}>
                   <Box flexGrow={1} >
                     <Typography variant="h6">
                         {messageTitle.length>40?messageTitle.substring(0,40).trim()+"...":messageTitle}
                     </Typography>
                   </Box>
+                  {headerButtonText !== '' && (
+                  <Box>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        disabled={headerButtonLoading}
+                        onClick={handleHeaderButton}
+                        sx={{
+                          color: 'primary.dark',
+                          backgroundColor: '#FFFFFF',
+                          height: '30px',
+                          textTransform: 'none',
+                          '&:hover': { backgroundColor: '#f0f0f0' },
+                        }}
+                        startIcon={headerButtonLoading ? <CircularProgress size={14} /> : null}
+                      >
+                        {headerButtonLoading ? 'Preparing…' : headerButtonText}
+                      </Button>
+                  </Box>)}
                   {enableHeaderCloseBtn && (
                   <Box>
                       <IconButton onClick={handleClose}>

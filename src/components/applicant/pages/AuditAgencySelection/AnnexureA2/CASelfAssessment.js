@@ -76,46 +76,47 @@ const CASelfAssessment = () => {
     const digitPattern = /^[0-9]+$/;
     const stringPattern = /^[A-Za-z0-9().,&\-\s]+$/;
 
-    if (!caData.dscIssuedCountWAppForm) {
-      newErrors.dscIssuedCountWAppForm = "DSC issued count cannot be empty.";
-    } else if (!digitPattern.test(caData.dscIssuedCountWAppForm)) {
-      newErrors.dscIssuedCountWAppForm = "Only digits are allowed.";
-    } else if (caData.dscIssuedCountWAppForm.length > 9) {
-      newErrors.dscIssuedCountWAppForm = "Must not exceed 9 digits.";
+    // Format/type only when value present
+    if (caData.dscIssuedCountWAppForm) {
+      if (!digitPattern.test(caData.dscIssuedCountWAppForm)) {
+        newErrors.dscIssuedCountWAppForm = "Only digits are allowed.";
+      } else if (caData.dscIssuedCountWAppForm.length > 9) {
+        newErrors.dscIssuedCountWAppForm = "Must not exceed 9 digits.";
+      }
     }
 
-    if (!caData.ncReason) {
-      newErrors.ncReason = "NC reason cannot be empty.";
-    } else if (!stringPattern.test(caData.ncReason)) {
-      newErrors.ncReason = "Only allowed characters are ( ), . , & -";
-    } else if (caData.ncReason.length < 3 || caData.ncReason.length > 200) {
-      newErrors.ncReason = "Must be between 3 and 200 characters.";
+    if (caData.ncReason) {
+      if (!stringPattern.test(caData.ncReason)) {
+        newErrors.ncReason = "Only allowed characters are ( ), . , & -";
+      } else if (caData.ncReason.length < 3 || caData.ncReason.length > 200) {
+        newErrors.ncReason = "Must be between 3 and 200 characters.";
+      }
     }
 
-    if (!caData.dscIssuedWFee) {
-      newErrors.dscIssuedWFee = "DSC issued with fee cannot be empty.";
-    } else if (!digitPattern.test(caData.dscIssuedWFee)) {
-      newErrors.dscIssuedWFee = "Only digits are allowed.";
-    } else if (caData.dscIssuedWFee.length > 9) {
-      newErrors.dscIssuedWFee = "Must not exceed 9 digits.";
+    if (caData.dscIssuedWFee) {
+      if (!digitPattern.test(caData.dscIssuedWFee)) {
+        newErrors.dscIssuedWFee = "Only digits are allowed.";
+      } else if (caData.dscIssuedWFee.length > 9) {
+        newErrors.dscIssuedWFee = "Must not exceed 9 digits.";
+      }
     }
 
-    if (!caData.detailsDSCIssuedWFee) {
-      newErrors.detailsDSCIssuedWFee = "Details cannot be empty.";
-    } else if (!stringPattern.test(caData.detailsDSCIssuedWFee)) {
-      newErrors.detailsDSCIssuedWFee = "Only allowed characters are ( ), . , & -";
-    } else if (caData.detailsDSCIssuedWFee.length < 3 || caData.detailsDSCIssuedWFee.length > 200) {
-      newErrors.detailsDSCIssuedWFee = "Must be between 3 and 200 characters.";
+    if (caData.detailsDSCIssuedWFee) {
+      if (!stringPattern.test(caData.detailsDSCIssuedWFee)) {
+        newErrors.detailsDSCIssuedWFee = "Only allowed characters are ( ), . , & -";
+      } else if (caData.detailsDSCIssuedWFee.length < 3 || caData.detailsDSCIssuedWFee.length > 200) {
+        newErrors.detailsDSCIssuedWFee = "Must be between 3 and 200 characters.";
+      }
     }
 
-    if (!caData.isOTPSent) {
-      newErrors.isOTPSent = "OTP sent status cannot be empty.";
-    } else if (caData.isOTPSent !== "Yes" && caData.isOTPSent !== "No") {
+    if (caData.isOTPSent && caData.isOTPSent !== "Yes" && caData.isOTPSent !== "No") {
       newErrors.isOTPSent = "OTP sent must be Yes or No.";
     }
 
-    if (caData.isOTPSent === "Yes" && !caData.otpReasonNC) {
-      newErrors.otpReasonNC = "OTP reason cannot be empty.";
+    if (caData.otpReasonNC) {
+      if (!stringPattern.test(caData.otpReasonNC)) {
+        newErrors.otpReasonNC = "Only allowed characters are ( ), . , & -";
+      }
     }
 
     setErrors(newErrors);

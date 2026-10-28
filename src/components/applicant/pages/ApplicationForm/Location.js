@@ -34,6 +34,7 @@ import StateService from "../../../../service/AdminService/StateService";
 import CountryService from "../../../../service/AdminService/CountryService";
 import CityService from "../../../../service/AdminService/CityService";
 import validatePattern from "../../../global/util/ValidatePattern";
+import { getStepSuccessAlert, getStepErrorAlert } from "../../../global/util/applicationFormSteps";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import showAlert from "../../../global/common/MessageBox/AlertService";
@@ -210,6 +211,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
   const [filteredState, setFilteredState] = useState([]);
   const [filteredCitie, setFilteredCitie] = useState([]);
   const [sameAsOfficialAddress, setSameAsOfficialAddress] = useState("");
+  const [sitePresent, setSitePresent] = useState("");
   useEffect(() => {
     StateService.getAllStateList()
       .then((data) => {
@@ -498,6 +500,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
             ...prevValues,
             LocationDetails: combinedLocationDetails,
           }));
+
         })
         .catch((err) => {
           console.log(err);
@@ -633,8 +636,66 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
   const [entries, setEntries] = useState([]);
 
-  const handleAddLocation = (e) => {
+  const clearLocationFormFields = (keepLocationType = false) => {
+    setCommunicationAddressFormValues((prevValues) => ({
+      ...prevValues,
+      locationType: keepLocationType ? prevValues.locationType : "",
+      blockNo: "",
+      village: "",
+      postOffice: "",
+      subDivision: "",
+      country: "",
+      city: "",
+      state: "",
+      pin: "",
+      companyName: "",
+      certificationLevel: "",
+      certificationDocument: null,
+    }));
+    setFileName1("");
+    setFilteredState([]);
+    setFilteredCitie([]);
+    if (!keepLocationType) {
+      setLocationType("");
+    }
+  };
+
+  const removeLocationByType = (type) => {
+    setCommunicationAddressFormValues((prevValues) => ({
+      ...prevValues,
+      LocationDetails: prevValues.LocationDetails.filter(
+        (loc) => loc.locationType !== type,
+      ),
+    }));
+    setDisabledLocationTypes((prevTypes) =>
+      prevTypes.filter((t) => t !== type),
+    );
+    setSelectedLocationTypes((prevTypes) =>
+      prevTypes.filter((t) => t !== type),
+    );
+  };
+
+  const handleSitePresentChange = (event) => {
+    const value = event.target.value;
+    setSitePresent(value);
+
+    if (value === "no") {
+      if (locationType) {
+        removeLocationByType(locationType);
+      }
+      clearLocationFormFields(true);
+    }
+  };
+
+  const handleAddLocation = (e, forcedLocationType) => {
     e.preventDefault();
+    const typeToAdd =
+      forcedLocationType || communicationAddressFormValues.locationType;
+
+    if (!typeToAdd) {
+      return;
+    }
+
     console.log("Current form values:", communicationAddressFormValues);
 
     // Validate the form fields
@@ -647,7 +708,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
       // Create a new location object from the form values
       const newLocation = {
-        locationType: communicationAddressFormValues.locationType,
+        locationType: typeToAdd,
         blockNo: communicationAddressFormValues.blockNo,
         village: communicationAddressFormValues.village,
         postOffice: communicationAddressFormValues.postOffice,
@@ -665,52 +726,37 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
       console.log("New location:", newLocation);
 
-      // Add the new location to LocationDetails array
+      // Replace existing entry for same type (PR/DR allow one entry each)
       setCommunicationAddressFormValues((prevValues) => {
-        const updatedValues = {
+        const withoutSameType = prevValues.LocationDetails.filter(
+          (loc) => loc.locationType !== typeToAdd,
+        );
+        return {
           ...prevValues,
-          LocationDetails: [...prevValues.LocationDetails, newLocation], // Append new location
-          locationType: "", // Reset form fields
-          blockNo: "",
-          village: "",
-          postOffice: "",
-          subDivision: "",
-          country: "",
-          city: "",
-          state: "",
-          pin: "",
-          companyName: "", // Don't reset companyName here if it should persist
-          certificationLevel: "", // Don't reset certificationLevel here if it should persist
-          certificationDocument: null, // Don't reset certificationDocument here if it should persist
-          // Don't reset userName here if it should persist
+          LocationDetails: [...withoutSameType, newLocation],
         };
-        console.log("Updated communicationAddressFormValues:", updatedValues);
-        return updatedValues;
       });
 
-      // Update selected and disabled location types for the dropdown
+      clearLocationFormFields(true);
+      setCommunicationAddressFormValues((prevValues) => ({
+        ...prevValues,
+        locationType: typeToAdd,
+      }));
+      setLocationType(typeToAdd);
+
       setSelectedLocationTypes((prevTypes) => [
-        ...prevTypes,
-        communicationAddressFormValues.locationType,
+        ...prevTypes.filter((t) => t !== typeToAdd),
+        typeToAdd,
       ]);
-      setDisabledLocationTypes([
-        ...disabledLocationTypes,
-        communicationAddressFormValues.locationType,
+      setDisabledLocationTypes((prevTypes) => [
+        ...prevTypes.filter((t) => t !== typeToAdd),
+        typeToAdd,
       ]);
     } else {
       // If validation fails, set form errors
       setFormErrors(errors);
     }
   };
-  const [knownByOtherName, setKnownByOtherName] = useState(false);
-  const [selectedOption, setSelectedOption] = useState();
-  const handleKnownByOtherNameChange = (event) => {
-    const selectedValue = event.target.value;
-    setSelectedOption(selectedValue);
-    const newKnownByOtherName = selectedValue;
-    setKnownByOtherName(newKnownByOtherName);
-  };
-
   const getCountryNameById = (id) => {
     const country = countries.find((c) => c.countryId === id);
     return country ? country.countryName : "Unknown";
@@ -796,7 +842,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12} sm={6}>
             <InputLabel shrink={false} htmlFor="blockNo">
-              <Typography variant="body1">Flat/Door/Block No*</Typography>
+              <Typography variant="body1">Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             <TextField
               id="blockNo"
@@ -816,7 +862,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           <Grid item xs={12} sm={6}>
             <InputLabel shrink={false} htmlFor="village">
               <Typography variant="body1">
-                Name of Premises/Building/Village*
+                Name of Premises/Building/Village<span className="req-asterisk">*</span>
               </Typography>
             </InputLabel>
             <TextField
@@ -839,7 +885,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           <Grid item xs={12} sm={6}>
             <InputLabel shrink={false} htmlFor="postOffice">
               <Typography variant="body1">
-                Road/Street/Lane/Post Office*
+                Road/Street/Lane/Post Office<span className="req-asterisk">*</span>
               </Typography>
             </InputLabel>
             <TextField
@@ -860,7 +906,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           <Grid item xs={12} sm={6}>
             <InputLabel shrink={false} htmlFor="subDivision">
               <Typography variant="body1">
-                Area/Locality/Taluka/Sub-Division*
+                Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span>
               </Typography>
             </InputLabel>
             <TextField
@@ -882,7 +928,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12} sm={3}>
             <InputLabel shrink={false} htmlFor="country">
-              <Typography variant="body1">Country*</Typography>
+              <Typography variant="body1">Country<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             <FormControl
               variant="outlined"
@@ -912,7 +958,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
           <Grid item xs={12} sm={3}>
             <InputLabel shrink={false} htmlFor="state">
-              <Typography variant="body1">State/Province*</Typography>
+              <Typography variant="body1">State/Province<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             <FormControl
               variant="outlined"
@@ -942,7 +988,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
           <Grid item xs={12} sm={3}>
             <InputLabel shrink={false} htmlFor="city">
-              <Typography variant="body1">District*</Typography>
+              <Typography variant="body1">District<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             <FormControl
               variant="outlined"
@@ -972,7 +1018,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
           <Grid item xs={12} sm={3}>
             <InputLabel shrink={false} htmlFor="pin">
-              <Typography variant="body1">Pin*</Typography>
+              <Typography variant="body1">Pin<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             <TextField
               id="pin"
@@ -1098,17 +1144,20 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
       LocationDetails: updatedLocationDetails,
     }));
 
-    // Re-enable the deleted location type
     setDisabledLocationTypes(
       disabledLocationTypes.filter((type) => type !== deletedLocationType),
     );
+
+    if (deletedLocationType === locationType) {
+      setSitePresent("");
+    }
   };
   console.log(communicationAddressFormValues);
   const [selectedLocationFullName, setSelectedLocationFullName] = useState("");
   const handleLocationTypeChange = (event) => {
     const { value } = event.target;
 
-    // Set the locationType state and update the form values
+    setSitePresent("");
     setLocationType(value);
 
     const selectedOption = locationTypeOptions.find(
@@ -1116,11 +1165,20 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
     );
 
     setSelectedLocationFullName(selectedOption?.fullName || "");
-    // Update the locationType field in the communicationAddressFormValues
     setCommunicationAddressFormValues((prevValues) => ({
       ...prevValues,
       locationType: value,
     }));
+  };
+
+  const getSitePresentLabel = () => {
+    if (locationType === "PR") {
+      return "Is PR site present?";
+    }
+    if (locationType === "DR") {
+      return "Is DR site present?";
+    }
+    return "Do you have own Data Center (DC)?";
   };
 
   const locationFullName = locationTypeOptions.find(
@@ -1133,37 +1191,49 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
   //             handleNext();
   // };
 
+  const hasMandatorySiteEntry = (type) => {
+    const entry = communicationAddressFormValues.LocationDetails.find(
+      (location) => (location.locationType || "").trim() === type,
+    );
+    if (!entry) {
+      return false;
+    }
+    return !!(
+      entry.blockNo &&
+      entry.village &&
+      entry.postOffice &&
+      entry.subDivision &&
+      entry.country &&
+      entry.state &&
+      entry.city &&
+      entry.pin &&
+      entry.companyName &&
+      entry.certificationLevel
+    );
+  };
+
   const handleFormSubmit = (e) => {
     e.preventDefault();
 
-    // List of mandatory location types
-    const mandatoryTypes = locationTypeOptions.filter(
-      (type) => type.isMandatory,
-    );
+    const hasPr = hasMandatorySiteEntry("PR");
+    const hasDr = hasMandatorySiteEntry("DR");
 
-    // Check if all mandatory location types are selected
-    const missingMandatory = mandatoryTypes.some((mandatoryType) => {
-      return !communicationAddressFormValues.LocationDetails.some(
-        (location) => location.locationType === mandatoryType.locationTypeName,
-      );
-    });
-
-    if (missingMandatory) {
-      // If any mandatory location type is not selected, show alert
-      // alert('Please select all mandatory location types before proceeding.');
-
+    if (!hasPr || !hasDr) {
       showAlert({
         messageTitle: "Alert",
-        messageContent:
-          "Please select all mandatory location types before proceeding.",
+        messageContent: "PR sites & DR sites are mandatory.",
         confirmText: "Ok",
       });
-    } else {
-      console.log(
-        JSON.stringify(communicationAddressFormValues.LocationDetails),
-      );
+      return;
+    }
 
-      const formData = new FormData();
+    setLoading(true);
+
+    console.log(
+      JSON.stringify(communicationAddressFormValues.LocationDetails),
+    );
+
+    const formData = new FormData();
 
       // // Predefined fields
       // formData.append('locationType', communicationAddressFormValues.locationType || '');
@@ -1251,32 +1321,30 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           console.log(response.data); // Log the success response
 
           // Show a success alert, either for 'updated' or 'saved'
+          const { messageTitle, messageContent } = getStepSuccessAlert(appTypeMasterId, 'location', false);
           showAlert({
-            messageTitle: "Successful",
-            messageContent: "Fifth  saved successfully",
+            messageTitle,
+            messageContent,
             confirmText: "Ok",
             onConfirm: () => {
               handleNext();
-            }, // Handle next step navigation
+            },
           });
         })
         .catch((err) => {
-          // Handle error and show appropriate error message
+          const errorAlert = getStepErrorAlert(appTypeMasterId, 'location', err);
           showAlert({
-            messageTitle: "Error",
-            messageContent: err.response?.data
-              ? typeof err.response.data === "object"
-                ? "Your request cannot be processed at this time. Please try again later."
-                : err.response.data
-              : "Your request cannot be processed at this time. Please try again later.",
+            messageTitle: errorAlert.messageTitle,
+            messageContent: errorAlert.messageContent,
             confirmText: "Ok",
           });
         })
         .finally(() => {
           setLoading(false); // Set loading state to false after the operation completes
         });
-    }
   };
+
+  const showLocationFormFields = locationType && sitePresent === "yes";
 
   return (
     <Box
@@ -1285,11 +1353,10 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
       sx={{ mt: 2, p: 2 }}
       onSubmit={handleFormSubmit}
     >
-      {/* Location Type Field */}
       <Grid container spacing={2} sx={{ mt: 0.1 }}>
         <Grid item xs={12} sm={3}>
           <InputLabel shrink={false} htmlFor="locationType">
-            <Typography variant="body1">Location Type*</Typography>
+            <Typography variant="body1">Location Type<span className="req-asterisk">*</span></Typography>
           </InputLabel>
           <FormControl
             variant="outlined"
@@ -1308,7 +1375,6 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
                 });
                 handleLocationTypeChange(e);
               }}
-              //  onChange={handleLocationTypeChange}
               name="locationType"
               error={!!formErrors.locationType}
             >
@@ -1323,9 +1389,8 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
                     option.locationTypeName,
                   )}
                 >
-                  {" "}
-                  {option.locationTypeName}{" "}
-                  {option.isMandatory ? "(Mandatory)" : ""}
+                  {option.locationTypeName}
+                  {option.isMandatory ? " (Mandatory)" : ""}
                 </MenuItem>
               ))}
             </Select>
@@ -1337,36 +1402,33 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           </FormControl>
         </Grid>
       </Grid>
+
       {locationType && (
         <Grid item xs={12}>
-          <Box display="flex" alignItems="center">
-            <Typography variant="body1">
-              Do you have own Data Center(DC)?
-            </Typography>
+          <Box display="flex" alignItems="center" sx={{ mt: 2 }}>
+            <Typography variant="body1">{getSitePresentLabel()}<span className="req-asterisk">*</span></Typography>
             <RadioGroup
               row
-              value={selectedOption||"yes"}
-              onChange={handleKnownByOtherNameChange} // Make sure this updates `knownByOtherName`
+              value={sitePresent}
+              onChange={handleSitePresentChange}
               sx={{ ml: 2 }}
             >
               <FormControlLabel value="yes" control={<Radio />} label="Yes" />
               <FormControlLabel value="no" control={<Radio />} label="No" />
             </RadioGroup>
-          </Box>s
+          </Box>
         </Grid>
       )}
-      {/* Conditionally Render Address Fields */}
-      {knownByOtherName && (
+
+      {showLocationFormFields && (
         <>
-          <Grid item xs={12} sm={6}>
-            <InputLabel shrink={false} htmlFor="blockNo">
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: "bold", textAlign: "center" }}
-              >
-                {selectedLocationFullName}
-              </Typography>
-            </InputLabel>
+          <Grid item xs={12}>
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: "bold", textAlign: "center", mt: 2 }}
+            >
+              {selectedLocationFullName}
+            </Typography>
           </Grid>
 
           {locationType === "Registered Office" && (
@@ -1392,7 +1454,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <InputLabel shrink={false} htmlFor="village">
-                <Typography variant="body1">Name Of Company*</Typography>
+                <Typography variant="body1">Name Of Company<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <TextField
                 id="companyName"
@@ -1416,7 +1478,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <InputLabel shrink={false} htmlFor="blockNo">
-                <Typography variant="body1">Flat/Door/Block No*</Typography>
+                <Typography variant="body1">Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <TextField
                 id="blockNo"
@@ -1439,7 +1501,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
             <Grid item xs={12} sm={6}>
               <InputLabel shrink={false} htmlFor="village">
                 <Typography variant="body1">
-                  Name of Premises/Building/Village*
+                  Name of Premises/Building/Village<span className="req-asterisk">*</span>
                 </Typography>
               </InputLabel>
               <TextField
@@ -1465,7 +1527,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
             <Grid item xs={12} sm={6}>
               <InputLabel shrink={false} htmlFor="postOffice">
                 <Typography variant="body1">
-                  Road/Street/Lane/Post Office*
+                  Road/Street/Lane/Post Office<span className="req-asterisk">*</span>
                 </Typography>
               </InputLabel>
               <TextField
@@ -1489,7 +1551,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
             <Grid item xs={12} sm={6}>
               <InputLabel shrink={false} htmlFor="subDivision">
                 <Typography variant="body1">
-                  Area/Locality/Taluka/Sub-Division*
+                  Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span>
                 </Typography>
               </InputLabel>
               <TextField
@@ -1514,7 +1576,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={3}>
               <InputLabel shrink={false} htmlFor="country">
-                <Typography variant="body1">Country*</Typography>
+                <Typography variant="body1">Country<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <FormControl
                 variant="outlined"
@@ -1549,7 +1611,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
             <Grid item xs={12} sm={3}>
               <InputLabel shrink={false} htmlFor="state">
-                <Typography variant="body1">State/Province*</Typography>
+                <Typography variant="body1">State/Province<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <FormControl
                 variant="outlined"
@@ -1584,7 +1646,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
             <Grid item xs={12} sm={3}>
               <InputLabel shrink={false} htmlFor="city">
-                <Typography variant="body1">District*</Typography>
+                <Typography variant="body1">District<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <FormControl
                 variant="outlined"
@@ -1619,7 +1681,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
 
             <Grid item xs={12} sm={3}>
               <InputLabel shrink={false} htmlFor="pin">
-                <Typography variant="body1">Pin*</Typography>
+                <Typography variant="body1">Pin<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <TextField
                 id="pin"
@@ -1644,7 +1706,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
             {/* Certification Level */}
             <Grid item xs={12} sm={6}>
               <InputLabel shrink={false} htmlFor="certificationLevel">
-                <Typography variant="body1">Certification Level*</Typography>
+                <Typography variant="body1">Certification Level<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <FormControl
                 variant="outlined"
@@ -1742,19 +1804,20 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
               )}
             </Grid>
           </Grid>
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 3, ml: 1 }}>
+            <Button
+              sx={{ mr: 1 }}
+              variant="contained"
+              color="primary"
+              onClick={(e) => handleAddLocation(e, locationType)}
+            >
+              {locationType === "PR" || locationType === "DR"
+                ? `Add ${locationType} Location`
+                : "ADD"}
+            </Button>
+          </Box>
         </>
       )}
-
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 3, ml: 1 }}>
-        <Button
-          sx={{ mr: 1 }}
-          variant="contained"
-          color="primary"
-          onClick={handleAddLocation}
-        >
-          ADD
-        </Button>
-      </Box>
 
       <TableContainer sx={{ mt: 3 }}>
         <Table>
@@ -1925,7 +1988,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
       <Grid item xs={12}>
         <InputLabel shrink={false}>
           <Typography variant="body1">
-            Note: * marked field are mandatory to be filled
+            Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled
           </Typography>
         </InputLabel>
       </Grid>

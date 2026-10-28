@@ -23,7 +23,7 @@ const EsignAPISpecification = () => {
 
                     <Grid item sx={{display: 'flex', justifyContent:'right', alignItems:'right', mr: 2}}>
                         <Button variant="contained"  startIcon={<AddIcon />} onClick={addEsignAPISpecification}>
-                            <Typography variant="h6">Add Esign API Specification</Typography>
+                            <Typography variant="h6">Add eSign API Specification</Typography>
                         </Button>
                     </Grid>
                 </Grid>

@@ -202,7 +202,7 @@ const EditEsignDocType = () => {
                 </Box>
 
             
-                <FormWrapper headingText="Edit Esign Document Type">
+                <FormWrapper headingText="Edit eSign Document Type">
 
 
                     <Box component="form" noValidate sx={{ mt: 2, p: 2}} onSubmit={handleFormSubmit} >

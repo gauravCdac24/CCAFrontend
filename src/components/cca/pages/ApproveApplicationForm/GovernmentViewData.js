@@ -29,6 +29,7 @@ import {
   Tabs,
   Tab,
   AppBar,
+  InputLabel,
 } from "@mui/material";
 import ApplicationForm from "../../../../service/NewLicenseService/ApplicationForm";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -67,8 +68,23 @@ const MAX_FILE_SIZE_MB = 5;
 
 const GovernmentViewData = (props) => {
   const { id } = useParams();
-  //  const userName = decrypt(id);
-  const userName = props.userName || (id ? decrypt(id) : null);
+
+  const resolveUserNameFromRoute = () => {
+    if (props.userName) {
+      return props.userName;
+    }
+    if (!id) {
+      return null;
+    }
+    const decodedId = decodeURIComponent(id);
+    const decrypted = decrypt(decodedId);
+    if (decrypted && decrypted.trim()) {
+      return decrypted;
+    }
+    return decodedId;
+  };
+
+  const userName = resolveUserNameFromRoute();
   console.log(userName);
   const routeRootPath = useSelector(
     (state) => state.jwtAuthentication.rolePath
@@ -81,6 +97,17 @@ const GovernmentViewData = (props) => {
     userName: userName,
     reviewerUserName: reviewerUserName,
   });
+
+  useEffect(() => {
+    const applicantUserName = resolveUserNameFromRoute();
+    if (applicantUserName || reviewerUserName) {
+      setCheckedRows((prev) => ({
+        ...prev,
+        ...(applicantUserName ? { userName: applicantUserName } : {}),
+        ...(reviewerUserName ? { reviewerUserName } : {}),
+      }));
+    }
+  }, [props.userName, id, reviewerUserName]);
 
   const [tabValue, setTabValue] = useState(0);
   const [collapseItem, setCollapseItem] = useState([]);
@@ -140,7 +167,15 @@ const GovernmentViewData = (props) => {
   //     }
   // }, [userName]);
 
-  const [basicDetailesValues, setBasicDetailesValues] = useState({});
+  const [basicDetailesValues, setBasicDetailesValues] = useState({
+    reviewApplications: [],
+    reviewDocuments: [],
+    reviewFields: [],
+  });
+
+  const activeReviewApplication = basicDetailesValues?.reviewApplications?.find(
+    (review) => review.status === "Active"
+  );
 
   useEffect(() => {
     if (userName) {
@@ -542,6 +577,23 @@ const GovernmentViewData = (props) => {
     // navigate(`${routeRootPath}/espreviewapp`, { replace: true })
   };
 
+  const downloads = async (momFile) => {
+    try {
+      const response = await ApplicationForm.viewsFile(momFile);
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"],
+      });
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute("download", "Committee MoM Document");
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
+  };
+
   // get first application form by userName
 
   const handleRejectedSubmit = (e) => {
@@ -557,17 +609,49 @@ const GovernmentViewData = (props) => {
     });
   };
 
+  const getApplicantUserName = () =>
+    resolveUserNameFromRoute() || checkedRows.userName || null;
+
+  const buildCcaApprovalPayload = (isRejected) => {
+    const applicantUserName = getApplicantUserName();
+    if (!applicantUserName) {
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Applicant user name is missing. Please reopen the application and try again.",
+        confirmText: "Ok",
+      });
+      return null;
+    }
+
+    return {
+      userName: applicantUserName,
+      reviewerUserName: reviewerUserName || checkedRows.reviewerUserName || "",
+      isRejected,
+      remarks: checkedRows.remarks || "",
+    };
+  };
+
+  const handleApprovalSuccess = () => {
+    if (props.onSuccess) {
+      props.onSuccess();
+    } else {
+      window.location.href = "/cca/approvedreviewapplication";
+    }
+  };
+
   const handleConfrimSubmit = () => {
-    ApplicationReview.addGovernmentAgencyApplicationReveiw(checkedRows)
+    const payload = buildCcaApprovalPayload(false);
+    if (!payload) {
+      return;
+    }
+
+    ApplicationForm.addAllAprovedJson(payload)
       .then((response) => {
-        //console.log(response.data)
         showAlert({
           messageTitle: "Success",
           messageContent: response.data,
           confirmText: "Ok",
-          onConfirm: () =>
-            (window.location.href =
-              "/applicationreviewcommittee/newapplication"),
+          onConfirm: handleApprovalSuccess,
         });
       })
       .catch((err) => {
@@ -598,15 +682,18 @@ const GovernmentViewData = (props) => {
   };
 
   const handleSubmit = () => {
-    ApplicationReview.addGovernmentAgencyApplicationReveiw(checkedRows)
+    const payload = buildCcaApprovalPayload(true);
+    if (!payload) {
+      return;
+    }
+
+    ApplicationForm.addAllAprovedJson(payload)
       .then((response) => {
         showAlert({
           messageTitle: "Success",
           messageContent: response.data,
           confirmText: "Ok",
-          onConfirm: () =>
-            (window.location.href =
-              "/applicationreviewcommittee/newapplication"),
+          onConfirm: handleApprovalSuccess,
         });
       })
       .catch((err) => {
@@ -1400,21 +1487,87 @@ const GovernmentViewData = (props) => {
               </Grid>
             </Grid>
 
-            {/* Notes Section */}
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Typography variant="h6" style={{ marginTop: "10px" }}>
-                  Remarks
+                  Application Review Remarks
                 </Typography>
                 <TextField
                   multiline
-                  rows={4} // Adjust the number of rows as needed
+                  rows={4}
+                  disabled
                   variant="outlined"
                   fullWidth
-                  onChange={(e) => handleChanges(e, "remarks")} // Pass appDocId here
+                  value={activeReviewApplication?.remarks || ""}
                   InputProps={{
                     style: {
-                      padding: "10px", // Ensure there's enough padding
+                      padding: "10px",
+                    },
+                  }}
+                />
+              </Grid>
+            </Grid>
+
+            <Grid
+              container
+              spacing={2}
+              sx={{ mt: 0.1 }}
+              direction="row"
+              alignItems="center"
+            >
+              <Grid item xs={6} sm={6}>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <InputLabel shrink={false} htmlFor="reviewDate">
+                    <Typography variant="body1">Review Date:</Typography>
+                  </InputLabel>
+                  <Typography variant="body1" sx={{ ml: 1 }}>
+                    {dateFormatter(activeReviewApplication?.reviewDate)}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={6}>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <InputLabel shrink={false} htmlFor="pdffile">
+                    <Typography variant="body1">
+                      Committee MoM Document:
+                    </Typography>
+                  </InputLabel>
+                  <Typography variant="body1" sx={{ ml: 1 }}>
+                    {activeReviewApplication?.momFile ? (
+                      <Link
+                        onClick={() => downloads(activeReviewApplication.momFile)}
+                        sx={{
+                          color: "red",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        Download
+                      </Link>
+                    ) : (
+                      "N/A"
+                    )}
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Typography variant="h6" style={{ marginTop: "10px" }}>
+                  CCA Remarks
+                </Typography>
+                <TextField
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  fullWidth
+                  onChange={(e) => handleChanges(e, "remarks")}
+                  InputProps={{
+                    style: {
+                      padding: "10px",
                     },
                   }}
                 />
@@ -1491,7 +1644,8 @@ const GovernmentViewData = (props) => {
                   }
                 >
                   <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                    Reviewd on {dateFormatter(Date.now())}
+                    Reviewd on{" "}
+                    {dateFormatter(element?.reviewDate || element?.created)}
                   </Typography>
                   <IconButton
                     sx={{
@@ -2384,24 +2538,93 @@ const GovernmentViewData = (props) => {
                       </Grid>
                     </Grid>
 
-                    {/* Notes Section */}
                     <Grid container spacing={2}>
                       <Grid item xs={12}>
                         <Typography variant="h6" style={{ marginTop: "10px" }}>
-                          Remarks
+                          Application Review Remarks
                         </Typography>
                         <TextField
                           multiline
-                          rows={4} // Adjust the number of rows as needed
+                          rows={4}
+                          disabled
                           variant="outlined"
                           fullWidth
-                          onChange={(e) => handleChanges(e, "remarks")} // Pass appDocId here
+                          value={element?.remarks || ""}
                           InputProps={{
                             style: {
-                              padding: "10px", // Ensure there's enough padding
+                              padding: "10px",
                             },
                           }}
                         />
+                      </Grid>
+                    </Grid>
+
+                    {element?.ccaRemarks && (
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <Typography variant="h6" style={{ marginTop: "10px" }}>
+                            CCA Remarks
+                          </Typography>
+                          <TextField
+                            multiline
+                            rows={4}
+                            disabled
+                            variant="outlined"
+                            fullWidth
+                            value={element?.ccaRemarks}
+                            InputProps={{
+                              style: {
+                                padding: "10px",
+                              },
+                            }}
+                          />
+                        </Grid>
+                      </Grid>
+                    )}
+
+                    <Grid
+                      container
+                      spacing={2}
+                      sx={{ mt: 0.1 }}
+                      direction="row"
+                      alignItems="center"
+                    >
+                      <Grid item xs={6} sm={6}>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <InputLabel shrink={false} htmlFor="reviewDate">
+                            <Typography variant="body1">Review Date:</Typography>
+                          </InputLabel>
+                          <Typography variant="body1" sx={{ ml: 1 }}>
+                            {dateFormatter(element?.reviewDate)}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={6} sm={6}>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <InputLabel shrink={false} htmlFor="pdffile">
+                            <Typography variant="body1">
+                              Committee MoM Document:
+                            </Typography>
+                          </InputLabel>
+                          <Typography variant="body1" sx={{ ml: 1 }}>
+                            {element?.momFile ? (
+                              <Link
+                                onClick={() => downloads(element?.momFile)}
+                                sx={{
+                                  color: "red",
+                                  cursor: "pointer",
+                                  textDecoration: "underline",
+                                  display: "flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                Download
+                              </Link>
+                            ) : (
+                              "N/A"
+                            )}
+                          </Typography>
+                        </Box>
                       </Grid>
                     </Grid>
                   </Box>

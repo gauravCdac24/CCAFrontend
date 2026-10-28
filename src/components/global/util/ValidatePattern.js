@@ -14,4 +14,19 @@ const ValidatePattern = (e, pattern) => {
 
 }
 
+export const isValidWebUrl = (value) => {
+    const trimmed = (value || '').trim();
+    if (!trimmed) {
+        return false;
+    }
+    try {
+        const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+        const url = new URL(normalized);
+        return (url.protocol === 'http:' || url.protocol === 'https:')
+            && url.hostname.includes('.');
+    } catch {
+        return false;
+    }
+};
+
 export default ValidatePattern;

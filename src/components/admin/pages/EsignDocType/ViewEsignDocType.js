@@ -57,7 +57,7 @@ const ViewEsignDocType = () => {
             .catch((err) => {
                 showAlert({
                     messageTitle: 'Error',
-                    messageContent: 'Error changing Esign document type status. Please try again later.',
+                    messageContent: 'Error changing eSign document type status. Please try again later.',
                     confirmText: 'OK',
                 });
             })
@@ -70,7 +70,7 @@ const ViewEsignDocType = () => {
         const obj = docTypeList.find((obj) => obj.id === cid);
         if (obj) {
             showAlert({
-                messageTitle: 'View Esign document type',
+                messageTitle: 'View eSign document type',
                 messageContent: <ViewEsignDocTypeDetails docTypeObj={obj} />,
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
@@ -78,8 +78,8 @@ const ViewEsignDocType = () => {
             });
         } else {
             showAlert({
-                messageTitle: 'View Esign document type',
-                messageContent: 'Error in getting Esign document type details, try after some time.',
+                messageTitle: 'View eSign document type',
+                messageContent: 'Error in getting eSign document type details, try after some time.',
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true,
@@ -94,8 +94,8 @@ const ViewEsignDocType = () => {
             navigate(`${rolePath}/esigndoctype/editesigndoctype/${encryptedId}`);
         } else {
             showAlert({
-                messageTitle: 'Edit Esign document type',
-                messageContent: 'Error in updating Esign document type details, try after some time.',
+                messageTitle: 'Edit eSign document type',
+                messageContent: 'Error in updating eSign document type details, try after some time.',
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true,
@@ -146,7 +146,7 @@ const ViewEsignDocType = () => {
 
     return (
         <>
-            <CustomTable customTitle = "Esign document types" columns={columns} rows={docTypeList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} />
+            <CustomTable customTitle = "eSign document types" columns={columns} rows={docTypeList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} />
         </>
     );
 };

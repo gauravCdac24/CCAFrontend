@@ -64,7 +64,7 @@ const AuditorControls = () => {
   // Fetching audit control data
   const getAllAuditControl = () => {
     setLoading(true);
-    AuditControlService.data()
+    AuditControlService.data(ApplicantUserName)
       .then((response) => {
         setAllAuditControlList(response.data);
       })
@@ -370,15 +370,14 @@ const handleSubmit = (e) => {
   }
 
   // Validate file
-  if (radioValue.file === null) {
+  if (!radioValue.file3) {
     setFileError("Please select a file.");
     hasError = true;
   }
 
-  // // If there are any errors, stop form submission
-  // if (hasError) {
-  //   return;
-  // }
+  if (hasError) {
+    return;
+  }
 
   // If no errors, show the confirmation alert
   showAlert({
@@ -397,20 +396,22 @@ const handleSubmit = (e) => {
 
 
 const handleConfrimSubmit = () => {
-  
-  const applicantRemarks=new FormData();
+  const applicantRemarks = new FormData();
 
-  applicantRemarks.append("remarks",radioValue.remarks);
-  applicantRemarks.append("applicantUserName",radioValue.applicantUserName);
-  applicantRemarks.append("file",radioValue.file3);
-  AuditService.changeByApplicantUserName(applicantRemarks)
+  applicantRemarks.append("remarks", radioValue.remarks);
+  applicantRemarks.append("applicantUserName", radioValue.applicantUserName);
+  applicantRemarks.append("file", radioValue.file3);
+
+  setLoading(true);
+
+  AnnualAuditService.changeByApplicantUserName(applicantRemarks)
   .then((response) => {
     //console.log(response.data)
       showAlert({
           messageTitle: 'Success',
           messageContent: response.data,
           confirmText: 'Ok',
-          onConfirm: () => window.location.href = '/applicant/applicationform',
+          onConfirm: () => { window.location.href = '/licensee/annualncaudits'; },
       });
       
       // Reset the form values

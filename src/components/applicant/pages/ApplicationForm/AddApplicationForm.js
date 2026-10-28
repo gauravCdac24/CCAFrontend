@@ -22,10 +22,13 @@ import ApplicationForm from '../../../../service/NewLicenseService/ApplicationFo
 import FirmDeclarization from './FirmDeclarization';
 import GovernmentDeclarization from './GovernmentDeclarization';
 import TimerApp from '../../../global/util/TimerApp';
+import StepTimerApp from '../../../global/util/StepTimerApp';
 import { clearCredentials } from '../../../../store/Auth/Reducer';
 import IndividualChecklistPage from './IndividualChecklistPage';
 import FirmChecklistPage from './FirmChecklistPage';
 import GovernmentChecklistPage from './GovernmentChecklistPage';
+
+const STEP_TIME_LIMIT_SECONDS = 600; // 10 minutes per step
 
 const AddApplicationForm = () => {
     const [applicationType, setApplicationType] = useState({
@@ -38,6 +41,7 @@ const AddApplicationForm = () => {
 
     const navigate = useNavigate();
     const userName = useSelector((state) => state.jwtAuthentication.username);
+    const homePath = useSelector((state) => state.jwtAuthentication.homePath);
 
     const dispatch = useDispatch();
     dispatch(setApplicationDetails({applicationType: applicationType.appTypeMasterId}))
@@ -136,6 +140,7 @@ const AddApplicationForm = () => {
                 return [
                     'Organization Details',
                     'Financial Details',
+                    'Bank Details',
                     'Location of Facility',
                     'CPS & Additional Document',
                     'Application Checklist',
@@ -219,11 +224,12 @@ const AddApplicationForm = () => {
     const renderGovernmentAgencySteps = (step) => {
         switch (step) {
             case 0: return <OrganizationalDetails  handleNext={handleNext} handleFormDataChange={handleFormDataChange} />; // Update with actual Government Agency details form
-                case 1: return <AdditionalDetails handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange}/>;
-                case 2: return <Location handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange}/>;
-                case 3: return <CPSDocumentDetails handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange}/>;
-                case 4: return <GovernmentChecklistPage handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange} />;
-                case 5: return <GovernmentDeclarization
+                case 1: return <FinancialDetails handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange}/>;
+                case 2: return <AdditionalDetails handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange}/>;
+                case 3: return <Location handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange}/>;
+                case 4: return <CPSDocumentDetails handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange}/>;
+                case 5: return <GovernmentChecklistPage handleNext={handleNext} handleBack={handleBack} handleFormDataChange={handleFormDataChange} />;
+                case 6: return <GovernmentDeclarization
                     handleBack={handleBack}
                     handlePreview={handlePreview}
                     allCheckboxesChecked={allCheckboxesChecked}
@@ -254,10 +260,22 @@ const AddApplicationForm = () => {
         
     // }
 
+    const handleStepTimeoutDecline = () => {
+        // Discard unsaved current-step fields; prior Save & Next steps remain on server
+        navigate(homePath || "/applicant/adashboard", { replace: true });
+    };
+
     return (
         <>
             <LoaderProgress open={isLoading} />
             {/* <TimerApp onTimeout={logout} timeLimit={1800} /> */}
+            {!isLoading && steps.length > 0 && (
+                <StepTimerApp
+                    activeStep={activeStep}
+                    timeLimit={STEP_TIME_LIMIT_SECONDS}
+                    onDecline={handleStepTimeoutDecline}
+                />
+            )}
 
             <FormWrapper wrapperWidth="100%" headingText={`Application Form for ${applicationTypeData?.appTypeMasterId?.appType || '...'}`}>
                 {!isLoading && steps.length > 0 && (

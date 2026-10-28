@@ -8,7 +8,8 @@ import CityService from '../../../../service/AdminService/CityService';
 import { useSelector } from 'react-redux';
 import GovernmentAgencyForm from '../../../../service/NewLicenseService/GovernmentAgencyForm';
 import showAlert from '../../../global/common/MessageBox/AlertService';
-import validatePattern from '../../../global/util/ValidatePattern';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
+import validatePattern, { isValidWebUrl } from '../../../global/util/ValidatePattern';
 import IntentService from '../../../../service/AdminService/IntentService';
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
 
@@ -90,6 +91,10 @@ const errorMsg = {
     emailId: {
         blank: 'Please enter the emailId',
         format: 'Please Enter the valid emailId',
+    },
+    webURL: {
+        blank: 'Web Page URL is required',
+        format: 'Please enter a valid Web Page URL (e.g. https://example.gov.in)',
     },
 };
 
@@ -364,6 +369,13 @@ console.log(appData)
         } else if (isNaN(values.telephoneNo)) {
             errors.telephoneNo = errorMsg.telephoneNo.format;
         }
+
+        // Validate webURL
+        if (!values.webURL || !values.webURL.trim()) {
+            errors.webURL = errorMsg.webURL.blank;
+        } else if (!isValidWebUrl(values.webURL)) {
+            errors.webURL = errorMsg.webURL.format;
+        }
     
         // // Validate mobile
         // if (!values.mobile) {
@@ -496,22 +508,24 @@ return isEnabled;
             requestMethod(communicationAddressFormValues)
             .then((response) => {
                 console.log(response.data);
+                const { messageTitle, messageContent } = getStepSuccessAlert(
+                    appTypeMasterId,
+                    'organizationalDetails',
+                    !!communicationAddressFormValues.orgApplicationId,
+                );
                 showAlert({
-                    messageTitle: 'First Step Successful',
-                    messageContent: `First step ${ communicationAddressFormValues.orgApplicationId ? 'updated' : 'saved'} successfully`,
+                    messageTitle,
+                    messageContent,
                     confirmText: 'Ok',
                     onConfirm: () => { handleNext(); }
                 });
             })
             .catch((err) => {
                 console.log(err);
+                const errorAlert = getStepErrorAlert(appTypeMasterId, 'organizationalDetails', err);
                 showAlert({
-                    messageTitle: 'Error',
-                    messageContent: err.response?.data
-                        ? typeof err.response.data === 'object'
-                            ? 'Your request cannot be processed at this time. Please try again later.'
-                            : err.response.data
-                        : 'Your request cannot be processed at this time. Please try again later.',
+                    messageTitle: errorAlert.messageTitle,
+                    messageContent: errorAlert.messageContent,
                     confirmText: 'Ok',
                 });
               
@@ -535,7 +549,7 @@ return isEnabled;
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="blockNo">
-                        <Typography variant='body1'>Name Of Organization*</Typography>
+                        <Typography variant='body1'>Name Of Organization<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="organizationName"
@@ -560,7 +574,7 @@ return isEnabled;
             <Grid container spacing={2}>
     <Grid item xs={12} sm>
         <InputLabel shrink={false} htmlFor="department">
-            <Typography variant='body1'>Administrative Ministry/Department*</Typography>
+            <Typography variant='body1'>Administrative Ministry/Department<span className="req-asterisk">*</span></Typography>
         </InputLabel>
         <TextField
             id="department"
@@ -581,7 +595,7 @@ return isEnabled;
     </Grid>
     <Grid item xs={12} sm>
         <InputLabel shrink={false} htmlFor="OrgType">
-            <Typography variant='body1'>OrgType*</Typography>
+            <Typography variant='body1'>OrgType<span className="req-asterisk">*</span></Typography>
         </InputLabel>
         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
             <Select
@@ -614,7 +628,7 @@ return isEnabled;
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="blockNo">
-                        <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                        <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="blockNo"
@@ -636,7 +650,7 @@ return isEnabled;
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="village">
-                        <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                        <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="village"
@@ -660,7 +674,7 @@ return isEnabled;
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="postOffice">
-                        <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                        <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="postOffice"
@@ -682,7 +696,7 @@ return isEnabled;
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="subDivision">
-                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="subDivision"
@@ -706,7 +720,7 @@ return isEnabled;
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="country">
-                        <Typography variant='body1'>Country*</Typography>
+                        <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -733,7 +747,7 @@ return isEnabled;
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="state">
-                        <Typography variant='body1'>State/Province*</Typography>
+                        <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -760,7 +774,7 @@ return isEnabled;
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="city">
-                        <Typography variant='body1'>District*</Typography>
+                        <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -788,7 +802,7 @@ return isEnabled;
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="pin">
-                        <Typography variant='body1'>Pin*</Typography>
+                        <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="pin"
@@ -811,7 +825,7 @@ return isEnabled;
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
-                        <Typography variant='body1'>Telephone No*</Typography>
+                        <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="telephoneNo"
@@ -833,7 +847,7 @@ return isEnabled;
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="fax">
-                        <Typography variant='body1'>Fax*</Typography>
+                        <Typography variant='body1'>Fax<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="fax"
@@ -853,15 +867,15 @@ return isEnabled;
                     />
                 </Grid>
                 <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor="mobile">
-                        <Typography variant='body1'>Web Page URL</Typography>
+                    <InputLabel shrink={false} htmlFor="webURL">
+                        <Typography variant='body1'>Web Page URL<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="webURL"
                         margin="dense"
                         required
                         fullWidth
-                        placeholder='Web Page URL'
+                        placeholder='https://www.example.gov.in'
                         name="webURL"
                         variant='outlined'
                         onChange={handleInputChange}
@@ -869,7 +883,6 @@ return isEnabled;
                         error={!!(formErrors.webURL && formErrors.webURL)}
                         helperText={formErrors?.webURL}
                         size="small"
-                        onKeyDown={(e) => validatePattern(e, /^[A-Za-z0-9]+$/)}
                         inputProps={{ maxLength: 100 }}
                     />
                 </Grid>
@@ -886,7 +899,7 @@ return isEnabled;
             <Grid item xs={12} sm={2.4}>
 
 <InputLabel shrink={false} htmlFor={"salutation"}>
-    <Typography variant='body1' >Salutation*</Typography>
+    <Typography variant='body1' >Salutation<span className="req-asterisk">*</span></Typography>
 </InputLabel>
 <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
     <Select defaultValue="" id="salutation"
@@ -912,7 +925,7 @@ return isEnabled;
 </Grid>
 <Grid item xs={12} sm={3}>
 <InputLabel shrink={false} htmlFor={"firstName"}>
-    <Typography variant='body1'>First Name*</Typography>
+    <Typography variant='body1'>First Name<span className="req-asterisk">*</span></Typography>
 </InputLabel>
 <TextField
     id="firstName"
@@ -953,7 +966,7 @@ return isEnabled;
 </Grid>
 <Grid item xs={12} sm={3}>
 <InputLabel shrink={false} htmlFor={"lastName"}>
-    <Typography variant='body1'>Last Name/Surname*</Typography>
+    <Typography variant='body1'>Last Name/Surname<span className="req-asterisk">*</span></Typography>
 </InputLabel>
 <TextField
     id="lastName"
@@ -978,7 +991,7 @@ return isEnabled;
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="designation">
-                        <Typography variant='body1'>Designation*</Typography>
+                        <Typography variant='body1'>Designation<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="designation"
@@ -1000,7 +1013,7 @@ return isEnabled;
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="emailId">
-                        <Typography variant='body1'>Email Address*</Typography>
+                        <Typography variant='body1'>Email Address<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="emailId"

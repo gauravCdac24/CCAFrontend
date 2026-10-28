@@ -10,6 +10,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import { useSelector } from 'react-redux';
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
 import DocumentService from '../../../../service/AdminService/DocumentService';
@@ -30,6 +31,16 @@ const errorMessages = {
     file: 'please select the file.',
 };
 
+const EXCLUDED_DOCUMENT_NAMES = ['xys'];
+
+const filterActiveDocuments = (documents = []) =>
+    documents.filter(
+        (doc) =>
+            !EXCLUDED_DOCUMENT_NAMES.includes(
+                (doc.documentName || '').trim().toLowerCase(),
+            ),
+    );
+
 const CPSDocumentDetails = ({ handleNext, handleBack }) => {
 
 
@@ -39,7 +50,7 @@ const CPSDocumentDetails = ({ handleNext, handleBack }) => {
 
         DocumentService.getAllAciveDocumentName()
             .then((response) => {
-                setDocTypeList(response.data);
+                setDocTypeList(filterActiveDocuments(response.data));
             })
             .catch((err) => {
                 showAlert({
@@ -252,19 +263,16 @@ const CPSDocumentDetails = ({ handleNext, handleBack }) => {
 
         setLoading(true);
 
-        CPSDocService.getAllCpsDocList()
+        // Applicants must only see Active CPS documents published by admin.
+        CPSDocService.getAllActiveCpsDocList()
             .then((response) => {
-                console.log(response)
-                const list = response.data.map((obj, index) => {
-
-                    return obj;
-                });
+                const list = (response.data || []).filter(
+                    (obj) => (obj.status || '').toLowerCase() === 'active'
+                );
                 setAllCPSDocList(list);
-
-
             })
             .catch((err) => {
-
+                setAllCPSDocList([]);
             })
             .finally(() => {
                 setLoading(false)
@@ -280,31 +288,45 @@ const CPSDocumentDetails = ({ handleNext, handleBack }) => {
     }, [])
 
 
-    const handleDownload = async (id, file_name) => {
+    const downloadActiveCpsFile = async (id, file_name) => {
+        const response = await CPSDocService.downloadFile(id, true);
+        const blob = new Blob([response.data], { type: response.headers['content-type'] });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', file_name);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+    };
+
+    const handleDownload = async () => {
         try {
-            // Fetch the file from the server
-            const response = await CPSDocService.downloadFile(id);
+            // Always re-check Active CPS from DB; never download inactive docs.
+            const response = await CPSDocService.getAllActiveCpsDocList();
+            const activeList = (response.data || []).filter(
+                (obj) => (obj.status || '').toLowerCase() === 'active'
+            );
+            setAllCPSDocList(activeList);
 
-            // Create a blob from the response data
-            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            if (activeList.length === 0) {
+                showAlert({
+                    messageTitle: 'CPS Document',
+                    messageContent: 'No active CPS document is available for download.',
+                    confirmText: 'Ok',
+                });
+                return;
+            }
 
-            // Create a link element
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-
-            // Extract the filename from the Content-Disposition header
-            const contentDisposition = response.headers['content-disposition'];
-
-            console.log(JSON.stringify(contentDisposition))
-
-            const filename = file_name;
-
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode.removeChild(link);
+            for (const item of activeList) {
+                await downloadActiveCpsFile(item.cpsDocId, item.fileName);
+            }
         } catch (error) {
             console.error('Error downloading file:', error);
+            showAlert({
+                messageTitle: 'CPS Document',
+                messageContent: 'No active CPS document is available for download.',
+                confirmText: 'Ok',
+            });
         }
     };
 
@@ -462,9 +484,16 @@ const CPSDocumentDetails = ({ handleNext, handleBack }) => {
                     // Find the CPSDocument
                     const cpsDocument = documents.find(doc => doc.documentTitle === "CPSDocument");
 
-                   const docTypeNames = docTypeList?.map(d => d.documentName);
-                  
-const specificDocs = documents.filter(doc => docTypeNames.includes(doc.documentTitle))
+                   const docTypeNames = docTypeList?.map((d) => d.documentName);
+
+const specificDocs = documents
+  .filter(
+    (doc) =>
+      docTypeNames.includes(doc.documentTitle) &&
+      !EXCLUDED_DOCUMENT_NAMES.includes(
+        (doc.documentTitle || '').trim().toLowerCase(),
+      ),
+  )
   .map(doc => ({
     appDocId: doc.appDocId,
     DocumentName: doc.documentTitle,
@@ -597,12 +626,19 @@ const specificDocs = documents.filter(doc => docTypeNames.includes(doc.documentT
             });
 
             // Append each file and its metadata from the 'additionalsFile' array
-            basicDetailsFormValues.additionalsFile.forEach((fileObject, index) => {
+            basicDetailsFormValues.additionalsFile
+                .filter(
+                    (fileObject) =>
+                        !EXCLUDED_DOCUMENT_NAMES.includes(
+                            (fileObject.DocumentName || '').trim().toLowerCase(),
+                        ),
+                )
+                .forEach((fileObject, index) => {
                 if (fileObject.file) {
-                    formData.append(`additionalsFile[${index}].file`, fileObject.file); // Append the file
+                    formData.append(`additionalsFile[${index}].file`, fileObject.file);
                 }
-                formData.append(`additionalsFile[${index}].fileName`, fileObject.fileName); // Append the file name
-                formData.append(`additionalsFile[${index}].DocumentName`, fileObject.DocumentName); // Append the document name
+                formData.append(`additionalsFile[${index}].fileName`, fileObject.fileName);
+                formData.append(`additionalsFile[${index}].DocumentName`, fileObject.DocumentName);
                 formData.append(`additionalsFile[${index}].appDocId`, fileObject.appDocId);
             });
 
@@ -614,21 +650,23 @@ const specificDocs = documents.filter(doc => docTypeNames.includes(doc.documentT
 
             responseFunction(formData)
                 .then((response) => {
+                    const { messageTitle, messageContent } = getStepSuccessAlert(
+                        appTypeMasterId,
+                        'cpsDocument',
+                        !!basicDetailsFormValues.appDocId,
+                    );
                     showAlert({
-                        messageTitle: 'Sixth Step Successful',
-                        messageContent: `Sixth step ${basicDetailsFormValues.appDocId ? 'updated' : 'saved'} successfully`,
+                        messageTitle,
+                        messageContent,
                         confirmText: 'Ok',
                         onConfirm: () => { handleNext(); }
                     });
                 })
                 .catch((err) => {
+                    const errorAlert = getStepErrorAlert(appTypeMasterId, 'cpsDocument', err);
                     showAlert({
-                        messageTitle: 'Error',
-                        messageContent: err.response.data
-                            ? typeof err.response.data === 'object'
-                                ? 'Your request cannot be processed at this time. Please try again later.'
-                                : err.response.data
-                            : 'Your request cannot be processed at this time. Please try again later.',
+                        messageTitle: errorAlert.messageTitle,
+                        messageContent: errorAlert.messageContent,
                         confirmText: 'Ok',
                     });
                 })
@@ -653,32 +691,25 @@ const specificDocs = documents.filter(doc => docTypeNames.includes(doc.documentT
 
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'><b>CPS Document*(34)</b></Typography>
+                    <Typography variant='h7'><b>CPS Template<span className="req-asterisk">*</span>(34)</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
-                    {allCPSDocList.length > 0 ? (
-                        allCPSDocList.map((item) => (
-                            <Button
-                                key={item.cpsDocId}
-                                onClick={() => handleDownload(item.cpsDocId, item.fileName)} // Ensure fileName is correct
-                                component="label"
-                                variant="contained"
-                                sx={{ margin: 1 }}
-                                startIcon={<DownloadIcon />}// Add some margin for spacing
-                            >
-                                Download CPS Document
-                            </Button>
-                        ))
-                    ) : (
-                        <Typography>No documents available.</Typography> // Display if the list is empty
-                    )}
+                    <Button
+                        onClick={handleDownload}
+                        component="label"
+                        variant="contained"
+                        sx={{ margin: 1 }}
+                        startIcon={<DownloadIcon />}
+                    >
+                        Download CPS Template
+                    </Button>
                 </Grid>
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"pdffile"}>
-                        <Typography variant='body1'>Upload CPS Document (Only PDF and Max allowed size 5 MB)*</Typography>
+                        <Typography variant='body1'>Upload CPS Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
                     <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
@@ -728,7 +759,7 @@ const specificDocs = documents.filter(doc => docTypeNames.includes(doc.documentT
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'><b>Documents*</b></Typography>
+                    <Typography variant='h7'><b>Documents<span className="req-asterisk">*</span></b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
@@ -744,7 +775,7 @@ const specificDocs = documents.filter(doc => docTypeNames.includes(doc.documentT
                         <Grid item xs={12} sm={7}>
                             <InputLabel shrink={false} htmlFor={`pdffile-${index}`}>
                                 <Typography variant='body1'>
-                                    Upload {item.documentName} Document (Only PDF and Max allowed size 5 MB)*
+                                    Upload {item.documentName} Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span>
                                 </Typography>
                             </InputLabel>
 
@@ -847,7 +878,7 @@ const specificDocs = documents.filter(doc => docTypeNames.includes(doc.documentT
                                     <Grid item xs={12} sm={5}>
                                         <InputLabel shrink={false} htmlFor={`documentTitleName-${index}`}>
                                             <Typography variant='body1'>
-                                                {basicDetailsFormValues.additionalFile.length > 1 ? `${index + 1}. ` : ''} Document TitleName*
+                                                {basicDetailsFormValues.additionalFile.length > 1 ? `${index + 1}. ` : ''} Document TitleName<span className="req-asterisk">*</span>
                                             </Typography>
                                         </InputLabel>
                                         <TextField
@@ -962,7 +993,7 @@ const specificDocs = documents.filter(doc => docTypeNames.includes(doc.documentT
             <Grid item xs={12}>
                 <InputLabel shrink={false}>
                     <Typography variant='body1'>
-                        Note: * marked field are mandatory to be filled
+                        Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled
                     </Typography>
 
                 </InputLabel>

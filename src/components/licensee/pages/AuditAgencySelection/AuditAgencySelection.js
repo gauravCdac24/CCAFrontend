@@ -7,15 +7,20 @@ import react,{ forwardRef, useEffect, useImperativeHandle, useState } from 'reac
 import Captcha from '../../../global/util/Captcha';
 import LoaderProgress from '../../../global/common/LoaderProgress';
 import showAlert from '../../../global/common/MessageBox/AlertService';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import FormWrapper from '../../../global/util/FormWrapper';
 import AuditAgency from '../../../../service/AdminService/AuditAgency';
 import AuditorCertificateTypeService from '../../../../service/AdminService/AuditorCertificateTypeService';
 import AuditService from '../../../../service/AuditService/AuditService';
+import AnnualAuditService from '../../../../service/AnnualAuditService/AnnualAuditService';
 import { useSelector } from 'react-redux';
 import AnnexureA2Main from './AnnexureA2/AnnexureA2Main';
 import AuditControls from './AuditControls';
 import { decrypt } from '../../../global/util/EncryptDecrypt';
+import {
+    setAnnualAuditScheduleId,
+    clearAnnualAuditScheduleId,
+} from '../../../global/util/annualAuditSchedule';
 
 // Error Messages
 const errorMsg = {
@@ -30,15 +35,32 @@ const errorMsg = {
 const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
     const userName = useSelector((state) => state.jwtAuthentication.username);
+    const location = useLocation();
+    const isAnnualAuditFlow = location.pathname.includes('/agencyselection/');
     const { id } = useParams();
-    const intentAppIds = decrypt(id);
-    console.log("intentAppIds",intentAppIds)
-    const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({ auditAgencyId: '' ,intentAppId:intentAppIds ,applicantUserName:userName});
+    const routeId = decrypt(id);
+    const routeParts = routeId ? routeId.split(',') : [];
+    const routeUserName = routeParts[0] || userName;
+    const auditScheduleId = routeParts[1] || '';
+    console.log("routeId", routeId)
+    const [audiAgencyFormValues, setAudiAgencyFormValues] = useState(
+        isAnnualAuditFlow
+            ? {
+                auditAgencyId: '',
+                auditAgencyName: '',
+                applicantUserName: routeUserName,
+                licenseeId: routeUserName,
+                auditScheduleId,
+            }
+            : { auditAgencyId: '', intentAppId: routeId, applicantUserName: userName }
+    );
     const [formErrors, setFormErrors] = useState({});
     const [captchaText, setCaptchaText] = useState('');
     const [captchaInput, setCaptchaInput] = useState('');
     const [isLoading, setLoading] = useState(false);
     const [allAuditAgencyList, setAllAuditAgencyList] = useState([]);
+    const [agencyAlreadySelected, setAgencyAlreadySelected] = useState(false);
+    const readOnly = location.state?.readOnly === true;
 
     // Reset form values
     const handleReset = () => {
@@ -58,6 +80,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
         setAudiAgencyFormValues((prev) => ({
             ...prev,
             [name]: value,
+            auditAgencyName: selectedAgency?.auditAgencyName || '',
             name: selectedAgency?.auditAgencyName || '',
             mobileNo: selectedAgency?.mobileNo || '',
             emailId: selectedAgency?.emailId || '',
@@ -76,14 +99,21 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
     })
 
-    // Fetch all audit agencies
+    // Fetch active audit agencies only (for licensee dropdown)
     const getAllAuditAgency = () => {
         setLoading(true);
-        AuditAgency.getAllAuditAgencyList()
+        AuditAgency.getAllActiveAuditAgencyList()
             .then((response) => {
-                console.log('Audit Agencies:', response.data); // Debugging API response
-                setAllAuditAgencyList(response.data); // Handle null/undefined data gracefully
+                setAllAuditAgencyList(response.data || []);
             })
+            .catch(() =>
+                AuditAgency.getAllAuditAgencyList().then((response) => {
+                    const list = Array.isArray(response.data)
+                        ? response.data.filter((agency) => agency?.status === 'Active')
+                        : [];
+                    setAllAuditAgencyList(list);
+                })
+            )
             .catch(() => {
                 showAlert({
                     messageTitle: 'Error',
@@ -96,6 +126,51 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
     useEffect(() => {
         getAllAuditAgency();
     }, []);
+
+    const loadExistingAgencySelection = () => {
+        if (!isAnnualAuditFlow || !auditScheduleId) {
+            return;
+        }
+        AnnualAuditService.getAuditAgencySelectionBySchedule(auditScheduleId)
+            .then((response) => {
+                const data = response.data;
+                if (!data?.auditAgencyId) {
+                    return;
+                }
+                const selectedAgency = allAuditAgencyList.find(
+                    (agency) => String(agency.auditAgencyId) === String(data.auditAgencyId)
+                );
+                setAgencyAlreadySelected(true);
+                setAudiAgencyFormValues((prev) => ({
+                    ...prev,
+                    auditAgencyId: selectedAgency?.auditAgencyId ?? data.auditAgencyId,
+                    auditAgencyName: data.auditAgencyName || selectedAgency?.auditAgencyName || '',
+                    name: data.auditAgencyName || selectedAgency?.auditAgencyName || '',
+                    mobileNo: selectedAgency?.phoneRecord || selectedAgency?.mobileNo || prev.mobileNo,
+                    emailId: selectedAgency?.emailId || prev.emailId,
+                }));
+            })
+            .catch(() => {
+                // No existing selection is valid for first-time agency selection.
+            });
+    };
+
+    useEffect(() => {
+        if (allAuditAgencyList.length > 0) {
+            loadExistingAgencySelection();
+        }
+    }, [allAuditAgencyList, auditScheduleId, isAnnualAuditFlow]);
+
+    useEffect(() => {
+        if (isAnnualAuditFlow && auditScheduleId) {
+            setAnnualAuditScheduleId(auditScheduleId);
+        }
+        return () => {
+            if (isAnnualAuditFlow) {
+                clearAnnualAuditScheduleId();
+            }
+        };
+    }, [auditScheduleId, isAnnualAuditFlow]);
 
     // Validate form inputs
     const validateForm = () => {
@@ -127,7 +202,9 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
                 showAlert({
                     messageTitle: 'Confirm',
-                    messageContent: 'Are you sure, you want to submit? You cannot select the audit agency again. Please verify before the submit audit agency.',
+                    messageContent: agencyAlreadySelected
+                        ? 'Are you sure you want to update the selected audit agency?'
+                        : 'Are you sure, you want to submit? You cannot select the audit agency again. Please verify before the submit audit agency.',
                     confirmText: 'Yes',
                     closeText: 'No',
                     fullWidth: true,
@@ -165,13 +242,20 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
                 //alert(audiAgencyFormValues)
 
-                AuditService.addNewAuditAgencySlection(audiAgencyFormValues)
+                const submitRequest = isAnnualAuditFlow
+                    ? AnnualAuditService.addNewAuditAgencySlection(audiAgencyFormValues)
+                    : AuditService.addNewAuditAgencySlection(audiAgencyFormValues);
+                const successRedirect = isAnnualAuditFlow
+                    ? '/licensee/agencyselection'
+                    : '/applicant/applicationform';
+
+                submitRequest
                     .then((response) =>
                         showAlert({
                             messageTitle: 'Success',
                             messageContent: response.data,
                             confirmText: 'Ok',
-                            onConfirm: () => window.location.href = '/applicant/applicationform',
+                            onConfirm: () => { window.location.href = successRedirect; },
                         })
                     )
                     .catch((err) =>
@@ -213,6 +297,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
         <Select
             id="auditAgencyName"
             value={audiAgencyFormValues.auditAgencyId}
+            disabled={readOnly}
             onChange={(e) => {
                 handleInputChange(e);
                 const selectedAgency = allAuditAgencyList.find(
@@ -220,6 +305,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
                 );
                 setAudiAgencyFormValues((prev) => ({
                     ...prev,
+                    auditAgencyName: selectedAgency?.auditAgencyName || '',
                     name: selectedAgency?.auditAgencyName || '',
                     mobileNo: selectedAgency?.phoneRecord || [],
                     emailId: selectedAgency?.emailId || [],
@@ -313,8 +399,9 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
         variant="contained"
         color="primary"
         onClick={handleSubmit}
+        disabled={readOnly}
     >
-        Submit
+        {agencyAlreadySelected ? 'Update' : 'Submit'}
     </Button>
     {/* <Button
        variant="contained"

@@ -56,10 +56,13 @@ const auth = () => {
 const downloadCoverLetter = (id) =>{
 
     const username = auth().username;
+    const ekycModeTitles = Array.isArray(id?.ekycModeTitles)
+        ? id.ekycModeTitles.join(',')
+        : (id?.ekycModeTitles || '');
 
     return API.get(ESIGN_APPLICATION_SERVICE_BASE_URL+DOWNLOAD_COVER_LETTER,{
         params:{
-            id: encrypt(id.ekycModeTitles),
+            id: encrypt(ekycModeTitles),
             pid: encrypt(id.purpose),
             qid:encrypt(username)
         },

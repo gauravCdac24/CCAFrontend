@@ -63,50 +63,46 @@ const DownTimeAuditPeriod = () => {
     setErrors({ ...errors, [field]: "" });
   };
 
-  // --- FIXED VALIDATE FUNCTION ---
+  // Format/type only when value present
   const validate = () => {
     let newErrors = {};
 
-    // 1. FIX: Convert SECOND to String safely
     const secondStr = String(caData.downTimeSecond || "");
-    if (!secondStr.trim()) {
-      newErrors.downTimeSecond = "Second cannot be empty.";
-    } else if (!DIGITS_PATTERN.test(secondStr)) {
-      newErrors.downTimeSecond = "Only digits are allowed.";
-    } else if (parseInt(secondStr) > 59) {
-      newErrors.downTimeSecond = "Maximum 59 seconds.";
+    if (secondStr.trim()) {
+      if (!DIGITS_PATTERN.test(secondStr)) {
+        newErrors.downTimeSecond = "Only digits are allowed.";
+      } else if (parseInt(secondStr) > 59) {
+        newErrors.downTimeSecond = "Maximum 59 seconds.";
+      }
     }
 
-    // 2. FIX: Convert MINUTE to String safely
     const minuteStr = String(caData.downTimeMinute || "");
-    if (!minuteStr.trim()) {
-      newErrors.downTimeMinute = "Minute cannot be empty.";
-    } else if (!DIGITS_PATTERN.test(minuteStr)) {
-      newErrors.downTimeMinute = "Only digits are allowed.";
-    } else if (parseInt(minuteStr) > 59) {
-      newErrors.downTimeMinute = "Maximum 59 minutes.";
+    if (minuteStr.trim()) {
+      if (!DIGITS_PATTERN.test(minuteStr)) {
+        newErrors.downTimeMinute = "Only digits are allowed.";
+      } else if (parseInt(minuteStr) > 59) {
+        newErrors.downTimeMinute = "Maximum 59 minutes.";
+      }
     }
 
-    // 3. FIX: Convert HOUR to String safely
     const hourStr = String(caData.downTimeHour || "");
-    if (!hourStr.trim()) {
-      newErrors.downTimeHour = "Hour cannot be empty.";
-    } else if (!DIGITS_PATTERN.test(hourStr)) {
-      newErrors.downTimeHour = "Only digits are allowed.";
-    } else if (hourStr.length > 4) {
-      newErrors.downTimeHour = "Only 4 digits are allowed.";
+    if (hourStr.trim()) {
+      if (!DIGITS_PATTERN.test(hourStr)) {
+        newErrors.downTimeHour = "Only digits are allowed.";
+      } else if (hourStr.length > 4) {
+        newErrors.downTimeHour = "Only 4 digits are allowed.";
+      }
     }
 
-    // 4. FIX: Convert REASON to String safely
     const reasonStr = String(caData.reasonAndMeasuresTaken || "");
-    if (!reasonStr.trim()) {
-      newErrors.reasonAndMeasuresTaken = "Explanation cannot be empty.";
-    } else if (reasonStr.length < 3 || reasonStr.length > 500) {
-      newErrors.reasonAndMeasuresTaken =
-        "The length must be between 3 and 500 characters.";
-    } else if (!STRING_PATTERN.test(reasonStr)) {
-      newErrors.reasonAndMeasuresTaken =
-        "Only alphabets, numbers, characters ().,&- are allowed";
+    if (reasonStr.trim()) {
+      if (reasonStr.length < 3 || reasonStr.length > 500) {
+        newErrors.reasonAndMeasuresTaken =
+          "The length must be between 3 and 500 characters.";
+      } else if (!STRING_PATTERN.test(reasonStr)) {
+        newErrors.reasonAndMeasuresTaken =
+          "Only alphabets, numbers, characters ().,&- are allowed";
+      }
     }
 
     setErrors(newErrors);

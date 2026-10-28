@@ -73,7 +73,7 @@ const ViewDocument = () => {
         const obj = docTypeList.find((obj) => obj.id === cid);
         if (obj) {
             showAlert({
-                messageTitle: 'View Esign document type',
+                messageTitle: 'View eSign document type',
                 messageContent: <ViewDocumentDetails docTypeObj={obj} />,
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
@@ -81,7 +81,7 @@ const ViewDocument = () => {
             });
         } else {
             showAlert({
-                messageTitle: 'View Esign document type',
+                messageTitle: 'View eSign document type',
                 messageContent: 'Error in getting document name details, try after some time.',
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
@@ -97,7 +97,7 @@ const ViewDocument = () => {
             navigate(`${rolePath}/documentName/editdocumentName/${encryptedId}`);
         } else {
             showAlert({
-                messageTitle: 'Edit Esign document type',
+                messageTitle: 'Edit eSign document type',
                 messageContent: 'Error in updating  document name details, try after some time.',
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,

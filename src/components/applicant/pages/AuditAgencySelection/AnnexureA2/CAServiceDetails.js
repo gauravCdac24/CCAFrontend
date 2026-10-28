@@ -113,11 +113,11 @@ const CAServiceDetails = () => {
   const handleFileChange = (index, field, file) => {
     const updatedErrors = { ...errors };
   
-    // File validation
+    // File format validation only when a file is selected
     if (!file) {
       updatedErrors[index] = {
         ...updatedErrors[index],
-        [field]: 'Please upload a file.',
+        [field]: '',
       };
     } else if (file.size > 5 * 1024 * 1024) {
       updatedErrors[index] = {
@@ -132,17 +132,16 @@ const CAServiceDetails = () => {
     } else {
       updatedErrors[index] = {
         ...updatedErrors[index],
-        [field]: '', // Clear error if file is valid
+        [field]: '',
       };
     }
   
-    setErrors(updatedErrors); // Update errors state
+    setErrors(updatedErrors);
   
-    // Now, update the caData state to store the file for the specific row
     setCaData((prevData) =>
       prevData.map((row, i) =>
         i === index
-          ? { ...row, [field]: file } // Update the specific field with the file
+          ? { ...row, [field]: file }
           : row
       )
     );
@@ -151,58 +150,43 @@ const CAServiceDetails = () => {
   
 
   const validateData = () => {
-    let valid = true;
-    const newErrors = {}; // Create an empty object to store error messages
+    const newErrors = {};
 
-    caData.forEach((row, index) => {
+    caData.forEach((row) => {
       const rowErrors = {};
 
-      // Validate description
-      if (!row.description || row.description.trim().length === 0) {
-        rowErrors.description = 'Description cannot be empty';
-      } else if (row.description.length < 3 || row.description.length > 50) {
-        rowErrors.description = 'Description length must be between 3 and 50 characters';
-      } else if (!DESCRIPTION_PATTERN.test(row.description)) {
-        rowErrors.description = 'Only alphabets, numbers, and characters ( ),&.- are allowed';
+      // Format/length only when value present
+      if (row.description && row.description.trim().length > 0) {
+        if (row.description.length < 3 || row.description.length > 50) {
+          rowErrors.description = 'Description length must be between 3 and 50 characters';
+        } else if (!DESCRIPTION_PATTERN.test(row.description)) {
+          rowErrors.description = 'Only alphabets, numbers, and characters ( ),&.- are allowed';
+        }
       }
 
-      // Validate internalOnly
-      if (!row.internalOnly || (row.internalOnly !== 'Yes' && row.internalOnly !== 'No')) {
+      if (row.internalOnly && row.internalOnly !== 'Yes' && row.internalOnly !== 'No') {
         rowErrors.internalOnly = 'Please select Yes or No for Internal Only';
       }
 
-      // Validate externalService
-      if (!row.externalOnly || (row.externalOnly !== 'Yes' && row.externalOnly !== 'No')) {
+      if (row.externalOnly && row.externalOnly !== 'Yes' && row.externalOnly !== 'No') {
         rowErrors.externalOnly = 'Please select Yes or No for External Service';
       }
 
-      // Validate ASP count
-      if (!row.aspOrgCount || row.aspOrgCount.trim().length === 0) {
-        rowErrors.aspOrgCount = 'No of ASPs/Organizations cannot be empty';
-      } else if (!DIGITS_PATTERN.test(row.aspOrgCount)) {
-        rowErrors.aspOrgCount = 'Only digits are allowed';
-      } else if (row.aspOrgCount.length > 9) {
-        rowErrors.aspOrgCount = 'Maximum 9 digits are allowed';
+      if (row.aspOrgCount && row.aspOrgCount.trim().length > 0) {
+        if (!DIGITS_PATTERN.test(row.aspOrgCount)) {
+          rowErrors.aspOrgCount = 'Only digits are allowed';
+        } else if (row.aspOrgCount.length > 9) {
+          rowErrors.aspOrgCount = 'Maximum 9 digits are allowed';
+        }
       }
 
-      // // Validate file upload (if a file is provided)
-      // if (row.aspOrgCountFile == null && row.aspOrgCount.trim().length > 0) {
-      //   rowErrors.aspOrgCountFile = 'Please upload a file';
-      // } else if (row.aspOrgCountFile && row.aspOrgCountFile.size > 5 * 1024 * 1024) {
-      //   rowErrors.aspOrgCountFile = 'File size cannot exceed 5MB';
-      // } else if (row.aspOrgCountFile && !row.aspOrgCountFile.name.endsWith('.xlsx')) {
-      //   rowErrors.aspOrgCountFile = 'Only .xlsx files are allowed';
-      // }
-
-      // If there are errors for this row, add them to newErrors
       if (Object.keys(rowErrors).length > 0) {
         newErrors[row.caServicesDetailsId] = rowErrors;
-        valid = true;
       }
     });
 
-    setErrors(newErrors); // Update the errors state
-    return valid;
+    setErrors(newErrors);
+    return newErrors;
   };
 
   const handleSubmit = async() => {

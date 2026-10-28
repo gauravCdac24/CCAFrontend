@@ -28,18 +28,21 @@ const ApplicationForm = () => {
                 const intentApp = response.data.intentApp;
 
                 if (intentApp) {
-                    // Set the state with the intentApp data
                     setAllApplicationFormList(intentApp);
                 } else {
                     setAllApplicationFormList({});
                 }
             })
             .catch((err) => {
-                showAlert({
-                    messageTitle: 'Error',
-                    messageContent: 'Error fetching All Data list. Please try again later.',
-                    confirmText: 'OK',
-                });
+                if (err.response?.status === 404) {
+                    setAllApplicationFormList({});
+                } else {
+                    showAlert({
+                        messageTitle: 'Error',
+                        messageContent: 'Error fetching application data. Please try again later.',
+                        confirmText: 'OK',
+                    });
+                }
             })
             .finally(() => {
                 setLoading(false);

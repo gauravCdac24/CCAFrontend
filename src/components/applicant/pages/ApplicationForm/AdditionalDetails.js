@@ -8,6 +8,7 @@ import showAlert from '../../../global/common/MessageBox/AlertService';
 import { useSelector } from 'react-redux';
 import SubServiceMaster from '../../../../service/AdminService/SubServiceMaster';
 import validatePattern from '../../../global/util/ValidatePattern';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
 import CheckboxTreeView from './CheckboxTreeView'
 
@@ -79,6 +80,7 @@ const AdditionalDetails = ({ handleNext, handleBack }) => {
     bankDraft: {
       bankDraftId:'',
       bankName: '',
+      transactionType: '',
       draftNo: '',
       issueDate: '',
       amount: '',
@@ -239,6 +241,7 @@ const isFieldEnabled = (fieldName) => {
             bankDraft: {
               bankDraftId:bankDraft?.bankDraftId||'',
               bankName: bankDraft?.bankName	 || '',
+              transactionType: bankDraft?.transactionType || '',
               draftNo: bankDraft?.draftNo	 || '',
               issueDate: bankDraft?.issueDate || null,
               amount: bankDraft?.amount	 || '',
@@ -351,7 +354,9 @@ const isFieldEnabled = (fieldName) => {
 
     if (!basicDetailsFormValues.bankDetails.branch) {
       errors.branch = errorMessages.branch.blank;
-    } else if (basicDetailsFormValues.bankDetails.branch.length < 1 || basicDetailsFormValues.bankDetails.branch.length > 30) {
+    } else if (!/^[A-Za-z ]+$/.test(basicDetailsFormValues.bankDetails.branch.trim())) {
+      errors.branch = 'Branch name can only contain letters and spaces.';
+    } else if (basicDetailsFormValues.bankDetails.branch.trim().length < 1 || basicDetailsFormValues.bankDetails.branch.length > 30) {
       errors.branch = errorMessages.branch.length;
     }
 
@@ -369,6 +374,9 @@ const isFieldEnabled = (fieldName) => {
 
     // Additional bank draft validation
     if (knownByOtherName) {
+      if (!basicDetailsFormValues.bankDraft.transactionType) {
+        errors.transactionType = 'Transaction Type is required';
+      }
       if (!basicDetailsFormValues.bankDraft.bankName) {
         errors.bankDraftBankName = errorMessages.bankName.blank;
       }
@@ -407,18 +415,24 @@ const isFieldEnabled = (fieldName) => {
                         
                        // handleFormDataChange({ addressDetails: JSON.stringify(response.data) });
 
+                        const { messageTitle, messageContent } = getStepSuccessAlert(
+                            appTypeMasterId,
+                            'additionalDetails',
+                            !!(basicDetailsFormValues.bankDetails.bankDetailsId || basicDetailsFormValues.bankDraft.bankDraftId),
+                        );
                         showAlert({
-                            messageTitle: 'Fourth Step Successfull',
-                          messageContent: ` ${(basicDetailsFormValues.bankDetails.bankDetailsId || basicDetailsFormValues.bankDraft.bankDraftId) ? 'Fourth Step updated': 'Fourth Step saved' } successfully `,
+                            messageTitle,
+                            messageContent,
                             confirmText: 'Ok',
                             onConfirm: () => { handleNext() }
                         })
                     })
                     
                     .catch((err) => {
+                        const errorAlert = getStepErrorAlert(appTypeMasterId, 'additionalDetails', err);
                         showAlert({
-                            messageTitle: 'Error',
-                            messageContent: err.response.data ? typeof err.response.data === 'object' ? 'Your request cannot be processed at this time. Please try again later.' : err.response.data : 'Your request cannot be processed at this time. Please try again later.',
+                            messageTitle: errorAlert.messageTitle,
+                            messageContent: errorAlert.messageContent,
                             confirmText: 'Ok',
                         })
                     })
@@ -449,13 +463,13 @@ const isFieldEnabled = (fieldName) => {
         <Grid container spacing={2}>
           <Grid container>
             <Grid item>
-              <Typography variant='h7' sx={{ mt: 1, mb: 1 }}><b>Bank Details*</b></Typography>
+              <Typography variant='h7' sx={{ mt: 1, mb: 1 }}><b>Bank Details<span className="req-asterisk">*</span></b></Typography>
             </Grid>
           </Grid>
 
           <Grid item xs={12} sm>
             <InputLabel shrink={false} htmlFor={"bankName"}>
-              <Typography variant='body1'>Bank Name*</Typography>
+              <Typography variant='body1'>Bank Name<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             {/* <TextField
               required
@@ -468,7 +482,7 @@ const isFieldEnabled = (fieldName) => {
               value={basicDetailsFormValues.bankDetails.bankName}
               onChange={handleChange}
               size='small'
-              onKeyDown={(e) => validatePattern(e, /^[A-Za-z]+$/)}
+              onKeyDown={(e) => validatePattern(e, /^[A-Za-z ]+$/)}
               error={Boolean(formErrors.bankName)}
               helperText={formErrors.bankName}
               inputProps={{ maxLength: 75 }}
@@ -497,7 +511,7 @@ const isFieldEnabled = (fieldName) => {
           </Grid>
           <Grid item xs={12} sm>
             <InputLabel shrink={false} htmlFor={"branch"}>
-              <Typography variant='body1'>Branch*</Typography>
+              <Typography variant='body1'>Branch<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             <TextField
               required
@@ -511,7 +525,6 @@ const isFieldEnabled = (fieldName) => {
               value={basicDetailsFormValues.bankDetails.branch}
               onChange={handleChange}
               size='small'
-              onKeyDown={(e) => validatePattern(e, /^[A-Za-z]+$/)}
               error={Boolean(formErrors.branch)}
               helperText={formErrors.branch}
               inputProps={{ maxLength: 50 }}
@@ -522,7 +535,7 @@ const isFieldEnabled = (fieldName) => {
         <Grid container spacing={2}>
           <Grid item xs={12} sm>
             <InputLabel shrink={false} htmlFor={"accountType"}>
-              <Typography variant='body1'>Account Type*</Typography>
+              <Typography variant='body1'>Account Type<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             <FormControl variant="outlined" size="small" fullWidth margin="dense">
               <Select
@@ -546,7 +559,7 @@ const isFieldEnabled = (fieldName) => {
           </Grid>
           <Grid item xs={12} sm>
             <InputLabel shrink={false} htmlFor={"accountNo"}>
-              <Typography variant='body1'>Account Number*</Typography>
+              <Typography variant='body1'>Account Number<span className="req-asterisk">*</span></Typography>
             </InputLabel>
             <TextField
               required
@@ -586,26 +599,43 @@ const isFieldEnabled = (fieldName) => {
 
 {knownByOtherName  && (
   <>
+  <Grid container spacing={2} sx={{ mb: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <InputLabel shrink={false} htmlFor={"transactionType"}>
+                <Typography variant='body1'>Transaction Type<span className="req-asterisk">*</span></Typography>
+              </InputLabel>
+              <FormControl variant="outlined" size="small" fullWidth margin="dense" error={Boolean(formErrors.transactionType)}>
+                <Select
+                  id="transactionType"
+                  displayEmpty
+                  name="bankDraft.transactionType"
+                  value={basicDetailsFormValues.bankDraft.transactionType || ''}
+                  onChange={handleChange}
+                  disabled={!isFieldEnabled("bankDraft.transactionType")}
+                >
+                  <MenuItem disabled value="">Transaction Type</MenuItem>
+                  <MenuItem value="Demand Draft">Demand Draft</MenuItem>
+                  <MenuItem value="Banker's check">Banker's check</MenuItem>
+                  <MenuItem value="UTR">UTR</MenuItem>
+                </Select>
+                {formErrors.transactionType && <FormHelperText error>{formErrors.transactionType}</FormHelperText>}
+              </FormControl>
+            </Grid>
+          </Grid>
+  {basicDetailsFormValues.bankDraft.transactionType && (
+  <>
+  <Typography variant="h6" gutterBottom sx={{ mt: 1 }}>
+    {basicDetailsFormValues.bankDraft.transactionType === "Banker's check"
+      ? 'Cheque Details'
+      : basicDetailsFormValues.bankDraft.transactionType === 'UTR'
+        ? 'Payment Details'
+        : 'DD Details'}
+  </Typography>
   <Grid container spacing={2}>
             <Grid item xs={12} sm>
               <InputLabel shrink={false} htmlFor={"bankName"}>
-                <Typography variant='body1'>Bank Name*</Typography>
+                <Typography variant='body1'>Bank Name<span className="req-asterisk">*</span></Typography>
               </InputLabel>
-              {/* <TextField
-                required
-                id='bankDraftBankName'
-                placeholder="Bank Name"
-                name='bankDraft.bankName'
-                fullWidth
-                margin="dense"
-                variant="outlined"
-                onKeyDown={(e) => validatePattern(e, /^[A-Za-z]+$/)}
-                value={basicDetailsFormValues.bankDraft.bankName || ''} // Ensure non-null value
-                onChange={handleChange}
-                error={Boolean(formErrors.bankDraft?.bankName)}
-                helperText={formErrors.bankDraft?.bankName}
-                size='small'
-                inputProps={{ maxLength: 75 }} /> */}
                 <FormControl variant="outlined" size="small" fullWidth margin="dense">
               <Select
                 id="bankDraftBankName"
@@ -630,28 +660,41 @@ const isFieldEnabled = (fieldName) => {
 
             <Grid item xs={12} sm>
               <InputLabel shrink={false} htmlFor={"draftNo"}>
-                <Typography variant='body1'>Draft No.*</Typography>
+                <Typography variant='body1'>
+                  {basicDetailsFormValues.bankDraft.transactionType === "Banker's check"
+                    ? 'Cheque No'
+                    : basicDetailsFormValues.bankDraft.transactionType === 'UTR'
+                      ? 'UTR No'
+                      : 'Draft No.'}
+                  <span className="req-asterisk">*</span>
+                </Typography>
               </InputLabel>
               <TextField
                 required
                 id='draftNo'
-                placeholder="Draft No."
+                placeholder={
+                  basicDetailsFormValues.bankDraft.transactionType === "Banker's check"
+                    ? 'Cheque No'
+                    : basicDetailsFormValues.bankDraft.transactionType === 'UTR'
+                      ? 'UTR No'
+                      : 'Draft No.'
+                }
                 name='bankDraft.draftNo'
                 fullWidth
                 margin="dense"
                 variant="outlined"
                 disabled={!isFieldEnabled("bankDraft.draftNo")}
-                onKeyDown={(e) => validatePattern(e, /^[A-Za-z0-9]+$/)}
+                onKeyDown={(e) => validatePattern(e, basicDetailsFormValues.bankDraft.transactionType === 'UTR' ? /^[A-Za-z0-9]+$/ : /^[0-9]+$/)}
                 value={basicDetailsFormValues.bankDraft.draftNo || ''}
                 onChange={handleChange}
-                error={Boolean(formErrors.bankDraft?.draftNo)}
-                helperText={formErrors.bankDraft?.draftNo}
-                size='small'   inputProps={{ maxLength: 10 }}/>
+                error={Boolean(formErrors.bankDraft?.draftNo || formErrors.draftNo)}
+                helperText={formErrors.bankDraft?.draftNo || formErrors.draftNo}
+                size='small'   inputProps={{ maxLength: basicDetailsFormValues.bankDraft.transactionType === 'UTR' ? 30 : 10 }}/>
             </Grid>
           </Grid><Grid container spacing={2}>
               <Grid item xs={12} sm>
                 <InputLabel shrink={false} htmlFor={"amount"}>
-                  <Typography variant='body1'>Amount*</Typography>
+                  <Typography variant='body1'>Amount<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <TextField
                   required
@@ -672,7 +715,7 @@ const isFieldEnabled = (fieldName) => {
 
               <Grid item xs={12} sm>
                 <InputLabel shrink={false} htmlFor={"issueDate"}>
-                  <Typography variant='body1'>Issue Date*</Typography>
+                  <Typography variant='body1'>Issue Date<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DatePicker
@@ -697,6 +740,8 @@ const isFieldEnabled = (fieldName) => {
                 </LocalizationProvider>
               </Grid>
             </Grid>
+            </>
+  )}
             </>
 )}
 
@@ -727,7 +772,7 @@ const isFieldEnabled = (fieldName) => {
 <Grid item xs={12}>
     <InputLabel shrink={false}>
         <Typography variant='body1'>
-            Note: * marked field are mandatory to be filled
+            Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled
         </Typography>
        
     </InputLabel>

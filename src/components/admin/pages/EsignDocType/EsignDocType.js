@@ -23,7 +23,7 @@ const EsignDocType = () => {
 
                     <Grid item sx={{display: 'flex', justifyContent:'right', alignItems:'right', mr: 2}}>
                         <Button variant="contained"  startIcon={<AddIcon />} onClick={addEsignDocType}>
-                            <Typography variant="h6">Add Esign Document Type</Typography>
+                            <Typography variant="h6">Add eSign Document Type</Typography>
                         </Button>
                     </Grid>
                 </Grid>

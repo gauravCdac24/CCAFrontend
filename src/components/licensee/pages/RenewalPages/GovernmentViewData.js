@@ -417,7 +417,7 @@ const handleDownload = async (appDocId, documentTitle) => {
       };
 
     return (
-        <Box sx={{ width: '100%', padding: 2 }}>
+        <Box sx={{ width: '100%', padding: 2 }} data-print-root="application-preview">
           {/* Title Section */}
           <Typography variant="h4" sx={{ display: 'inline-block' }}>
     For Government Ministry/Department/Agency/Authority
@@ -427,7 +427,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     
           {/* Organisation Details Section */}
           <Typography variant="h6" style={{ marginTop: '10px' }}>
-            28. Particulars of Organisation: *
+            28. Particulars of Organisation: <span className="req-asterisk">*</span>
           </Typography>
           
           <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -613,7 +613,7 @@ const handleDownload = async (appDocId, documentTitle) => {
       </Typography>
       <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Bank Name*:</Typography>
+        <Typography variant="body1">Bank Name<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankName || 'N/A'}</Typography>
@@ -621,7 +621,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Branch*:</Typography>
+        <Typography variant="body1">Branch<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.branchName || 'N/A'}</Typography>
@@ -629,7 +629,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Bank Account No.*:</Typography>
+        <Typography variant="body1">Bank Account No.<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankAccountNo || 'N/A'}</Typography>
@@ -637,7 +637,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Type of Bank Account*:</Typography>
+        <Typography variant="body1">Type of Bank Account<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankAccountType || 'N/A'}</Typography>
@@ -690,7 +690,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Box>
     <Box>
     <Typography variant="h6" gutterBottom style={{ marginTop: '10px' }}>
-            31.  Location of facility in India for generation of Digital Signature Certificate *
+            31.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
           </Typography>
     <TableContainer>
     <Table>
@@ -757,10 +757,15 @@ const handleDownload = async (appDocId, documentTitle) => {
     
     {/* Adding a Box to contain the link */}
     {cpsDocument && (
-        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', ml: 2 }}
+          data-app-doc-id={cpsDocument.appDocId}
+          data-doc-title={cpsDocument.documentTitle || 'CPSDocument'}
+        >
             <Link
-                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)} // Change the handler function if needed
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
+                data-print-hide
+                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)}
+                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }}
             >
                 view
             </Link>

@@ -25,8 +25,9 @@ import showAlert from "../../global/common/MessageBox/AlertService";
 import LoaderProgress from "../../global/common/LoaderProgress";
 import FormWrapper from "../../global/util/FormWrapper";
 import { useParams } from "react-router-dom";
-import { decrypt } from "../../global/util/EncryptDecrypt";
+import useAnnualAuditRoute from "../../global/util/useAnnualAuditRoute";
 import AuditService from "../../../service/AuditService/AuditService";
+import AnnualAuditService from "../../../service/AnnualAuditService/AnnualAuditService";
 
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
@@ -48,8 +49,7 @@ const VisuallyHiddenInput = styled('input')({
 
 
 const ActionTakenByApplicant = () => {
-  const { id } = useParams();
-  const ApplicantUserName = decrypt(id);
+  const { userName: ApplicantUserName } = useAnnualAuditRoute();
 
   const userName = useSelector((state) => state.jwtAuthentication.username);
   const [open, setOpen] = useState([]);
@@ -68,7 +68,7 @@ const ActionTakenByApplicant = () => {
   // Fetching audit control data
   const getAllAuditControl = () => {
     setLoading(true);
-    AuditControlService.data()
+    AuditControlService.data(ApplicantUserName)
       .then((response) => {
         setAllAuditControlList(response.data);
       })
@@ -366,14 +366,14 @@ const handleConfrimSubmit = () => {
   applicantRemarks.append("remarks",radioValue.remarks);
   applicantRemarks.append("applicantUserName",radioValue.applicantUserName);
   applicantRemarks.append("file",radioValue.file3);
-  AuditService.changeTheStatus(applicantRemarks)
+  AnnualAuditService.changeTheStatus(applicantRemarks)
   .then((response) => {
     //console.log(response.data)
       showAlert({
           messageTitle: 'Success',
           messageContent: response.data,
           confirmText: 'Ok',
-          onConfirm: () => window.location.href = '/auditagency/uploadundertaking',
+          onConfirm: () => { window.location.href = '/auditagency/ncreports'; },
       });
       
       // Reset the form values

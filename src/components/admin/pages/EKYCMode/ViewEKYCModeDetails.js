@@ -8,7 +8,7 @@ const ViewEsignDocTypeDetails = ({ekycModeObj}) =>{
 
             <Grid container spacing={2} >
                 <Grid item sm={6}>
-                    <Typography variant="h6" color="primary.tabletext">EKYC Mode:</Typography> 
+                    <Typography variant="h6" color="primary.tabletext">eKYC Mode:</Typography> 
                 </Grid>
                 <Grid item sm={6}>
                 <Typography variant="h6">{ekycModeObj.ekycModeTitle}</Typography>

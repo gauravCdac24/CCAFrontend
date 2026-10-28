@@ -7,6 +7,7 @@ import StateService from '../../../../service/AdminService/StateService';
 import CountryService from '../../../../service/AdminService/CountryService';
 import CityService from '../../../../service/AdminService/CityService';
 import validatePattern from '../../../global/util/ValidatePattern';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import showAlert from '../../../global/common/MessageBox/AlertService';
@@ -640,7 +641,7 @@ const [fileName1, setFileName1] = useState('');
         <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
                 <InputLabel shrink={false} htmlFor="blockNo">
-                    <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                    <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <TextField
                     id="blockNo"
@@ -659,7 +660,7 @@ const [fileName1, setFileName1] = useState('');
 
             <Grid item xs={12} sm={6}>
                 <InputLabel shrink={false} htmlFor="village">
-                    <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                    <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <TextField
                     id="village"
@@ -680,7 +681,7 @@ const [fileName1, setFileName1] = useState('');
         <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
                 <InputLabel shrink={false} htmlFor="postOffice">
-                    <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                    <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <TextField
                     id="postOffice"
@@ -699,7 +700,7 @@ const [fileName1, setFileName1] = useState('');
 
             <Grid item xs={12} sm={6}>
                 <InputLabel shrink={false} htmlFor="subDivision">
-                    <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                    <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <TextField
                     id="subDivision"
@@ -720,7 +721,7 @@ const [fileName1, setFileName1] = useState('');
         <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={3}>
                 <InputLabel shrink={false} htmlFor="country">
-                    <Typography variant='body1'>Country*</Typography>
+                    <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                     <Select
@@ -745,7 +746,7 @@ const [fileName1, setFileName1] = useState('');
 
             <Grid item xs={12} sm={3}>
                 <InputLabel shrink={false} htmlFor="state">
-                    <Typography variant='body1'>State/Province*</Typography>
+                    <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                     <Select
@@ -770,7 +771,7 @@ const [fileName1, setFileName1] = useState('');
 
             <Grid item xs={12} sm={3}>
                 <InputLabel shrink={false} htmlFor="city">
-                    <Typography variant='body1'>District*</Typography>
+                    <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                     <Select
@@ -795,7 +796,7 @@ const [fileName1, setFileName1] = useState('');
 
             <Grid item xs={12} sm={3}>
                 <InputLabel shrink={false} htmlFor="pin">
-                    <Typography variant='body1'>Pin*</Typography>
+                    <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <TextField
                     id="pin"
@@ -1027,22 +1028,19 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
                     console.log(response.data); // Log the success response
         
                     // Show a success alert, either for 'updated' or 'saved'
+                    const { messageTitle, messageContent } = getStepSuccessAlert(appTypeMasterId, 'location', false);
                     showAlert({
-                        messageTitle: 'Successful',
-                        messageContent: "Fifth  saved successfully",
+                        messageTitle,
+                        messageContent,
                         confirmText: 'Ok',
                         onConfirm: () => { handleNext(); }  // Handle next step navigation
                     });
                 })
                 .catch((err) => {
-                    // Handle error and show appropriate error message
+                    const errorAlert = getStepErrorAlert(appTypeMasterId, 'location', err);
                     showAlert({
-                        messageTitle: 'Error',
-                        messageContent: err.response?.data 
-                            ? (typeof err.response.data === 'object' 
-                                ? 'Your request cannot be processed at this time. Please try again later.' 
-                                : err.response.data)
-                            : 'Your request cannot be processed at this time. Please try again later.',
+                        messageTitle: errorAlert.messageTitle,
+                        messageContent: errorAlert.messageContent,
                         confirmText: 'Ok',
                     });
                 })
@@ -1058,7 +1056,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
         <Grid container spacing={2} sx={{ mt: 0.1 }}>
             <Grid item xs={12} sm={3}>
                 <InputLabel shrink={false} htmlFor="locationType">
-                    <Typography variant='body1'>Location Type*</Typography>
+                    <Typography variant='body1'>Location Type<span className="req-asterisk">*</span></Typography>
                 </InputLabel>
                 <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                     <Select
@@ -1139,7 +1137,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
                    
                     <Grid item xs={12} sm={6} >
                         <InputLabel shrink={false} htmlFor="village">
-                            <Typography variant='body1'>Name Of Company*</Typography>
+                            <Typography variant='body1'>Name Of Company<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <TextField
                             id="companyName"
@@ -1165,7 +1163,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                     <Grid item xs={12} sm={6} >
                         <InputLabel shrink={false} htmlFor="blockNo">
-                            <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                            <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <TextField
                             id="blockNo"
@@ -1187,7 +1185,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
     
                     <Grid item xs={12} sm={6} >
                         <InputLabel shrink={false} htmlFor="village">
-                            <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                            <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <TextField
                             id="village"
@@ -1211,7 +1209,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                     <Grid item xs={12} sm={6}>
                         <InputLabel shrink={false} htmlFor="postOffice">
-                            <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                            <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <TextField
                             id="postOffice"
@@ -1233,7 +1231,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
     
                     <Grid item xs={12} sm={6}>
                         <InputLabel shrink={false} htmlFor="subDivision">
-                            <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                            <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <TextField
                             id="subDivision"
@@ -1257,7 +1255,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                     <Grid item xs={12} sm={3}>
                         <InputLabel shrink={false} htmlFor="country">
-                            <Typography variant='body1'>Country*</Typography>
+                            <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                             <Select
@@ -1284,7 +1282,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
     
                     <Grid item xs={12} sm={3}>
                         <InputLabel shrink={false} htmlFor="state">
-                            <Typography variant='body1'>State/Province*</Typography>
+                            <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                             <Select
@@ -1311,7 +1309,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
     
                     <Grid item xs={12} sm={3}>
                         <InputLabel shrink={false} htmlFor="city">
-                            <Typography variant='body1'>District*</Typography>
+                            <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                             <Select
@@ -1338,7 +1336,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
     
                     <Grid item xs={12} sm={3}>
                         <InputLabel shrink={false} htmlFor="pin">
-                            <Typography variant='body1'>Pin*</Typography>
+                            <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <TextField
                             id="pin"
@@ -1363,7 +1361,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
   {/* Certification Level */}
   <Grid item xs={12} sm={6}>
     <InputLabel shrink={false} htmlFor="certificationLevel">
-      <Typography variant="body1">Certification Level*</Typography>
+      <Typography variant="body1">Certification Level<span className="req-asterisk">*</span></Typography>
     </InputLabel>
     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
       <Select
@@ -1529,7 +1527,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
         <Grid item xs={12}>
     <InputLabel shrink={false}>
         <Typography variant='body1'>
-            Note: * marked field are mandatory to be filled
+            Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled
         </Typography>
        
     </InputLabel>

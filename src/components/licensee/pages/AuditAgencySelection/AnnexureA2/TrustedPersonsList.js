@@ -9,6 +9,7 @@ import AnnexureService from '../../../../../service/AnnexureA2Service/AnnexureSe
 import LoaderProgress from '../../../../global/common/LoaderProgress';
 import showAlert from '../../../../global/common/MessageBox/AlertService';
 import ValidatePattern from '../../../../global/util/ValidatePattern';
+import { encrypt } from '../../../../global/util/EncryptDecrypt';
 import { useSelector } from 'react-redux';
 
 const errorMsg = {
@@ -92,83 +93,66 @@ const TrustedPersonsList = () => {
       const MOBILE_PATTERN = /^[6-9]{1}[0-9]{9}$/;
       const STRING_PATTERN = /^[A-Za-z0-9().,&\- ]+$/;
 
-      // Full Name Validation
-      if (!item.fullName) {
-        errors[index].fullName = errorMsg.fullName.blank;
-      } else if (item.fullName.length < 3 || item.fullName.length > 100) {
-        errors[index].fullName = errorMsg.fullName.length;
-      } else if (!NAME_PATTERN.test(item.fullName)) {
-        errors[index].fullName = errorMsg.fullName.format;
+      // Optional fields; format/length only when value present
+      if (item.fullName) {
+        if (item.fullName.length < 3 || item.fullName.length > 100) {
+          errors[index].fullName = errorMsg.fullName.length;
+        } else if (!NAME_PATTERN.test(item.fullName)) {
+          errors[index].fullName = errorMsg.fullName.format;
+        }
       }
 
-      // Designation Validation
-      if (!item.designation) {
-        errors[index].designation = errorMsg.designation.blank;
-      } else if (item.designation.length < 3 || item.designation.length > 50) {
-        errors[index].designation = errorMsg.designation.length;
-      } else if (!NAME_PATTERN.test(item.designation)) {
-        errors[index].designation = errorMsg.designation.format;
+      if (item.designation) {
+        if (item.designation.length < 3 || item.designation.length > 50) {
+          errors[index].designation = errorMsg.designation.length;
+        } else if (!NAME_PATTERN.test(item.designation)) {
+          errors[index].designation = errorMsg.designation.format;
+        }
       }
 
-      // Location of Posting Validation
-      if (!item.locationOfPosting) {
-        errors[index].locationOfPosting = errorMsg.locationOfPosting.blank;
-      } else if (item.locationOfPosting.length < 3 || item.locationOfPosting.length > 100) {
-        errors[index].locationOfPosting = errorMsg.locationOfPosting.length;
-      } else if (!STRING_PATTERN.test(item.locationOfPosting)) {
-        errors[index].locationOfPosting = errorMsg.locationOfPosting.format;
+      if (item.locationOfPosting) {
+        if (item.locationOfPosting.length < 3 || item.locationOfPosting.length > 100) {
+          errors[index].locationOfPosting = errorMsg.locationOfPosting.length;
+        } else if (!STRING_PATTERN.test(item.locationOfPosting)) {
+          errors[index].locationOfPosting = errorMsg.locationOfPosting.format;
+        }
       }
 
-      // Role Validation
-      if (!item.role) {
-        errors[index].role = errorMsg.role.blank;
-      } else if (item.role.length < 3 || item.role.length > 50) {
-        errors[index].role = errorMsg.role.length;
-      } else if (!NAME_PATTERN.test(item.role)) {
-        errors[index].role = errorMsg.role.format;
+      if (item.role) {
+        if (item.role.length < 3 || item.role.length > 50) {
+          errors[index].role = errorMsg.role.length;
+        } else if (!NAME_PATTERN.test(item.role)) {
+          errors[index].role = errorMsg.role.format;
+        }
       }
 
-      // ID Card Validation
-      if (!item.idCardNo) {
-        errors[index].idCardNo = errorMsg.idCardNo.blank;
-      } else if (!ID_CARD_PATTERN.test(item.idCardNo)) {
+      if (item.idCardNo && !ID_CARD_PATTERN.test(item.idCardNo)) {
         errors[index].idCardNo = errorMsg.idCardNo.format;
       }
 
-      // Mobile Number Validation
-      if (!item.mobileNo) {
-        errors[index].mobileNo = errorMsg.mobileNo.blank;
-      } else if (!MOBILE_PATTERN.test(item.mobileNo)) {
+      if (item.mobileNo && !MOBILE_PATTERN.test(item.mobileNo)) {
         errors[index].mobileNo = errorMsg.mobileNo.format;
       }
 
-      // Identification Details Validation
-      if (!item.identificationDetails) {
-        errors[index].identificationDetails = errorMsg.identificationDetails.blank;
-      } else if (item.identificationDetails.length < 3 || item.identificationDetails.length > 250) {
-        errors[index].identificationDetails = errorMsg.identificationDetails.length;
-      } else if (!STRING_PATTERN.test(item.identificationDetails)) {
-        errors[index].identificationDetails = errorMsg.identificationDetails.format;
+      if (item.identificationDetails) {
+        if (item.identificationDetails.length < 3 || item.identificationDetails.length > 250) {
+          errors[index].identificationDetails = errorMsg.identificationDetails.length;
+        } else if (!STRING_PATTERN.test(item.identificationDetails)) {
+          errors[index].identificationDetails = errorMsg.identificationDetails.format;
+        }
       }
 
-      // Employed Since Validation
-      if (!item.employedSince) {
-        errors[index].employedSince = errorMsg.employedSince.blank;
+      // employedSince optional — no blank check
+
+      if (item.trainingDetails) {
+        if (item.trainingDetails.length < 3 || item.trainingDetails.length > 250) {
+          errors[index].trainingDetails = errorMsg.trainingDetails.length;
+        } else if (!STRING_PATTERN.test(item.trainingDetails)) {
+          errors[index].trainingDetails = errorMsg.trainingDetails.format;
+        }
       }
 
-      // Training Details Validation
-      if (!item.trainingDetails) {
-        errors[index].trainingDetails = errorMsg.trainingDetails.blank;
-      } else if (item.trainingDetails.length < 3 || item.trainingDetails.length > 250) {
-        errors[index].trainingDetails = errorMsg.trainingDetails.length;
-      } else if (!STRING_PATTERN.test(item.trainingDetails)) {
-        errors[index].trainingDetails = errorMsg.trainingDetails.format;
-      }
-
-      // Last Background Verification Date Validation
-      if (!item.lastBackVerDate) {
-        errors[index].lastBackVerDate = errorMsg.lastBackVerDate.blank;
-      }
+      // lastBackVerDate optional — no blank check
     });
 
     return errors.every(err => Object.keys(err).length === 0) ? {} : errors;
@@ -179,33 +163,26 @@ const TrustedPersonsList = () => {
     setLoading(true);
     try {
       const response = await AnnexureService.getTrustedPersonDetails();
+      const trustedPersonsList = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.trustedPersonDetails || [];
 
-      if (response.data.length > 0) {
-
-
-        const list = response.data.map((obj, index) => {
-          obj['id'] = index + 1;
-          obj['employedSince'] = stringToDateFormat(obj.employedSince, "yyyy-MM-dd");
-          obj['lastBackVerDate'] = stringToDateFormat(obj.lastBackVerDate, "yyyy-MM-dd");
-          return obj;
-        });
+      if (trustedPersonsList.length > 0) {
+        const list = trustedPersonsList.map((obj, index) => ({
+          ...obj,
+          id: index + 1,
+          personId: obj.personId ?? '',
+          employedSince: stringToDateFormat(obj.employedSince, "yyyy-MM-dd"),
+          lastBackVerDate: stringToDateFormat(obj.lastBackVerDate, "yyyy-MM-dd"),
+        }));
 
         setPersonsData(list);
-
       }
 
-
-
-
       setLoading(false);
-
-
     } catch (err) {
       setLoading(false);
     }
-
-
-
   }
 
 
@@ -282,20 +259,21 @@ const TrustedPersonsList = () => {
 
     const formData = new FormData();
     formData.append('file', selectedFile);
-    formData.append('userName', userName);
+    formData.append('userName', encrypt(userName));
 
     try {
       setLoading(true);
-      const response = await AnnexureService.uploadExcelSheet(formData); // Assuming personsData is from the uploaded file or state
+      const response = await AnnexureService.uploadExcelSheet(formData);
       setLoading(false);
 
       showAlert({
-        messageTitle: 'Add Audit Period Details',
+        messageTitle: 'Upload Trusted Persons',
         messageContent: response.data,
         confirmText: 'Ok',
       });
 
-      getTrustedPersonsList(); // Refresh list after successful upload
+      setSelectedFile(null);
+      await getTrustedPersonsList();
 
     } catch (error) {
       setLoading(false);

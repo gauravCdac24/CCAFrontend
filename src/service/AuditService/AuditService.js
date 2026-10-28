@@ -35,6 +35,7 @@ const CHANGE_STATUS_APPROVED="/review-by-committees"
 const GET_ALL_DATA_REVIEW_REMARKS="/get-All-ShortComming";
 const CHANGE_APPLICANT_TO_REVIEWE="/reviewer-remarks-by-applicant";
 const APPLICATION_REJECTED="/review-by-cca";
+const CCA_SEND_BACK_TO_APPLICANT="/cca-send-back-to-applicant";
 const APPLICATION_AUDIT_CONTROL="/save-audit-control";
 const GET_ALL_APPLICANT_BY_USERNAME="/get-All-Audit-Report-Criteria-Details";
    const VIEW_FILE="/downloadFile";
@@ -270,6 +271,10 @@ const applicationRejected = (obj) =>{
 	return API.post(AUDIT_SERVICE+APPLICATION_REJECTED,obj)
 }
 
+const ccaSendBackToApplicant = (obj) => {
+	return API.post(AUDIT_SERVICE + CCA_SEND_BACK_TO_APPLICANT, obj);
+}
+
 const addNewAuditControl = (obj) =>{
 	return API.post(AUDIT_SERVICE+APPLICATION_AUDIT_CONTROL,obj)
 }
@@ -436,6 +441,7 @@ export default{
 				viewReviewerRemarks,
 				changestatusToReviewer,
 				applicationRejected,
+				ccaSendBackToApplicant,
 				addNewAuditControl,
 				getByApplicantUserNames,
 				changeTheStatusOfApplication,

@@ -372,6 +372,11 @@ const RenewApplicationAuditorControl = lazy(()=>import('../components/licensee/p
 const PrivateRoutes = () => {
 
      const rolePath = useSelector((state)=>state.jwtAuthentication.rolePath)
+     const homePath = useSelector((state)=>state.jwtAuthentication.homePath)
+
+    // Default child route must follow the logged-in role's homePage,
+    // otherwise every role (including applicant) was sent to admindashboard.
+    const defaultHomePath = homePath || `${rolePath || ''}/admindashboard`;
 
     //if (!rolePath) return null; // or a loading spinner
 const PrivateRoutesConfig = {
@@ -381,7 +386,7 @@ const PrivateRoutesConfig = {
     children:[
         {
             path: '',
-            element: (<Navigate to="admindashboard" replace/>)
+            element: (<Navigate to={defaultHomePath} replace/>)
         },
         
         {

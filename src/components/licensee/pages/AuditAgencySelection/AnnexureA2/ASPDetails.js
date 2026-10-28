@@ -84,13 +84,13 @@ const ASPDetails = () => {
     const updatedErrors = { ...errors };
     let error = '';
 
-    // File validation
-    if (!file) {
-      error = 'Please upload a file.';
-    } else if (file.size > 5 * 1024 * 1024) { // 5MB max file size
-      error = 'File size exceeds 5MB.';
-    } else if (!file.name.endsWith('.xlsx')) {
-      error = 'Only .xlsx files are allowed.';
+    // File optional; validate format/size only when a file is selected
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB max file size
+        error = 'File size exceeds 5MB.';
+      } else if (!file.name.endsWith('.xlsx')) {
+        error = 'Only .xlsx files are allowed.';
+      }
     }
 
     updatedErrors[id] = { ...updatedErrors[id], [field]: error };

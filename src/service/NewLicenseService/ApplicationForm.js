@@ -44,6 +44,7 @@ import store from '../../store';
 const VIEWS_FILE = "/views-file";
 const GET_ALL_PAYMENT_PROOF_BY_INTENT_ID="/get-payment-verification-by-intent-id";
 const GET_ALL_APPLICATION_TIMELINE="/get-all-application-tumeline";
+const GET_LICENSE_ACQUISITION_WORKFLOW="/get-license-acquisition-workflow";
 
 
 const GET_ESIGNED_DOCUMENT_ID="/get-esign-document-id";
@@ -310,6 +311,12 @@ const GET_ESIGNED_DOCUMENT_ID="/get-esign-document-id";
 		return API.post(NERLICENSE_SERVICE+APPROVED_DATA, obj);
 	}
 
+	const addAllAprovedJson = (obj)=>{
+		return API.post(NERLICENSE_SERVICE+APPROVED_DATA, obj, {
+			headers: { "Content-Type": "application/json" },
+		});
+	}
+
 	const viewsFile = (id) =>{
 		return API.get(NERLICENSE_SERVICE+VIEWS_FILE,{
 			params:{
@@ -343,6 +350,15 @@ const getAllApplicationTimelineList = (ApplicantUserName) =>{
 			}
 		})
 	}
+
+const getLicenseAcquisitionWorkflow = (intentAppId, role = 'APPLICANT') => {
+	return API.get(NERLICENSE_SERVICE + GET_LICENSE_ACQUISITION_WORKFLOW, {
+		params: {
+			intentAppId: encrypt(intentAppId),
+			role,
+		},
+	});
+};
 
 export default{
                 addNewApplicationForm,
@@ -381,8 +397,10 @@ export default{
 				addAllAprovedAData,
 				addAllRejectedAData,
 				addAllAproved,
+				addAllAprovedJson,
 				viewsFile,
 				getApplicantPaymentProofByIntentId,
 				getEsignedDocumentId,
 				getAllApplicationTimelineList,
+				getLicenseAcquisitionWorkflow,
             };

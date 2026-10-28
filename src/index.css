@@ -11,3 +11,8 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Mandatory field marker in application / renewal forms */
+.req-asterisk {
+  color: #d32f2f;
+}

@@ -10,6 +10,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import { useSelector } from 'react-redux';
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
 
@@ -224,19 +225,16 @@ const isFieldEnabled = (fieldName) => {
 
         setLoading(true);
 
-        CPSDocService.getAllCpsDocList()
+        // Applicants/licensees must only see Active CPS documents published by admin.
+        CPSDocService.getAllActiveCpsDocList()
             .then((response) => {
-                console.log(response)
-                const list = response.data.map((obj, index) => {
-
-                    return obj;
-                });
+                const list = (response.data || []).filter(
+                    (obj) => (obj.status || '').toLowerCase() === 'active'
+                );
                 setAllCPSDocList(list);
-
-
             })
             .catch((err) => {
-
+                setAllCPSDocList([]);
             })
             .finally(() => {
                 setLoading(false)
@@ -252,31 +250,45 @@ const isFieldEnabled = (fieldName) => {
     }, [])
  
 
-    const handleDownload = async (id, file_name) => {
+    const downloadActiveCpsFile = async (id, file_name) => {
+        const response = await CPSDocService.downloadFile(id, true);
+        const blob = new Blob([response.data], { type: response.headers['content-type'] });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', file_name);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+    };
+
+    const handleDownload = async () => {
         try {
-            // Fetch the file from the server
-            const response = await CPSDocService.downloadFile(id);
+            // Always re-check Active CPS from DB; never download inactive docs.
+            const response = await CPSDocService.getAllActiveCpsDocList();
+            const activeList = (response.data || []).filter(
+                (obj) => (obj.status || '').toLowerCase() === 'active'
+            );
+            setAllCPSDocList(activeList);
 
-            // Create a blob from the response data
-            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            if (activeList.length === 0) {
+                showAlert({
+                    messageTitle: 'CPS Document',
+                    messageContent: 'No active CPS document is available for download.',
+                    confirmText: 'Ok',
+                });
+                return;
+            }
 
-            // Create a link element
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-
-            // Extract the filename from the Content-Disposition header
-            const contentDisposition = response.headers['content-disposition'];
-
-            console.log(JSON.stringify(contentDisposition))
-
-            const filename = file_name;
-
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode.removeChild(link);
+            for (const item of activeList) {
+                await downloadActiveCpsFile(item.cpsDocId, item.fileName);
+            }
         } catch (error) {
             console.error('Error downloading file:', error);
+            showAlert({
+                messageTitle: 'CPS Document',
+                messageContent: 'No active CPS document is available for download.',
+                confirmText: 'Ok',
+            });
         }
     };
    
@@ -589,21 +601,23 @@ const isFieldEnabled = (fieldName) => {
     
             responseFunction(formData)
                 .then((response) => {
+                    const { messageTitle, messageContent } = getStepSuccessAlert(
+                        appTypeMasterId,
+                        'cpsDocument',
+                        !!basicDetailsFormValues.appDocId,
+                    );
                     showAlert({
-                        messageTitle: 'Sixth Step Successful',
-                        messageContent: `Sixth step ${basicDetailsFormValues.appDocId ? 'updated' : 'saved'} successfully`,
+                        messageTitle,
+                        messageContent,
                         confirmText: 'Ok',
                         onConfirm: () => { handleNext(); }
                     });
                 })
                 .catch((err) => {
+                    const errorAlert = getStepErrorAlert(appTypeMasterId, 'cpsDocument', err);
                     showAlert({
-                        messageTitle: 'Error',
-                        messageContent: err.response.data
-                            ? typeof err.response.data === 'object'
-                                ? 'Your request cannot be processed at this time. Please try again later.'
-                                : err.response.data
-                            : 'Your request cannot be processed at this time. Please try again later.',
+                        messageTitle: errorAlert.messageTitle,
+                        messageContent: errorAlert.messageContent,
                         confirmText: 'Ok',
                     });
                 })
@@ -628,32 +642,25 @@ const isFieldEnabled = (fieldName) => {
 
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'><b>CPS Document*(34)</b></Typography>
+                    <Typography variant='h7'><b>CPS Template<span className="req-asterisk">*</span>(34)</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
             <Grid item xs={12} sm>
-            {allCPSDocList.length > 0 ? (
-        allCPSDocList.map((item) => (
             <Button
-                key={item.cpsDocId}
-                onClick={() => handleDownload(item.cpsDocId, item.fileName)} // Ensure fileName is correct
+                onClick={handleDownload}
                component="label"
                variant="contained"
                 sx={{ margin: 1 }} 
-                startIcon={<DownloadIcon />}// Add some margin for spacing
+                startIcon={<DownloadIcon />}
             >
-            Download CPS Document
+            Download CPS Template
             </Button>
-        ))
-    ) : (
-        <Typography>No documents available.</Typography> // Display if the list is empty
-    )}
 </Grid>
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"pdffile"}>
-                        <Typography variant='body1'>Upload CPS Document (Only PDF and Max allowed size 5 MB)*</Typography>
+                        <Typography variant='body1'>Upload CPS Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
                     <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
@@ -703,7 +710,7 @@ const isFieldEnabled = (fieldName) => {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'><b>Documents*</b></Typography>
+                    <Typography variant='h7'><b>Documents<span className="req-asterisk">*</span></b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
@@ -719,7 +726,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid item xs={12} sm={7}>
                 <InputLabel shrink={false} htmlFor={`pdffile-${index}`}>
                     <Typography variant='body1'>
-                        Upload {item} Document (Only PDF and Max allowed size 5 MB)*
+                        Upload {item} Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span>
                     </Typography>
                 </InputLabel>
 
@@ -822,7 +829,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid item xs={12} sm={5}>
                 <InputLabel shrink={false} htmlFor={`documentTitleName-${index}`}>
                     <Typography variant='body1'>
-                        {basicDetailsFormValues.additionalFile.length > 1 ? `${index + 1}. ` : ''} Document TitleName*
+                        {basicDetailsFormValues.additionalFile.length > 1 ? `${index + 1}. ` : ''} Document TitleName<span className="req-asterisk">*</span>
                     </Typography>
                 </InputLabel>
                 <TextField
@@ -937,7 +944,7 @@ const isFieldEnabled = (fieldName) => {
 <Grid item xs={12}>
     <InputLabel shrink={false}>
         <Typography variant='body1'>
-            Note: * marked field are mandatory to be filled
+            Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled
         </Typography>
        
     </InputLabel>

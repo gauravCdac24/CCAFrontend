@@ -748,7 +748,7 @@ const handleDownload = async (appDocId, documentTitle) => {
       }
     });
 
-    ApplicationReview.addAllAproved(formData)
+    ApplicationForm.addAllAproved(formData)
     .then((response) => {
       //console.log(response.data)
         showAlert({

@@ -89,65 +89,48 @@ const CADetails = () => {
     );
   };
 
-  // Validate form fields
+  // Validate form fields — format/length only when value present
   const validateForm = () => {
     let errorMsgs = {};
-    let valid = true;
 
     caData.forEach((row) => {
-      if (!row.description.trim()) {
-        errorMsgs[`${row.id}-description`] = 'Description cannot be empty';
-        valid = false;
-      } else if (row.description.length < 3 || row.description.length > 50) {
-        errorMsgs[`${row.id}-description`] = 'Description length must be between 3 and 50 characters';
-        valid = false;
-      } else if (!DESCRIPTION_PATTERN.test(row.description)) {
-        errorMsgs[`${row.id}-description`] = 'Only alphabets, numbers, and spaces are allowed';
-        valid = false;
+      if (row.description && row.description.trim()) {
+        if (row.description.length < 3 || row.description.length > 50) {
+          errorMsgs[`${row.id}-description`] = 'Description length must be between 3 and 50 characters';
+        } else if (!DESCRIPTION_PATTERN.test(row.description)) {
+          errorMsgs[`${row.id}-description`] = 'Only alphabets, numbers, and spaces are allowed';
+        }
       }
 
-      if (!row.developedBy.trim()) {
-        errorMsgs[`${row.id}-developedBy`] = 'Developed By cannot be empty';
-        valid = false;
-      } else if (row.developedBy.length < 3 || row.developedBy.length > 64) {
-        errorMsgs[`${row.id}-developedBy`] = 'Length must be between 3 and 64 characters';
-        valid = false;
-      } else if (!NAME_PATTERN.test(row.developedBy)) {
-        errorMsgs[`${row.id}-developedBy`] = 'Only alphabets, commas, and spaces are allowed';
-        valid = false;
+      if (row.developedBy && row.developedBy.trim()) {
+        if (row.developedBy.length < 3 || row.developedBy.length > 64) {
+          errorMsgs[`${row.id}-developedBy`] = 'Length must be between 3 and 64 characters';
+        } else if (!NAME_PATTERN.test(row.developedBy)) {
+          errorMsgs[`${row.id}-developedBy`] = 'Only alphabets, commas, and spaces are allowed';
+        }
       }
 
-      if (!row.databaseUsed.trim()) {
-        errorMsgs[`${row.id}-databaseUsed`] = 'Database Used cannot be empty';
-        valid = false;
-      } else if (row.databaseUsed.length < 3 || row.databaseUsed.length > 30) {
-        errorMsgs[`${row.id}-databaseUsed`] = 'Length must be between 3 and 30 characters';
-        valid = false;
-      } else if (!NAME_PATTERN.test(row.databaseUsed)) {
-        errorMsgs[`${row.id}-databaseUsed`] = 'Only alphabets, commas, and spaces are allowed';
-        valid = false;
+      if (row.databaseUsed && row.databaseUsed.trim()) {
+        if (row.databaseUsed.length < 3 || row.databaseUsed.length > 30) {
+          errorMsgs[`${row.id}-databaseUsed`] = 'Length must be between 3 and 30 characters';
+        } else if (!NAME_PATTERN.test(row.databaseUsed)) {
+          errorMsgs[`${row.id}-databaseUsed`] = 'Only alphabets, commas, and spaces are allowed';
+        }
       }
 
-      if (!row.certification.trim()) {
-        errorMsgs[`${row.id}-certification`] = 'Certification cannot be empty';
-        valid = false;
-      } else if (row.certification.length < 3 || row.certification.length > 64) {
-        errorMsgs[`${row.id}-certification`] = 'Length must be between 3 and 64 characters';
-        valid = false;
-      } else if (!STRING_PATTERN.test(row.certification)) {
-        errorMsgs[`${row.id}-certification`] = 'Only alphabets, numbers, characters ().,&- are allowed';
-        valid = false;
-      }
-
-      if (!row.lastSecurityAudit.trim()) {
-        errorMsgs[`${row.id}-lastSecurityAudit`] = 'Please select a valid audit date';
-        valid = false;
+      if (row.certification && row.certification.trim()) {
+        if (row.certification.length < 3 || row.certification.length > 64) {
+          errorMsgs[`${row.id}-certification`] = 'Length must be between 3 and 64 characters';
+        } else if (!STRING_PATTERN.test(row.certification)) {
+          errorMsgs[`${row.id}-certification`] = 'Only alphabets, numbers, characters ().,&- are allowed';
+        }
       }
     });
 
+    const valid = Object.keys(errorMsgs).length === 0;
     setErrors(errorMsgs);
     setIsFormValid(valid);
-    return valid;
+    return errorMsgs;
   };
 
   // Handle Add button click

@@ -164,7 +164,21 @@ const AuditorControls = () => {
   };
 
   const [allShortComming, setAllShortComming] = useState([]);
-  const [applicationReview, setApplicationReview] = useState({});
+  const [maxAuditAttempts, setMaxAuditAttempts] = useState(3);
+
+  const countCommitteeRejections = (records = []) =>
+    records.filter((record) => {
+      const type = record.shortcomings;
+      if (type === 'COMMITTEE_REJECTION') {
+        return true;
+      }
+      return !type || (type !== 'COMMITTEE_APPROVAL' && type !== 'CCA_RESET');
+    }).length;
+
+  const committeeRejectionCount = countCommitteeRejections(allShortComming);
+  const isThirdRejectionAttempt =
+    maxAuditAttempts > 0 && committeeRejectionCount + 1 >= maxAuditAttempts;
+
   const getAllShortComming = () => {
     setLoading(true);
     AuditService.getAllShortComming(ApplicantUserName)
@@ -222,21 +236,17 @@ const AuditorControls = () => {
 
   useEffect(() => {
     if (allMinimumAttemptList.length > 0) {
-      const counts = {};
-      allMinimumAttemptList.forEach((app) => {
-        const reviewId = app.applicationAudit; // Adjust according to your data structure
-        console.log("reviewId=======>", reviewId);
-        setApplicationReview(reviewId);
-      });
-
+      const activeConfig = allMinimumAttemptList.find((item) => item.status === 'Active')
+        || allMinimumAttemptList[0];
+      if (activeConfig?.applicationAudit != null) {
+        setMaxAuditAttempts(activeConfig.applicationAudit);
+      }
     }
   }, [allMinimumAttemptList]);
 
   const handleRejectedSubmit = (e) => {
     e.preventDefault();
-    if (applicationReview <= allShortComming.length) {
-      radioValue.isreject = true;
-    }
+    radioValue.isreject = isThirdRejectionAttempt;
 
     if (!radioValue.remarks.trim()) {
       showAlert({
@@ -249,11 +259,11 @@ const AuditorControls = () => {
 
     showAlert({
       messageTitle: "Confirm",
-      messageContent: "Are you sure you want to submit?",
+      messageContent: isThirdRejectionAttempt
+        ? "This is the final committee rejection. The application will be sent to CCA for rejection approval. Continue?"
+        : "The application will be sent back to the applicant to re-fill the NC report. Continue?",
       confirmText: "Yes",
       closeText: "No",
-      // fullWidth: true,
-      // maxWidth: "sm",
       onConfirm: () => handleConfrimSubmit(),
     });
   };
@@ -401,9 +411,9 @@ const downloadAuditorReviewDocument = async (filename) => {
         <Box component="form" noValidate>
 
 
-          <Grid container spacing={2} alignItems="center">
+          <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
             <Grid item>
-              <Typography variant="h6" style={{ marginTop: "10px" }}>
+              <Typography variant="h6" sx={{ mt: 1 }}>
                 Final eSigned Report:
               </Typography>
             </Grid>
@@ -460,11 +470,12 @@ const downloadAuditorReviewDocument = async (filename) => {
             </Dialog>
 
 
-          <Grid container spacing={2}>
+          {reviewRemarks.length > 0 && (
+          <Grid container spacing={2} sx={{ mt: 2, mb: 2 }}>
             {reviewRemarks.map((item, index) => (
               <React.Fragment key={index}> {/* Use Fragment to wrap all elements for each item */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" style={{ marginTop: '10px' }}>
+                  <Typography variant="h6" sx={{ mt: 1, mb: 1 }}>
                     Applicant Remarks
                   </Typography>
                   <TextField
@@ -504,13 +515,15 @@ const downloadAuditorReviewDocument = async (filename) => {
               </React.Fragment>
             ))}
           </Grid>
+          )}
 
 
- <Grid container spacing={2}>
+ {auditorRemarks.length > 0 && (
+ <Grid container spacing={2} sx={{ mt: 2, mb: 2 }}>
             {auditorRemarks.map((item, index) => (
               <React.Fragment key={index}> {/* Use Fragment to wrap all elements for each item */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" style={{ marginTop: '10px' }}>
+                  <Typography variant="h6" sx={{ mt: 1, mb: 1 }}>
                     Auditor Remarks
                   </Typography>
                   <TextField
@@ -550,13 +563,14 @@ const downloadAuditorReviewDocument = async (filename) => {
               </React.Fragment>
             ))}
           </Grid>
+          )}
 
 
 
 
-          <Grid container spacing={2}>
+          <Grid container spacing={2} sx={{ mt: 4 }}>
             <Grid item xs={12}>
-              <Typography variant="h6" style={{ marginTop: '10px' }}>Reviewer Remarks</Typography>
+              <Typography variant="h6" sx={{ mt: 1, mb: 1 }}>Reviewer Remarks</Typography>
               <TextField
                 multiline
                 rows={4}
@@ -588,7 +602,7 @@ const downloadAuditorReviewDocument = async (filename) => {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }} onClick={handleRejectedSubmit}>
-                {applicationReview <= allShortComming.length ? 'Recommand for Rejection' : 'Rejected'}
+                {isThirdRejectionAttempt ? 'Recommend for Rejection' : 'Send Back to Applicant'}
               </Button>
             </Grid>
           </Grid>

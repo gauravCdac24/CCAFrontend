@@ -44,7 +44,7 @@ const AuditorControls = () => {
   // Fetching audit control data
   const getAllAuditControl = () => {
     setLoading(true);
-    AuditControlService.data()
+    AuditControlService.data(ApplicantUserName)
       .then((response) => {
         setAllAuditControlList(response.data);
       })

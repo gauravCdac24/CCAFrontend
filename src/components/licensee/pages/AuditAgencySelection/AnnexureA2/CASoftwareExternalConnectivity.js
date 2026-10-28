@@ -41,22 +41,22 @@ const CASoftwareExternalConnectivity = () => {
     data.forEach((item, index) => {
       errors[index] = {};
   
-      // Name Validation
-      if (!item.name) {
-        errors[index].name = errorMsg.name.blank;
-      } else if (item.name.length < 3 || item.name.length > 250) {
-        errors[index].name = errorMsg.name.length;
-      } else if (!DESCRIPTION_PATTERN.test(item.name)) {
-        errors[index].name = errorMsg.name.format;
+      // Name (optional; format/length only when present)
+      if (item.name) {
+        if (item.name.length < 3 || item.name.length > 250) {
+          errors[index].name = errorMsg.name.length;
+        } else if (!DESCRIPTION_PATTERN.test(item.name)) {
+          errors[index].name = errorMsg.name.format;
+        }
       }
   
-      // Description Validation
-      if (!item.description) {
-        errors[index].description = errorMsg.description.blank;
-      } else if (item.description.length < 3 || item.description.length > 250) {
-        errors[index].description = errorMsg.description.length;
-      } else if (!DESCRIPTION_PATTERN.test(item.description)) {
-        errors[index].description = errorMsg.description.format;
+      // Description (optional; format/length only when present)
+      if (item.description) {
+        if (item.description.length < 3 || item.description.length > 250) {
+          errors[index].description = errorMsg.description.length;
+        } else if (!DESCRIPTION_PATTERN.test(item.description)) {
+          errors[index].description = errorMsg.description.format;
+        }
       }
     });
   

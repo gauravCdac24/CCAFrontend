@@ -8,6 +8,7 @@ import CityService from '../../../../service/AdminService/CityService';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import { useSelector } from 'react-redux';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import ValidatePattern from '../../../global/util/ValidatePattern';
 import IntentService from '../../../../service/AdminService/IntentService';
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
@@ -533,7 +534,11 @@ const isFieldEnabled = (fieldName) => {
         if (!official.telephoneNo) {
             errors.telephoneNo1 = errorMsg.telephoneNo.blank;
         }
-    
+
+        // Address For Communication is mandatory
+        if (!communicationAddressFormValues.communicationAddress) {
+            errors.communicationAddress = 'Please select Address For Communication';
+        }
     
         return errors;
     };
@@ -574,18 +579,21 @@ const isFieldEnabled = (fieldName) => {
             requestMethod(communicationAddressFormValues)
                     .then((response) => {
 
+                        const isUpdate = !!(communicationAddressFormValues.official?.addressId && communicationAddressFormValues.residential?.addressId);
+                        const { messageTitle, messageContent } = getStepSuccessAlert(appTypeMasterId, 'addressDetails', isUpdate);
                         showAlert({
-                            messageTitle: 'Second Step Successfull',
-                            messageContent: `Second step ${(communicationAddressFormValues.official?.addressId && communicationAddressFormValues.residential?.addressId) ? 'updated' : 'saved'} successfully`,
+                            messageTitle,
+                            messageContent,
                             confirmText: 'Ok',
                             onConfirm: () => { handleNext() }
                         })
                     })
                     
                     .catch((err) => {
+                        const errorAlert = getStepErrorAlert(appTypeMasterId, 'addressDetails', err);
                         showAlert({
-                            messageTitle: 'Error',
-                            messageContent: err.response.data ? typeof err.response.data === 'object' ? 'Your request cannot be processed at this time. Please try again later.' : err.response.data : 'Your request cannot be processed at this time. Please try again later.',
+                            messageTitle: errorAlert.messageTitle,
+                            messageContent: errorAlert.messageContent,
                             confirmText: 'Ok',
                         })
                     })
@@ -613,7 +621,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="blockNo">
-                        <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                        <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="residentialblockNo"
@@ -636,7 +644,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="village">
-                        <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                        <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="residentialvillage"
@@ -661,7 +669,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="postOffice">
-                        <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                        <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="residentialpostOffice"
@@ -684,7 +692,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="subDivision">
-                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="residentialsubDivision"
@@ -709,7 +717,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
             <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="country">
-                        <Typography variant='body1'>Country*</Typography>
+                        <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -737,7 +745,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="state">
-                        <Typography variant='body1'>State/Province*</Typography>
+                        <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -765,7 +773,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="city">
-                        <Typography variant='body1'>District*</Typography>
+                        <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -793,7 +801,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="pin">
-                        <Typography variant='body1'>Pin*</Typography>
+                        <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="residentialpin"
@@ -817,7 +825,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
-                        <Typography variant='body1'>Telephone No*</Typography>
+                        <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="residentialtelephoneNo"
@@ -862,7 +870,7 @@ const isFieldEnabled = (fieldName) => {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="mobile">
-                        <Typography variant='body1'>Mobile*</Typography>
+                        <Typography variant='body1'>Mobile<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="residentialmobile"
@@ -893,7 +901,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="blockNoOffice1">
-                        <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                        <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="officialblockNo"
@@ -916,7 +924,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="village">
-                        <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                        <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="officialvillage"
@@ -941,7 +949,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="postOffice1">
-                        <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                        <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="officialpostOffice"
@@ -964,7 +972,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="subDivision">
-                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="officialsubDivision"
@@ -989,7 +997,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="country">
-                        <Typography variant='body1'>Country*</Typography>
+                        <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -1017,7 +1025,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="state">
-                        <Typography variant='body1'>State/Province*</Typography>
+                        <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -1045,7 +1053,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="city">
-                        <Typography variant='body1'>District*</Typography>
+                        <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                         <Select
@@ -1073,7 +1081,7 @@ const isFieldEnabled = (fieldName) => {
 
                 <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="pin">
-                        <Typography variant='body1'>Pin*</Typography>
+                        <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="officialpin"
@@ -1095,7 +1103,7 @@ const isFieldEnabled = (fieldName) => {
                 <Grid container spacing={2}>
                     <Grid item xs={12} sm sx={{ml:2}}>
                         <InputLabel shrink={false} htmlFor="telephoneNo">
-                            <Typography variant='body1'>Telephone No*</Typography>
+                            <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <TextField
                             id="officialtelephoneNo"
@@ -1140,7 +1148,7 @@ const isFieldEnabled = (fieldName) => {
                 </Grid>
                 <Grid item xs={12}>
                     <Box display="flex" alignItems="center">
-                        <Typography variant="body1">Address For Communication* (4)</Typography>
+                        <Typography variant="body1">Address For Communication<span className="req-asterisk">*</span> (4)</Typography>
                         <RadioGroup
                             row
                           value={communicationAddressFormValues.communicationAddress}
@@ -1163,6 +1171,11 @@ const isFieldEnabled = (fieldName) => {
                             <FormControlLabel value="Official" control={<Radio />} label="Office" />
                         </RadioGroup>
                     </Box>
+                    {formErrors.communicationAddress && (
+                        <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                            {formErrors.communicationAddress}
+                        </Typography>
+                    )}
                 </Grid>
 
 
@@ -1192,7 +1205,7 @@ const isFieldEnabled = (fieldName) => {
 
 <Grid>
             <InputLabel shrink={false} >
-                        <Typography variant='body1'>Note: * marked field are mandatory to be filled </Typography>
+                        <Typography variant='body1'>Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled </Typography>
                     </InputLabel>
             </Grid>
 

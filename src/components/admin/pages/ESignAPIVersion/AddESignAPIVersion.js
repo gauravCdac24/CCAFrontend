@@ -302,7 +302,7 @@ const AddEsignAPIVersion = () => {
                             <Grid item xs>
 
                                 <InputLabel shrink={false} htmlFor={"esignApiSpecId"}>
-                                    <Typography variant='body1' sx={{color: "#000000"}}>API Specification*</Typography>
+                                    <Typography variant='body1' sx={{color: "#000000"}}>eSign API Specification*</Typography>
                                 </InputLabel>
 
                                 <FormControl variant="outlined" size="small" sx={{  mt: 1, width: '100%' }}>
@@ -319,7 +319,7 @@ const AddEsignAPIVersion = () => {
                                         >
 
                                             <MenuItem disabled value={apiVerForm.esignApiSpecId}>
-                                                API Specification
+                                                eSign API Specification
                                             </MenuItem>
 
 
@@ -434,7 +434,7 @@ const AddEsignAPIVersion = () => {
 
                         <Grid item xs>
                             <InputLabel shrink={false} htmlFor={"verfile"} sx={{mb:1}}>
-                                <Typography variant='body1'>Upload API Specifications*</Typography>
+                                <Typography variant='body1'>Upload eSign API Specifications*</Typography>
                             </InputLabel>
 
                                     <Grid container direction="row" sx={{border: '1px solid #cfcfcf', borderRadius: '5px'}}>

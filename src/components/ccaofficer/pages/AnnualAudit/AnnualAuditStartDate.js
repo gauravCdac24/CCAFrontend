@@ -14,9 +14,7 @@ import dayjs from 'dayjs';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AnnualAuditService from '../../../../service/AnnualAuditService/AnnualAuditService';
 
-const AnnualAuditStartDate = (userName) => {
-  const userNames = userName.userName;
-console.log("userName",userNames)
+const AnnualAuditStartDate = ({ userName: userNames, auditScheduleId = '', scheduleStartDate = '', auditStatus = '', readOnly = false }) => {
 
 
 
@@ -46,16 +44,26 @@ console.log("userName",userNames)
 
 
      const [formValues, setFormValues] = useState({
-      auditScheduleId: "",
-      licenseId: "", // Initialize with an empty string
-      startDate: "",
-      status: "",
+      auditScheduleId: auditScheduleId || "",
+      licenseId: "",
+      startDate: scheduleStartDate || "",
+      status: auditStatus || "",
       created: "",
       updated: "",
       createdBy: "",
       updatedBy: "",
       userName: userNames,
     });
+
+    useEffect(() => {
+      setFormValues((prevValues) => ({
+        ...prevValues,
+        auditScheduleId: auditScheduleId || prevValues.auditScheduleId,
+        startDate: scheduleStartDate || prevValues.startDate,
+        status: auditStatus || prevValues.status,
+        userName: userNames || prevValues.userName,
+      }));
+    }, [auditScheduleId, scheduleStartDate, auditStatus, userNames]);
   
     // Update licenseId when licenseDetails changes
     useEffect(() => {
@@ -174,6 +182,7 @@ useEffect(() => {
           id="startDate"
           name="startDate"
           minDate={dayjs()}
+          disabled={readOnly}
           onChange={(newValue) => {
             setFormValues({
               ...formValues,
@@ -213,6 +222,7 @@ useEffect(() => {
                 variant="contained"
                 sx={{ maxWidth: '150px' }}
                 onClick={handleApprove}
+                disabled={readOnly}
               >
                Audit Schedule
               </Button>

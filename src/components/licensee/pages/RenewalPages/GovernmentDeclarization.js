@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Box, Grid, FormControlLabel, Checkbox, Typography, Button } from '@mui/material';
 import PreviewModal from './PreviewModal';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getFinalSubmissionSuccessAlert, getFinalSubmissionErrorAlert } from '../../../global/util/applicationFormSteps';
 import Undertaking from '../../../../service/AdminService/Undertaking';
 import { useSelector } from 'react-redux';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import { useNavigate } from 'react-router-dom';
 import GovernmentPreviewModal from './GovernmentPreviewModal';
+import printApplicationPreview from '../../../global/util/printApplicationPreview';
 
 const GovernmentDeclarization = ({ handlePreview, handleNext, handleBack, data }) => {
   const [checkedState, setCheckedState] = useState({});
@@ -90,9 +92,10 @@ console.log(allUndertakingList)
         .then((response) => {
             console.log(response);
             if (response) {
+                const successAlert = getFinalSubmissionSuccessAlert();
                 showAlert({
-                    messageTitle: 'Success',
-                    messageContent: 'Application Form Submitted Successful',
+                    messageTitle: successAlert.messageTitle,
+                    messageContent: successAlert.messageContent,
                     confirmText: 'OK',
                     onConfirm: () => { navigate("/applicant/applicationform") },
                     enableHeaderCloseBtn: true,
@@ -101,13 +104,10 @@ console.log(allUndertakingList)
             }
         })
         .catch((err) => {
+            const errorAlert = getFinalSubmissionErrorAlert(err);
             showAlert({
-                messageTitle: 'Error',
-                messageContent: err.response?.data
-                    ? typeof err.response.data === 'object'
-                        ? 'Your request cannot be processed at this time. Please try again later.'
-                        : err.response.data
-                    : 'Your request cannot be processed at this time. Please try again later.',
+                messageTitle: errorAlert.messageTitle,
+                messageContent: errorAlert.messageContent,
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true
@@ -152,6 +152,24 @@ const Yes = () => {
       disableOutsideKeyDown: true,
       maxWidth: 'md',
       fullWidth: true,
+      headerButtonText: 'Print PDF',
+      onHeaderButtonClick: async ({ contentElement }) => {
+        try {
+          await printApplicationPreview({
+            contentElement: contentElement(),
+            fetchFile: (appDocId) => ApplicationForm.viewFile(appDocId),
+            userName,
+            title: 'Renewal Application Form Preview',
+          });
+        } catch (error) {
+          showAlert({
+            messageTitle: 'Print PDF',
+            messageContent: error?.message || 'Unable to prepare the application for printing.',
+            confirmText: 'Ok',
+            enableHeaderCloseBtn: true,
+          });
+        }
+      },
     });
   };
 

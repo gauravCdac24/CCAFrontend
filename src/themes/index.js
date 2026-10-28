@@ -6,7 +6,7 @@ import Palette from './palette';
 import componentsOverride from './overrides';
 
 import { useSelector } from "react-redux";
-import { CssBaseline, StyledEngineProvider } from '@mui/material';
+import { CssBaseline, GlobalStyles, StyledEngineProvider } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 
@@ -71,7 +71,7 @@ const MyTheme = ({ children }) => {
   style-src 'self' 'nonce-${nonce}';
   img-src 'self' data:;
   font-src 'self' data:;
-  connect-src 'self' http://localhost:7778;
+  connect-src 'self' http://localhost:3000;
   `;
 
 
@@ -82,6 +82,13 @@ const MyTheme = ({ children }) => {
         <CacheProvider value={emotionCache}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
+            <GlobalStyles
+              styles={{
+                '.req-asterisk': {
+                  color: '#d32f2f',
+                },
+              }}
+            />
             {children}
           </ThemeProvider>
       </CacheProvider>

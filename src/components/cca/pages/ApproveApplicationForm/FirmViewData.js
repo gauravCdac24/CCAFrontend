@@ -60,7 +60,7 @@ const FirmViewData = (props) => {
   const [checkedRows, setCheckedRows] = useState({
     userName: userName,
     reviewerUserName: reviewerUserName,
-    isRejected: true,
+    isRejected: false,
   });
 
   const [tabValue, setTabValue] = useState(0);
@@ -780,26 +780,46 @@ const FirmViewData = (props) => {
     });
   };
 
+  const buildCcaApprovalPayload = (isRejected) => {
+    const applicantUserName = userName || checkedRows.userName;
+    if (!applicantUserName) {
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Applicant user name is missing. Please reopen the application and try again.",
+        confirmText: "Ok",
+      });
+      return null;
+    }
+
+    return {
+      userName: applicantUserName,
+      reviewerUserName: reviewerUserName || checkedRows.reviewerUserName || "",
+      isRejected,
+      remarks: checkedRows.remarks || "",
+    };
+  };
+
+  const handleApprovalSuccess = () => {
+    if (props.onSuccess) {
+      props.onSuccess();
+    } else {
+      window.location.href = "/cca/approvedreviewapplication";
+    }
+  };
+
   const handleConfrimSubmit = () => {
-    const formData = new FormData();
+    const payload = buildCcaApprovalPayload(false);
+    if (!payload) {
+      return;
+    }
 
-    Object.entries(checkedRows).forEach(([key, value]) => {
-      if (key === "file1") {
-        formData.append(key, value);
-      } else {
-        formData.append(key, String(value));
-      }
-    });
-
-    ApplicationForm.addAllAproved(formData)
+    ApplicationForm.addAllAprovedJson(payload)
       .then((response) => {
-        //console.log(response.data)
         showAlert({
           messageTitle: "Success",
           messageContent: response.data,
           confirmText: "Ok",
-          onConfirm: () =>
-            (window.location.href = "/cca/approvedreviewapplication"),
+          onConfirm: handleApprovalSuccess,
         });
       })
       .catch((err) => {
@@ -859,18 +879,18 @@ const FirmViewData = (props) => {
   };
 
   const handleSubmit = () => {
-    if (2 <= basicDetailesValues?.reviewApplications.length) {
-      checkedRows.isreject = true;
+    const payload = buildCcaApprovalPayload(true);
+    if (!payload) {
+      return;
     }
-    ApplicationReview.addFirmApplicationReview(checkedRows)
+
+    ApplicationForm.addAllAprovedJson(payload)
       .then((response) => {
         showAlert({
           messageTitle: "Success",
           messageContent: response.data,
           confirmText: "Ok",
-          onConfirm: () =>
-            (window.location.href =
-              "/applicationreviewcommittee/newapplication"),
+          onConfirm: handleApprovalSuccess,
         });
       })
       .catch((err) => {
@@ -2886,17 +2906,17 @@ const FirmViewData = (props) => {
                         Approval
                       </Button>
                     </Grid>
-                    {/* <Grid item>
-              <Button
-                type="button"
-                variant="contained"
-                sx={{ maxWidth: '120px', height: '40px', color: '#FFFFFF', backgroundColor: 'black' }}
-                aria-label="Reset"
-               onClick={handleApprovedSubmit}
-              >
-               {2<=  basicDetailesValues?.reviewApplications.length? 'Recommand for Rejection' : 'Rejected'}
-              </Button>
-            </Grid> */}
+                    <Grid item>
+                      <Button
+                        type="button"
+                        variant="contained"
+                        sx={{ maxWidth: "120px", height: "40px", color: "#FFFFFF", backgroundColor: "black" }}
+                        aria-label="Reject"
+                        onClick={handleApprovedSubmit}
+                      >
+                        Send To Rejection
+                      </Button>
+                    </Grid>
                   </Grid>
                 </Box>
               ))}

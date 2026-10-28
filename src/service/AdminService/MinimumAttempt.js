@@ -14,9 +14,15 @@ const ADMIN_SERVICE = "/admin-service";
     const GET_MINIMUM_ATTEMPT_BY_ID = "/get-minimum-attempts-by-id";
 	const CHANGE_MINIMUM_ATTEMPT_STATUS = "/change-minimum-attempt-status";
     const GET_ALL_ACTIVE_MINIMUM_ATTEMPTS = "/get-all-active-minimum-attempt";
-const addNewMinimumAttempt = (obj)=>{
-	return API.post(ADMIN_SERVICE+ADD_NEW_MINIMUM_ATTEMPT, obj);
-}
+const addNewMinimumAttempt = (obj) => {
+	return API.post(ADMIN_SERVICE + ADD_NEW_MINIMUM_ATTEMPT, {
+		applicationScrutiny: parseInt(obj.applicationScrutiny, 10),
+		applicationReview: parseInt(obj.applicationReview, 10),
+		applicationAudit: parseInt(obj.applicationAudit, 10),
+		esignApplicationReview: parseInt(obj.esignApplicationReview, 10),
+		annualAuditReview: parseInt(obj.annualAuditReview, 10),
+	});
+};
 
 const getAllMinimumAttemptList = () =>{
     return API.get(ADMIN_SERVICE+GET_ALL_MINIMUM_ATTEMPT);
@@ -41,14 +47,15 @@ const deleteMinimumAttempt = (id) =>{
 	})
 }
 
-const updateMinimumAttempt = (obj)=>{
-
-	const obj1 = {...obj};
-
-	obj1.attemptId = encrypt(obj1.attemptId);
-
-	return API.post(ADMIN_SERVICE+UPDATE_MINIMUM_ATTEMPT, obj);
-}
+const updateMinimumAttempt = (obj) => {
+	return API.post(ADMIN_SERVICE + UPDATE_MINIMUM_ATTEMPT, {
+		applicationScrutiny: parseInt(obj.applicationScrutiny, 10),
+		applicationReview: parseInt(obj.applicationReview, 10),
+		applicationAudit: parseInt(obj.applicationAudit, 10),
+		esignApplicationReview: parseInt(obj.esignApplicationReview, 10),
+		annualAuditReview: parseInt(obj.annualAuditReview, 10),
+	});
+};
 
 const getMinimumAttemptById = (id) =>{
 	return API.get(ADMIN_SERVICE+GET_MINIMUM_ATTEMPT_BY_ID,{

@@ -324,7 +324,7 @@ const ESPApplicationStepThree = ({handleNext, handleBack}) => {
             <Grid container>
                 <Grid item>
                     <InputLabel shrink={false} htmlFor={"coverLetter"} sx={{mb:1}}>
-                        <Typography variant='body1'><b>1. Select API Version</b></Typography>
+                        <Typography variant='body1'><b>1. Select eSign API Version</b></Typography>
                     </InputLabel>
                 </Grid>
             </Grid>
@@ -333,7 +333,7 @@ const ESPApplicationStepThree = ({handleNext, handleBack}) => {
 
                 <Grid item xs={6}>
                     <InputLabel shrink={false} htmlFor={"esignApiSpecId"}>
-                        <Typography variant='body1' sx={{color: "#000000"}}>API Specification*</Typography>
+                        <Typography variant='body1' sx={{color: "#000000"}}>eSign API Specification*</Typography>
                     </InputLabel>
 
                     <FormControl variant="outlined" size="small" sx={{  mt: 1, width: '100%' }}>
@@ -351,7 +351,7 @@ const ESPApplicationStepThree = ({handleNext, handleBack}) => {
                             >
 
                                 <MenuItem disabled value={formValues.esignApiSpecId}>
-                                    Select API Specification
+                                    Select eSign API Specification
                                 </MenuItem>
 
 
@@ -372,7 +372,7 @@ const ESPApplicationStepThree = ({handleNext, handleBack}) => {
 
                     <Grid item xs={6}>
                     <InputLabel shrink={false} htmlFor={"apiVersionId"}>
-                        <Typography variant='body1' sx={{color: "#000000"}}>API Version*</Typography>
+                        <Typography variant='body1' sx={{color: "#000000"}}>eSign API Version*</Typography>
                     </InputLabel>
 
                     <FormControl variant="outlined" size="small" sx={{  mt: 1, width: '100%' }}>
@@ -390,7 +390,7 @@ const ESPApplicationStepThree = ({handleNext, handleBack}) => {
                             >
 
                                 <MenuItem disabled value={formValues.apiVersionId}>
-                                    Select API Version
+                                    Select eSign API Version
                                 </MenuItem>
 
 

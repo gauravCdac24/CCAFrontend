@@ -8,7 +8,7 @@ const ViewEsignAPISpecificationDetails = ({apiSpecificationObj}) =>{
 
             <Grid container spacing={2} >
                 <Grid item sm={6}>
-                    <Typography variant="h6" color="primary.tabletext">API Specification:</Typography> 
+                    <Typography variant="h6" color="primary.tabletext">eSign API Specification:</Typography> 
                 </Grid>
                 <Grid item sm={6}>
                 <Typography variant="h6">{apiSpecificationObj.apiSpecification}</Typography>

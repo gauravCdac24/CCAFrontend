@@ -60,6 +60,9 @@ const updateAuditAgency = (objs)=>{
 const getAllAuditAgencyList = () =>{
     return API.get(ADMIN_SERVICE+GET_ALL_AUDIT_AGENCY);
 }
+const getAllActiveAuditAgencyList = () =>{
+    return API.get(ADMIN_SERVICE+GET_ALL_ACTIVE_AUDIT_AGENCY);
+}
 const getAuditAgencyList = () =>{
     return API.get(ADMIN_SERVICE+ALL_USER);
 }
@@ -101,6 +104,7 @@ const deleteAuditAgency = (id) =>{
 export default{
                 addNewAuditAgency,
                 getAllAuditAgencyList,
+				getAllActiveAuditAgencyList,
 				changeAuditAgencyStatus,
 				updateAuditAgency,
 				deleteAuditAgency,

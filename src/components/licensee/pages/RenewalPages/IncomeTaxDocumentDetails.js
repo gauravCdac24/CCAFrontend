@@ -9,8 +9,8 @@ import { styled } from '@mui/material/styles';
 import ValidatePattern from '../../../global/util/ValidatePattern';
 import FirmApplicationForm from '../../../../service/NewLicenseService/FirmApplicationForm';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import { useSelector } from 'react-redux';
-import { json } from 'react-router-dom';
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
 
 const VisuallyHiddenInput = styled('input')({
@@ -533,21 +533,23 @@ if (!basicDetailsFormValues.file3) {
             requestMethod(formData)
                 .then((response) => {
                  
+                    const { messageTitle, messageContent } = getStepSuccessAlert(
+                        appTypeMasterId,
+                        'incomeTaxDocumentDetails',
+                        !!basicDetailsFormValues.firmApplicationId,
+                    );
                     showAlert({
-                        messageTitle: 'Successful',
-                        messageContent: 'first page saved successfully',
+                        messageTitle,
+                        messageContent,
                         confirmText: 'Ok',
                         onConfirm: () => { handleNext(); }
                     });
                 })
                 .catch((err) => {
+                    const errorAlert = getStepErrorAlert(appTypeMasterId, 'incomeTaxDocumentDetails', err);
                     showAlert({
-                        messageTitle: 'Error',
-                        messageContent: err.response?.data
-                            ? typeof err.response.data === 'object'
-                                ? 'Your request cannot be processed at this time. Please try again later.'
-                                : err.response.data
-                            : 'Your request cannot be processed at this time. Please try again later.',
+                        messageTitle: errorAlert.messageTitle,
+                        messageContent: errorAlert.messageContent,
                         confirmText: 'Ok',
                     });
                 })
@@ -571,7 +573,7 @@ if (!basicDetailsFormValues.file3) {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"incomTaxPanNo"}>
-                        <Typography variant='body1'>Income Tax PAN No.*</Typography>
+                        <Typography variant='body1'>Income Tax PAN No.<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -592,7 +594,7 @@ if (!basicDetailsFormValues.file3) {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"pdffile"}>
-                        <Typography variant='body1'>Upload Pan Document (Only PDF and Max allowed size 5 MB)*</Typography>
+                        <Typography variant='body1'>Upload Pan Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
                     <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
@@ -649,7 +651,7 @@ if (!basicDetailsFormValues.file3) {
             <Grid container spacing={2} alignItems="center">
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"turnOver"}>
-                        <Typography variant='body1'>Turnover in the last Financial Year*</Typography>
+                        <Typography variant='body1'>Turnover in the last Financial Year<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -686,7 +688,7 @@ if (!basicDetailsFormValues.file3) {
             <Grid container spacing={2} alignItems="center">
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"netWorth"}>
-                        <Typography variant='body1'>Net Worth*Rs.</Typography>
+                        <Typography variant='body1'>Net Worth<span className="req-asterisk">*</span>Rs.</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -714,7 +716,7 @@ if (!basicDetailsFormValues.file3) {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"netWorthDoc"}>
-                        <Typography variant='body1'>Upload Net Worth Document (Only PDF and Max allowed size 5 MB)*</Typography>
+                        <Typography variant='body1'>Upload Net Worth Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
                     <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
@@ -769,7 +771,7 @@ if (!basicDetailsFormValues.file3) {
             <Grid container spacing={2} alignItems="center">
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"paidUpCapital"}>
-                        <Typography variant='body1'>Paid up Capital*Rs.</Typography>
+                        <Typography variant='body1'>Paid up Capital<span className="req-asterisk">*</span>Rs.</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -797,7 +799,7 @@ if (!basicDetailsFormValues.file3) {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"paidUpCapDoc"}>
-                        <Typography variant='body1'>Upload Paid up Capital Document (Only PDF and Max allowed size 5 MB)*</Typography>
+                        <Typography variant='body1'>Upload Paid up Capital Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
                     <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
@@ -845,13 +847,13 @@ if (!basicDetailsFormValues.file3) {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Insurence Details*(25)</b></Typography>
+                    <Typography variant='h7'> <b>Insurence Details<span className="req-asterisk">*</span>(25)</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"policyNo"}>
-                        <Typography variant='body1' >Insurence Policy No.*</Typography>
+                        <Typography variant='body1' >Insurence Policy No.<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -873,7 +875,7 @@ if (!basicDetailsFormValues.file3) {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"insurerCompany"}>
-                        <Typography variant='body1'>Insurer Company*</Typography>
+                        <Typography variant='body1'>Insurer Company<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -917,7 +919,7 @@ if (!basicDetailsFormValues.file3) {
             </Box>
             <Grid>
             <InputLabel shrink={false} >
-                        <Typography variant='body1'>Note: * marked field are mandatory to be filled </Typography>
+                        <Typography variant='body1'>Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled </Typography>
                     </InputLabel>
             </Grid>
         </Box>

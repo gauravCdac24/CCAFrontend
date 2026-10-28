@@ -165,7 +165,7 @@ console.log(requiredDoc)
             {/* File Upload */}
             <Grid item xs={12}>
               <InputLabel shrink={false} htmlFor="netWorthDoc">
-                <Typography variant="body1">Upload Payment Proof Document (Only PDF, Max 5MB)*</Typography>
+                <Typography variant="body1">Upload Payment Proof Document (Only PDF, Max 5MB)<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <Grid container direction="row" sx={{ border: "1px solid #cfcfcf", borderRadius: "5px" }}>
                 <Grid item>
@@ -204,7 +204,7 @@ console.log(requiredDoc)
             {/* Amount Input */}
             <Grid item xs={12}>
               <InputLabel shrink={false} htmlFor="amount">
-                <Typography variant="body1">Amount*</Typography>
+                <Typography variant="body1">Amount<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <TextField
                 fullWidth
@@ -222,7 +222,7 @@ console.log(requiredDoc)
             {/* Transaction ID Input */}
             <Grid item xs={12}>
               <InputLabel shrink={false} htmlFor="transactionId">
-                <Typography variant="body1">Transaction Id*</Typography>
+                <Typography variant="body1">Transaction Id<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <TextField
                 fullWidth
@@ -240,7 +240,7 @@ console.log(requiredDoc)
             {/* Date Picker */}
             <Grid item xs={12}>
               <InputLabel shrink={false} htmlFor="uploadDate">
-                <Typography variant="body1">Date Of Payment*</Typography>
+                <Typography variant="body1">Date Of Payment<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker

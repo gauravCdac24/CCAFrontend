@@ -1,7 +1,8 @@
-import { Grid, Box, Typography,IconButton, Tooltip  } from "@mui/material";
-import DownloadIcon from '@mui/icons-material/Download'; 
-import CPSDocService from "../../../../service/AdminService/CPSDocService";
-const ViewCPSDocDetails = ({ intentObj, downloadCPSDocFile }) => {
+import { Grid, Box, Typography, IconButton, Tooltip } from "@mui/material";
+import DownloadIcon from '@mui/icons-material/Download';
+import DeleteIcon from '@mui/icons-material/Delete';
+
+const ViewCPSDocDetails = ({ intentObj, downloadCPSDocFile, onDelete }) => {
 
     if (!intentObj) {
         return (
@@ -10,8 +11,6 @@ const ViewCPSDocDetails = ({ intentObj, downloadCPSDocFile }) => {
             </Box>
         );
     }
-    
-
 
     return (
         <Box sx={{ width: '500px' }}>
@@ -20,15 +19,21 @@ const ViewCPSDocDetails = ({ intentObj, downloadCPSDocFile }) => {
                     <Typography variant="h6">File Name:</Typography>
                 </Grid>
                 <Grid item sm={6}>
-                   
                     <Typography variant="h6">
                         {intentObj.fileName}
                     </Typography>
                     <Tooltip title="Download CPS Document">
-                        <IconButton onClick={()=>downloadCPSDocFile(intentObj.cpsDocId, intentObj.fileName)} color="primary">
+                        <IconButton onClick={downloadCPSDocFile} color="primary">
                             <DownloadIcon />
                         </IconButton>
                     </Tooltip>
+                    {onDelete && (
+                        <Tooltip title="Delete CPS Document">
+                            <IconButton onClick={onDelete} color="error">
+                                <DeleteIcon />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                 </Grid>
             </Grid>
 

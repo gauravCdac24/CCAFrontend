@@ -13,7 +13,7 @@ import { useSelector } from "react-redux";
 import AuditService from "../../../../service/AuditService/AuditService";
 import showAlert from "../../../global/common/MessageBox/AlertService";
 
-const AuditControls = () => {
+const AuditControls = ({ selectedAuditAgencyId }) => {
   const userName = useSelector((state) => state.jwtAuthentication.username);
   const [checkedIds, setCheckedIds] = useState([]);
   const [allExpanded, setAllExpanded] = useState(false);
@@ -57,6 +57,15 @@ const AuditControls = () => {
   };
 
   const handleSubmit = () => {
+    if (!selectedAuditAgencyId) {
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Please select audit agency",
+        confirmText: "Ok",
+      });
+      return;
+    }
+
     showAlert({
       messageTitle: "Confirm",
       messageContent: "Are you sure, you want to submit?",

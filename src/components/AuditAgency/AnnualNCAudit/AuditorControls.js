@@ -23,13 +23,12 @@ import showAlert from "../../global/common/MessageBox/AlertService";
 import LoaderProgress from "../../global/common/LoaderProgress";
 import FormWrapper from "../../global/util/FormWrapper";
 import { useParams } from "react-router-dom";
-import { decrypt } from "../../global/util/EncryptDecrypt";
+import useAnnualAuditRoute from "../../global/util/useAnnualAuditRoute";
 import AuditService from "../../../service/AuditService/AuditService";
 import AnnualAuditService from "../../../service/AnnualAuditService/AnnualAuditService";
 
 const AuditorControls = () => {
-  const { id } = useParams();
-  const ApplicantUserName = decrypt(id);
+  const { userName: ApplicantUserName } = useAnnualAuditRoute();
   const [open, setOpen] = useState([]);
   const [isLoading, setLoading] = useState(false);
   const [allAuditControlList, setAllAuditControlList] = useState([]);
@@ -40,12 +39,12 @@ const AuditorControls = () => {
     creteriaId:'',
     remarks:'',
   });
-  const [selectedFiles, setSelectedFiles] = useState([]); // Track files per row
+  const [selectedFiles, setSelectedFiles] = useState({}); // Track files per control key
 
   // Fetching audit control data
   const getAllAuditControl = () => {
     setLoading(true);
-    AuditControlService.data()
+    AuditControlService.data(ApplicantUserName)
       .then((response) => {
         setAllAuditControlList(response.data);
         console.log("allAuditControlList===>", response.data);
@@ -84,23 +83,16 @@ const AuditorControls = () => {
 
   const [complianceValues, setComplianceValues] = useState({}); // Array to track compliance for each row
 
-  const handleRadioChange = (value, controlIndex) => {
+  const handleRadioChange = (value, parameterKey) => {
     setComplianceValues((prev) => {
-      // Create a shallow copy of the array
-      const updatedCompliance = [...prev];
-  
-      // Update the value at the specific controlIndex
-      updatedCompliance[controlIndex] = value;
-  
-      console.log("Updated Compliance Array:", updatedCompliance);
-  
-      // Dynamically update `radioValue` state
+      const updatedCompliance = { ...prev, [parameterKey]: value };
+
       setRadioValue((prevRadio) => ({
         ...prevRadio,
-        compliance: updatedCompliance, // Ensure compliance has only updated values
+        compliance: updatedCompliance,
       }));
-  
-      return updatedCompliance; // Return the updated array as the new state
+
+      return updatedCompliance;
     });
   };
   
@@ -130,80 +122,59 @@ const AuditorControls = () => {
     }
 
   // Handle file change for each row
-  const handleFileChange = (event, controlIndex) => {
+  const handleFileChange = (event, parameterKey) => {
     const selectedFile = event.target.files[0];
-    const updatedFiles = [...selectedFiles];
-    updatedFiles[controlIndex] = selectedFile; // Track file per row
-    setSelectedFiles(updatedFiles);
+    setSelectedFiles((prevFiles) => ({
+      ...prevFiles,
+      [parameterKey]: selectedFile,
+    }));
   };
 
   console.log("gdhfj===>",radioValue , "uwyeio++++====>",selectedFiles)
 
 // Function to reset the form data
 const resetFormData = () => {
-  setRadioValue({ compliance: [], applicantUserName: '' }); // Reset the radioValue state
-  setSelectedFiles([]); // Clear the selected files array
-  console.log("Form data has been reset.");
+  setRadioValue({ compliance: {}, applicantUserName: ApplicantUserName, creteriaId: '', remarks: '' });
+  setSelectedFiles({});
+  setComplianceValues({});
+  setErrors({});
 };
 
   const saveData = (id) => {
-    console.log(`Saving data for control ID: ${id}`);
-    
-    const formData = new FormData();
-    formData.append("controlId", id);
-    console.log("formData===>",radioValue.compliance)
+    const parameterKey = id.split('-')[0];
+    const validCompliance = complianceValues[parameterKey] || '';
+    const validFile = selectedFiles[parameterKey];
 
-    const validCompliance = Object.entries(complianceValues)
-    .filter(([key, value]) => value) // Non-empty values only
-    .map(([key, value]) => ({ key, value }));
-
-  validCompliance.forEach(({ key, value }) => {
-    formData.append(`compliance`, value);
-    console.log(`Appended: compliance[${key}] = ${value}`);
-  });
-
-
-console.log("validCompliance===>",validCompliance[id])
-// Append valid values to formData
-
-    //formData.append('compliance', validCompliance[id]|| ''); 
-
-    
-    formData.append("applicantUserName", radioValue.applicantUserName);
-    
-    selectedFiles.forEach((file) => {
-        formData.append(`file`, file);
-    });
-
-    const validFiles = fileName.filter(file => file !== "");
-
-    // Append valid files to formData
-    validFiles.forEach((file) => {
-        formData.append('selectedMultipartFile', file);
-    });
-    
-    // Log formData content
-    console.log("FormData content:");
-    for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
+    if (!validFile) {
+      showAlert({
+        messageTitle: 'Error',
+        messageContent: 'Please upload a document before saving.',
+        confirmText: 'Ok',
+      });
+      return;
     }
 
-    // Call the API
+    const formData = new FormData();
+    formData.append('controlId', id);
+    formData.append('compliance', validCompliance);
+    formData.append('file', validFile);
+    formData.append('applicantUserName', radioValue.applicantUserName);
+    formData.append('selectedMultipartFile', fileName[parameterKey] || '');
+
+    setLoading(true);
     AnnualAuditService.AuditNCForm(formData)
         .then((response) => {
-          //console.log(response.data)
             showAlert({
                 messageTitle: 'Success',
                 messageContent: response.data,
                 confirmText: 'Ok',
             });
-            
         })
         .catch((err) => {
-            const errorMessage = err.response?.data?.message || 'Request failed. Please try again later.';
+            const errorMessage = err.response?.data?.message || err.response?.data || 'Request failed. Please try again later.';
             showAlert({
                 messageTitle: 'Error',
-                messageContent: errorMessage,
+                messageContent: typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage),
                 confirmText: 'Ok',
             });
         })
@@ -211,105 +182,53 @@ console.log("validCompliance===>",validCompliance[id])
 };
 //temporary state
 const [applicantCriteria, setApplicantCriteria] = useState([]);
-const[fileName,setFileName]=useState([]);
+const [fileName, setFileName] = useState({});
 
 
 useEffect(() => {
-  getAllCriteria();
-}, []);
+  if (allAuditControlList?.length > 0) {
+    getAllCriteria();
+  }
+}, [allAuditControlList]);
 
 const getAllCriteria = () => {
   AnnualAuditService.getAllDatas()
     .then((response) => {
-      const getAllData = response.data; // Assuming this is the array containing the required data
-
+      const getAllData = response.data || [];
       setApplicantCriteria(getAllData);
 
-      console.log("getAllData===>", getAllData);
-      console.log("allAuditControlList===>", allAuditControlList);
+      const complianceMap = {};
+      const fileNamesMap = {};
+      const criteriaIdMap = {};
 
+      allAuditControlList?.forEach((criteria, criteriaIndex) => {
+        criteria?.auditSubCriteria?.forEach((subCriteria, subIndex) => {
+          subCriteria?.auditParameterPayload?.forEach((parameter, paramIndex) => {
+            parameter?.auditControlPayload?.forEach((control, controlIndex) => {
+              const parameterKey = `3.${criteriaIndex + 1}.${subIndex + 1}.${paramIndex + 1}.${controlIndex + 1}`;
+              const controlRef = `${parameterKey}-${control.auditControllId}`;
+              const matchedControl = getAllData.find(
+                (data) => String(data.auditControlId) === controlRef
+              );
 
-      const emp = [];
-const fileNames=[];
-
-const criteriaId=[];
-
-      // Step 1: Iterate over allAuditControlList to filter based on auditControllId
-      allAuditControlList?.forEach((criteria) => {
-        // Step 2: Check if auditSubCriteria exists and is an array before iterating
-        if (criteria?.auditSubCriteria && Array.isArray(criteria?.auditSubCriteria)) {
-          criteria?.auditSubCriteria?.forEach((subCriteria) => {
-            // Step 3: Iterate over auditParameterPayload
-            if (subCriteria?.auditParameterPayload && Array.isArray(subCriteria?.auditParameterPayload)) {
-              subCriteria?.auditParameterPayload?.forEach((parameter) => {
-                // Step 4: Iterate over auditControlPayload to access auditControllId
-                if (parameter?.auditControlPayload && Array.isArray(parameter?.auditControlPayload)) {
-                  
-                  parameter?.auditControlPayload?.forEach((control) => {
-                    // Check if control.auditControllId matches getAllData.auditControlId
-                    const matchedControl = getAllData.find(
-                      (data) => data.auditControlId === parseInt(control.auditControllId, 10)
-                    );
-
-                    
-
-                    if (matchedControl) {
-
-                      //suggested by mk
-                      const obj={
-                        compliance: matchedControl.compliance,
-                        auditControlId: matchedControl.auditControlId,
-                        file: null,
-                        document: matchedControl.document,
-                        criteriaId: matchedControl.criteriaId,
-                      }
-                      emp.push(obj)
-                      //
-
-                      //emp.push(matchedControl.compliance)
-                      fileNames.push(matchedControl.document)
-                      criteriaId.push(matchedControl.criteriaId)
-                     
-                    }else{
-
-                       //suggested by mk
-                       const obj={
-                        compliance: '',
-                        auditControlId: control.auditControllId,
-                        file: null,
-                        document: '',
-                        criteriaId: '',
-                      }
-                      emp.push(obj)
-                   
-
-                       const newObj='';
-                      // emp.push(newObj)
-                       criteriaId.push(newObj)
-                       fileNames.push(newObj)
-                    }
-                  });
-
-                  
-                }
-              });
-            }
+              if (matchedControl) {
+                complianceMap[parameterKey] = matchedControl.compliance || '';
+                fileNamesMap[parameterKey] = matchedControl.document || '';
+                criteriaIdMap[parameterKey] = matchedControl.criteriaId || '';
+              }
+            });
           });
-        }
+        });
       });
 
-
-      setComplianceValues(emp);
+      setComplianceValues(complianceMap);
+      setFileName(fileNamesMap);
       setRadioValue((prev) => ({
         ...prev,
-       // compliance: emp,
-        creteriaId:criteriaId,
+        creteriaId: criteriaIdMap,
       }));
-      setFileName(fileNames)
-
     })
     .catch((error) => {
-      // Handle error if necessary
       console.error("Error fetching data:", error);
     });
 };
@@ -319,7 +238,16 @@ const criteriaId=[];
 
 
 const handleSubmit = (e) => {
-  e.preventDefault()
+  e.preventDefault();
+
+  if (!radioValue.remarks || radioValue.remarks.trim() === '') {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      remarks: 'Please enter the remarks',
+    }));
+    return;
+  }
+
   showAlert({
       messageTitle: 'Confirm',
       messageContent: 'Are you sure, you want to submit?',
@@ -328,60 +256,47 @@ const handleSubmit = (e) => {
       fullWidth: true,
       maxWidth: 'sm',
       onConfirm: () => handleConfrimSubmit()
-  })
-
-
+  });
 };
 
-
-
+const downloadApplicationForm = (response) => {
+  const blob = new Blob([response.data], { type: response.headers['content-type'] });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.setAttribute('download', 'AuditorReport.pdf');
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode.removeChild(link);
+};
 
 const handleConfrimSubmit = () => {
-  
+  const applicantRemarks = new FormData();
+  applicantRemarks.append('remarks', radioValue.remarks);
+  applicantRemarks.append('applicantUserName', radioValue.applicantUserName);
 
-  AnnualAuditService.downloadAuditorReport()
-  .then((response) => {
-    //console.log(response.data)
+  setLoading(true);
+
+  AnnualAuditService.changeTheStatusByApplicantUserName(applicantRemarks)
+    .then(() => AnnualAuditService.downloadAuditorReport(ApplicantUserName))
+    .then((response) => {
+      downloadApplicationForm(response);
       showAlert({
           messageTitle: 'Success',
-          messageContent: response.data,
+          messageContent: 'Remarks submitted and auditor report generated successfully.',
           confirmText: 'Ok',
-          onConfirm: () => window.location.href = '/auditagency/uploadundertaking',
+          onConfirm: () => { window.location.href = '/auditagency/uploadannualundertaking'; },
       });
-      
-      // Reset the form values
       resetFormData();
-      downloadApplicationForm();
-  })
-  .catch((err) => {
-      const errorMessage = err.response?.data?.message || 'Request failed. Please try again later.';
+    })
+    .catch((err) => {
+      const errorMessage = err.response?.data?.message || err.response?.data || 'Request failed. Please try again later.';
       showAlert({
           messageTitle: 'Error',
-          messageContent: errorMessage,
+          messageContent: typeof errorMessage === 'string' ? errorMessage : 'Request failed. Please try again later.',
           confirmText: 'Ok',
       });
-  })
-  .finally(() => setLoading(false));
-
-}
-
-const downloadApplicationForm = async () => {
-  try {
-
-      const response = await  AnnualAuditService.downloadAuditorReport();
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      const contentDisposition = response.headers['content-disposition'];
-      const filename = "ApplicationForm";
-
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-  } catch (error) {
-      console.error('Error viewing file:', error);
-  }
+    })
+    .finally(() => setLoading(false));
 };
 
 
@@ -636,7 +551,7 @@ const downloadfile = async ( documentTitle) => {
                                               <Button
                                                 variant="contained"
                                                 color="primary"
-                                                onClick={() => saveData(parameterKey)}
+                                                onClick={() => saveData(`${parameterKey}-${control.auditControllId}`)}
                                                 disabled={!selectedFiles[parameterKey]}
                                               >
                                                 Save
@@ -659,6 +574,28 @@ const downloadfile = async ( documentTitle) => {
               </Box>
             </React.Fragment>
           ))}
+
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Typography variant="h6" style={{ marginTop: '10px' }}>Remarks</Typography>
+              <TextField
+                multiline
+                rows={4}
+                variant="outlined"
+                fullWidth
+                value={radioValue.remarks}
+                onChange={(e) => handleChanges(e, 'remarks')}
+                InputProps={{
+                  style: {
+                    padding: '10px',
+                  },
+                }}
+                error={!!errors.remarks}
+                helperText={errors.remarks || ''}
+              />
+            </Grid>
+          </Grid>
+
           <Grid container justifyContent="center" sx={{ mt: 4 }} spacing={2}>
             <Grid item>
               <Button

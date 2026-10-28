@@ -32,7 +32,7 @@ const errorMsg = {
         format: "Only digits are allowed."
     },
     eSignApplicationReview: {
-        blank: "Please enter eSignApplication review attempts.",
+        blank: "Please enter eSign Application review attempts.",
         min: "Attempts should be in the range of 1 to 9.",
         format: "Only digits are allowed."
     },
@@ -358,14 +358,14 @@ const EditMinimumAttempt = () => {
         </Grid>
         <Grid item xs={12} sm>
             <InputLabel shrink={false} htmlFor={"esignApplicationReview"}>
-                <Typography variant='body1'>esign Application Review Attempt*</Typography>
+                <Typography variant='body1'>eSign Application Review Attempt*</Typography>
             </InputLabel>
             <TextField
                 id="esignApplicationReview"
                 margin="dense"
                 required
                 fullWidth
-                placeholder='esign Application Review Attempt'
+                placeholder='eSign Application Review Attempt'
                 name="esignApplicationReview"
                 variant='outlined'
                 error={!!formErrors.esignApplicationReview}

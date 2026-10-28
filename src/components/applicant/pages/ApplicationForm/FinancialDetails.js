@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { styled } from '@mui/material/styles';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import { useSelector } from 'react-redux';
 import SubServiceMaster from '../../../../service/AdminService/SubServiceMaster';
 import ValidatePattern from '../../../global/util/ValidatePattern';
@@ -514,6 +515,15 @@ const handleFileChange4 = (e) => {
           if (!/^https?:\/\/[^\s]+$/.test(basicDetailsFormValues.webPageURL)) {
             errors.webPageURL = errorMessages.webPageURL.format;
         }
+
+        const passportExpiry = basicDetailsFormValues.passportDetails?.passportExpiryDate;
+        if (passportExpiry) {
+            if (!dayjs(passportExpiry).isValid()) {
+                errors.passportExpiryDate = errorMessages.passportExpiryDate.required;
+            } else if (!dayjs(passportExpiry).isAfter(dayjs(), 'day')) {
+                errors.passportExpiryDate = errorMessages.passportExpiryDate.past;
+            }
+        }
         
         // Validate Professional Details
         if (!basicDetailsFormValues.ProfessionalDetails.capital) errors.capital = errorMessages.capital;
@@ -603,20 +613,24 @@ const handleFileChange4 = (e) => {
             requestMethod(formData)
                             .then((response) => {
         
+                                 const { messageTitle, messageContent } = getStepSuccessAlert(
+                                    appTypeMasterId,
+                                    'financialDetails',
+                                    !!basicDetailsFormValues.indivAdditionalDetailsId,
+                                 );
                                  showAlert({
-                                   messageTitle: 'Third Step SuccessFull',
-                                    messageContent: `Third step ${(basicDetailsFormValues.indivAdditionalDetailsId) 
-                                        ? 'updated'
-                                        :'saved'} successfully `,
+                                   messageTitle,
+                                   messageContent,
                                      confirmText: 'Ok',
                                     onConfirm: () => { handleNext() }
                                  })
                              })
                             
                              .catch((err) => {
+                                const errorAlert = getStepErrorAlert(appTypeMasterId, 'financialDetails', err);
                                  showAlert({
-                                     messageTitle: 'Error',
-                                     messageContent: err.response.data ? typeof err.response.data === 'object' ? 'Your request cannot be processed at this time. Please try again later.' : err.response.data : 'Your request cannot be processed at this time. Please try again later.',
+                                     messageTitle: errorAlert.messageTitle,
+                                     messageContent: errorAlert.messageContent,
                                      confirmText: 'Ok',
                                 })
                              })
@@ -738,7 +752,7 @@ const handleFileChange4 = (e) => {
 
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'><b>ID Card Details#(12,13,14)</b></Typography>
+                    <Typography variant='h7'><b>ID Card Details(12,13,14)</b></Typography>
                 </Grid>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
                 {formErrors.general && (
@@ -750,7 +764,7 @@ const handleFileChange4 = (e) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"passportNo"}>
-                        <Typography variant='body1'>Passport No#</Typography>
+                        <Typography variant='body1'>Passport No</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -771,7 +785,7 @@ const handleFileChange4 = (e) => {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"passportIssuingAuthority"}>
-                        <Typography variant='body1'>Passport Issuing Authority#</Typography>
+                        <Typography variant='body1'>Passport Issuing Authority</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -794,17 +808,22 @@ const handleFileChange4 = (e) => {
             <Grid container spacing={2}>
     <Grid item xs={12} sm>
         <InputLabel shrink={false} htmlFor={"passportExpiryDate"}>
-            <Typography variant='body1'>Passport Expiry Date#</Typography>
+            <Typography variant='body1'>Passport Expiry Date</Typography>
         </InputLabel>
         <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
                 id="passportExpiryDate"
                 disablePast
-                minDate={dayjs()}
+                minDate={dayjs().add(1, 'day')}
                 name="passportExpiryDate"
                 disabled={!isFieldEnabled("passportExpiryDate")}
                 onChange={(date) => handleDateChange('passportExpiryDate', date)}
-                value={dayjs(basicDetailsFormValues.passportDetails.passportExpiryDate)}
+                value={
+                    basicDetailsFormValues.passportDetails.passportExpiryDate
+                    && dayjs(basicDetailsFormValues.passportDetails.passportExpiryDate).isValid()
+                        ? dayjs(basicDetailsFormValues.passportDetails.passportExpiryDate)
+                        : null
+                }
                 slotProps={{
                     textField: {
                         size: 'small',
@@ -880,7 +899,7 @@ const handleFileChange4 = (e) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"firstName"}>
-                        <Typography variant='body1'>Voter’s Identity Card No.#</Typography>
+                        <Typography variant='body1'>Voter’s Identity Card No.</Typography>
                     </InputLabel>
 
                     <TextField
@@ -957,7 +976,7 @@ const handleFileChange4 = (e) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"incomTaxPanNo"}>
-                        <Typography variant='body1'>Income Tax PAN No.#</Typography>
+                        <Typography variant='body1'>Income Tax PAN No.</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -1032,13 +1051,13 @@ const handleFileChange4 = (e) => {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7' ><b>ISP Details*(15)</b></Typography>
+                    <Typography variant='h7' ><b>ISP Details<span className="req-asterisk">*</span>(15)</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
                 <Grid item xs={12} sm={4}>
                     <InputLabel shrink={false} htmlFor={"ispName"}>
-                        <Typography variant='body1'>ISP Name*</Typography>
+                        <Typography variant='body1'>ISP Name<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -1103,7 +1122,7 @@ const handleFileChange4 = (e) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"webPageURL"}>
-                        <Typography variant='body1'>Web Page URL*(16)</Typography>
+                        <Typography variant='body1'>Web Page URL<span className="req-asterisk">*</span>(16)</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -1125,13 +1144,13 @@ const handleFileChange4 = (e) => {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Business Capital*(17)</b></Typography>
+                    <Typography variant='h7'> <b>Business Capital<span className="req-asterisk">*</span>(17)</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"salutation"}>
-                        <Typography variant='body1' >Capital in the business or profession*</Typography>
+                        <Typography variant='body1' >Capital in the business or profession<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -1153,7 +1172,7 @@ const handleFileChange4 = (e) => {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"pdffile"}>
-                        <Typography variant='body1'>Upload Document*(Only PDF and Max allowed size 5 MB)</Typography>
+                        <Typography variant='body1'>Upload Document<span className="req-asterisk">*</span>(Only PDF and Max allowed size 5 MB)</Typography>
                     </InputLabel>
 
                     <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
@@ -1232,10 +1251,7 @@ const handleFileChange4 = (e) => {
 <Grid item xs={12}>
     <InputLabel shrink={false}>
         <Typography variant='body1'>
-            Note: * marked field are mandatory to be filled
-        </Typography>
-        <Typography variant='body1'>
-        Note: # marked field are Optional to be filled
+            Note: <span className="req-asterisk">*</span> marked field are mandatory to be filled
         </Typography>
     </InputLabel>
 </Grid>

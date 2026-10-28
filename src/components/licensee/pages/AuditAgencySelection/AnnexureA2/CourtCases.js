@@ -66,31 +66,29 @@ console.log(initialRAAuditData);
   const validateForm = () => {
     let newErrors = {};
 
-    // Validate activeCourtCases
-    if (!initialRAAuditData.activeCourtCases || initialRAAuditData.activeCourtCases.trim().length === 0) {
-      newErrors.activeCourtCases = 'Number of active court cases cannot be empty';
-    } else if (initialRAAuditData.activeCourtCases.length < 3 || initialRAAuditData.activeCourtCases.length > 200) {
-      newErrors.activeCourtCases = 'The length must be between 3 and 200 characters.';
-    } else if (!STRING_PATTERN.test(initialRAAuditData.activeCourtCases)) {
-      newErrors.activeCourtCases = 'Only alphabets, numbers, characters ().,&- are allowed';
+    // Optional fields; format/length only when value present
+    if (initialRAAuditData.activeCourtCases && initialRAAuditData.activeCourtCases.trim().length > 0) {
+      if (initialRAAuditData.activeCourtCases.length < 3 || initialRAAuditData.activeCourtCases.length > 200) {
+        newErrors.activeCourtCases = 'The length must be between 3 and 200 characters.';
+      } else if (!STRING_PATTERN.test(initialRAAuditData.activeCourtCases)) {
+        newErrors.activeCourtCases = 'Only alphabets, numbers, characters ().,&- are allowed';
+      }
     }
 
-    // Validate courtCasesCount
-    if (!initialRAAuditData.courtCasesCount || initialRAAuditData.courtCasesCount.trim().length === 0) {
-      newErrors.courtCasesCount = 'Number of court cases cannot be empty';
-    } else if (initialRAAuditData.courtCasesCount.length < 3 || initialRAAuditData.courtCasesCount.length > 200) {
-      newErrors.courtCasesCount = 'The length must be between 3 and 200 characters.';
-    } else if (!STRING_PATTERN.test(initialRAAuditData.courtCasesCount)) {
-      newErrors.courtCasesCount = 'Only alphabets, numbers, characters ().,&- are allowed';
+    if (initialRAAuditData.courtCasesCount && initialRAAuditData.courtCasesCount.trim().length > 0) {
+      if (initialRAAuditData.courtCasesCount.length < 3 || initialRAAuditData.courtCasesCount.length > 200) {
+        newErrors.courtCasesCount = 'The length must be between 3 and 200 characters.';
+      } else if (!STRING_PATTERN.test(initialRAAuditData.courtCasesCount)) {
+        newErrors.courtCasesCount = 'Only alphabets, numbers, characters ().,&- are allowed';
+      }
     }
 
-    // Validate policeComplaintsCount
-    if (!initialRAAuditData.policeComplaintsCount || initialRAAuditData.policeComplaintsCount.trim().length === 0) {
-      newErrors.policeComplaintsCount = 'Number of police complaints cannot be empty';
-    } else if (initialRAAuditData.policeComplaintsCount.length < 3 || initialRAAuditData.policeComplaintsCount.length > 200) {
-      newErrors.policeComplaintsCount = 'The length must be between 3 and 200 characters.';
-    } else if (!STRING_PATTERN.test(initialRAAuditData.policeComplaintsCount)) {
-      newErrors.policeComplaintsCount = 'Only alphabets, numbers, characters ().,&- are allowed';
+    if (initialRAAuditData.policeComplaintsCount && initialRAAuditData.policeComplaintsCount.trim().length > 0) {
+      if (initialRAAuditData.policeComplaintsCount.length < 3 || initialRAAuditData.policeComplaintsCount.length > 200) {
+        newErrors.policeComplaintsCount = 'The length must be between 3 and 200 characters.';
+      } else if (!STRING_PATTERN.test(initialRAAuditData.policeComplaintsCount)) {
+        newErrors.policeComplaintsCount = 'Only alphabets, numbers, characters ().,&- are allowed';
+      }
     }
 
     return newErrors;

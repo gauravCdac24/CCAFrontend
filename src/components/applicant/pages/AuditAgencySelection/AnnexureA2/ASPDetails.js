@@ -80,19 +80,13 @@ const ASPDetails = () => {
     const updatedErrors = { ...errors };
     let error = '';
 
-    if (!file) {
-      const row = aspData.find((r) => r.id === id);
-      const hasExisting =
-        field === 'aspCountFile'
-          ? row?.aspCountFileName
-          : row?.aspsAuditOverdueCountFileName;
-      if (!hasExisting) {
-        error = 'Please upload a file.';
+    // Format validation only when a file is selected
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        error = 'File size exceeds 5MB.';
+      } else if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+        error = 'Only .xls or .xlsx files are allowed.';
       }
-    } else if (file.size > 5 * 1024 * 1024) {
-      error = 'File size exceeds 5MB.';
-    } else if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
-      error = 'Only .xls or .xlsx files are allowed.';
     }
 
     updatedErrors[id] = { ...updatedErrors[id], [field]: error };
@@ -107,18 +101,11 @@ const ASPDetails = () => {
 
   const handleSubmit = async () => {
     const row1 = aspData.find((r) => r.id === 1);
-    const row2 = aspData.find((r) => r.id === 2);
-    const submitErrors = {};
-
-    if (!row1?.aspCountFile && !row1?.aspCountFileName) {
-      submitErrors[1] = { aspCountFile: 'Please upload a file.' };
-    }
-    if (!row2?.aspsAuditOverdueCountFile && !row2?.aspsAuditOverdueCountFileName) {
-      submitErrors[2] = { aspsAuditOverdueCountFile: 'Please upload a file.' };
-    }
-
-    if (Object.keys(submitErrors).length > 0) {
-      setErrors(submitErrors);
+    // Files are optional — only block if a selected file has format errors already in state
+    const hasFileFormatErrors = Object.values(errors).some(
+      (rowErr) => rowErr && Object.values(rowErr).some((msg) => Boolean(msg))
+    );
+    if (hasFileFormatErrors) {
       return;
     }
 

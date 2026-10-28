@@ -57,7 +57,7 @@ const ViewEsignAPISpecification = () => {
             .catch((err) => {
                 showAlert({
                     messageTitle: 'Error',
-                    messageContent: 'Error changing Esign API Specification status. Please try again later.',
+                    messageContent: 'Error changing eSign API Specification status. Please try again later.',
                     confirmText: 'OK',
                 });
             })
@@ -70,7 +70,7 @@ const ViewEsignAPISpecification = () => {
         const obj = apiSpecificationList.find((obj) => obj.id === cid);
         if (obj) {
             showAlert({
-                messageTitle: 'View Esign API Specification',
+                messageTitle: 'View eSign API Specification',
                 messageContent: <ViewEsignAPISpecificationDetails apiSpecificationObj={obj} />,
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
@@ -78,8 +78,8 @@ const ViewEsignAPISpecification = () => {
             });
         } else {
             showAlert({
-                messageTitle: 'View Esign API Specification',
-                messageContent: 'Error in getting Esign API Specification details, try after some time.',
+                messageTitle: 'View eSign API Specification',
+                messageContent: 'Error in getting eSign API Specification details, try after some time.',
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true,
@@ -94,8 +94,8 @@ const ViewEsignAPISpecification = () => {
             navigate(`${rolePath}/apispecification/editapispecification/${encryptedId}`);
         } else {
             showAlert({
-                messageTitle: 'Edit Esign API Specification',
-                messageContent: 'Error in updating Esign API Specification details, try after some time.',
+                messageTitle: 'Edit eSign API Specification',
+                messageContent: 'Error in updating eSign API Specification details, try after some time.',
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true,
@@ -109,7 +109,7 @@ const ViewEsignAPISpecification = () => {
     const columns = useMemo(
         () => [
             { field: 'id', headerName: 'Sl. No.', resizable: false, width: 90 },
-            { field: 'apiSpecification', headerName: 'API Specification', resizable: false, width: 250 },
+            { field: 'apiSpecification', headerName: 'eSign API Specification', resizable: false, width: 250 },
             { field: 'created', headerName: 'Created', resizable: false, width: 150 },
             { field: 'updated', headerName: 'Updated', resizable: false, width: 150 },
             {
@@ -146,7 +146,7 @@ const ViewEsignAPISpecification = () => {
 
     return (
         <>
-            <CustomTable customTitle = "Esign API Specifications" columns={columns} rows={apiSpecificationList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} />
+            <CustomTable customTitle = "eSign API Specifications" columns={columns} rows={apiSpecificationList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} />
         </>
     );
 };

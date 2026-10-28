@@ -77,23 +77,21 @@ console.log(initialRAAuditData);
   
   }, [])
 
-  // Validation function
+  // Validation function (optional fields; format/length only when value present)
   const validateField = (field, value) => {
     let errorMessage = '';
 
     if (field === 'totalRA' || field === 'activeRA') {
-      if (!value) {
-        errorMessage = `${field === 'totalRA' ? 'Total' : 'Active'} RA cannot be empty`;
-      } else if (!DIGITS_PATTERN.test(value)) {
+      if (value && !DIGITS_PATTERN.test(value)) {
         errorMessage = 'Only numbers are allowed (max 9 digits)';
       }
     } else if (field === 'datesOfRAAudit' || field === 'ncReportedByRA' || field === 'caActionTaken') {
-      if (!value.trim()) {
-        errorMessage = `${field.replace(/([A-Z])/g, ' $1')} cannot be empty`;
-      } else if (value.length < 3 || value.length > 200) {
-        errorMessage = 'Length must be between 3 and 200 characters';
-      } else if (!STRING_PATTERN.test(value)) {
-        errorMessage = 'Only alphabets, numbers, characters .,- are allowed';
+      if (value && value.trim()) {
+        if (value.length < 3 || value.length > 200) {
+          errorMessage = 'Length must be between 3 and 200 characters';
+        } else if (!STRING_PATTERN.test(value)) {
+          errorMessage = 'Only alphabets, numbers, characters .,- are allowed';
+        }
       }
     }
 

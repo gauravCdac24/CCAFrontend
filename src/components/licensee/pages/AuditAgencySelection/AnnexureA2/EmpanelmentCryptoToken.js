@@ -83,40 +83,35 @@ const EmpanelmentCryptoToken = () => {
     cryptoData.forEach((item, index) => {
       let rowErrors = {};
 
-      // Brand Name Validation
-      if (!item.brandName.trim()) {
-        rowErrors.brandName = "Brand name cannot be empty.";
-      } else if (item.brandName.length < 3 || item.brandName.length > 50) {
-        rowErrors.brandName = "Brand name length must be between 3 and 50 characters.";
-      } else if (!STRING_PATTERN.test(item.brandName)) {
-        rowErrors.brandName = "Brand name can only contain alphabets, numbers, and characters ().,&-.";
+      // Brand Name (optional; format/length only when present)
+      if (item.brandName && item.brandName.trim()) {
+        if (item.brandName.length < 3 || item.brandName.length > 50) {
+          rowErrors.brandName = "Brand name length must be between 3 and 50 characters.";
+        } else if (!STRING_PATTERN.test(item.brandName)) {
+          rowErrors.brandName = "Brand name can only contain alphabets, numbers, and characters ().,&-.";
+        }
       }
 
-      // OEM Details Validation
-      if (!item.oemDetails.trim()) {
-        rowErrors.oemDetails = "OEM details cannot be empty.";
-      } else if (item.oemDetails.length < 3 || item.oemDetails.length > 100) {
-        rowErrors.oemDetails = "OEM details must be between 3 and 100 characters.";
+      // OEM Details (optional; format/length only when present)
+      if (item.oemDetails && item.oemDetails.trim()) {
+        if (item.oemDetails.length < 3 || item.oemDetails.length > 100) {
+          rowErrors.oemDetails = "OEM details must be between 3 and 100 characters.";
+        }
       }
 
-      // Make-in Percentage Validation
-      if (!item.makInPercentage.trim()) {
-        rowErrors.makInPercentage = "Make-in percentage cannot be empty.";
-      } else if (!DIGITS_PATTERN.test(item.makInPercentage)) {
-        rowErrors.makInPercentage = "Make-in percentage must be a number.";
-      } else if (item.makInPercentage.length < 1 || item.makInPercentage.length > 3) {
-        rowErrors.makInPercentage = "Make-in percentage can only be between 1 and 3 digits.";
+      // Make-in Percentage (optional; format only when present)
+      if (item.makInPercentage && item.makInPercentage.trim()) {
+        if (!DIGITS_PATTERN.test(item.makInPercentage)) {
+          rowErrors.makInPercentage = "Make-in percentage must be a number.";
+        } else if (item.makInPercentage.length < 1 || item.makInPercentage.length > 3) {
+          rowErrors.makInPercentage = "Make-in percentage can only be between 1 and 3 digits.";
+        }
       }
 
-      // FIP Cert Up To (Date) Validation
-      if (!item.fipCertUpTo) {
-        rowErrors.fipCertUpTo = "Please select FIP certificate expiry date.";
-      }
+      // FIP Cert Up To optional — no blank check
 
-      // Security Audit Details and File Validation
-      if (!item.secAuditDetails && !item.auditFile) {
-        rowErrors.secAuditDetails = "Please upload details of security audit of crypto token.";
-      } else if (item.secAuditDetails && item.auditFile && !isPdfAndSizeValid(item.auditFile)) {
+      // File optional; validate format/size only when a file is selected
+      if (item.auditFile && !isPdfAndSizeValid(item.auditFile)) {
         rowErrors.secAuditDetails = "Invalid file. It must be a PDF and not exceed 5 MB.";
       }
 
@@ -125,8 +120,9 @@ const EmpanelmentCryptoToken = () => {
       }
     });
 
+    const hasErrors = newErrors.some((error) => error && Object.keys(error).length > 0);
     setErrors(newErrors);
-    return newErrors.every((error) => Object.keys(error).length === 0);
+    return hasErrors ? newErrors : {};
   };
 
   // Validate if the file is a PDF and within size limit

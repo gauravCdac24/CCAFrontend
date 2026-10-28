@@ -63,6 +63,7 @@ const [checkedRows, setCheckedRows] = useState({
     userName:userName,
     reviewerUserName:reviewerUserName,
     isRejected:false,
+    isApproved:false,
     reviewDate:'',
     file1:''
   });
@@ -110,7 +111,7 @@ const handleFileChange1 = (e) => {
     }
 };
 
-  const initialKeys = ['userName', 'reviewerUserName', 'isRejected','reviewDate','file1','remarks'];
+  const initialKeys = ['userName', 'reviewerUserName', 'isRejected', 'isApproved', 'reviewDate','file1','remarks'];
   const hasExtraKeys = Object.keys(checkedRows).some(key => !initialKeys.includes(key));
 
   const handleDateChange = (name, date) => {
@@ -740,6 +741,7 @@ const handleDownload = async (appDocId, documentTitle) => {
   const handleConfrimSubmit = () => {
     const formData=new FormData();
     checkedRows.isRejected = false;
+    checkedRows.isApproved = true;
     Object.entries(checkedRows).forEach(([key, value]) => {
       if (key === 'file1') {
         formData.append(key, value);
@@ -748,7 +750,7 @@ const handleDownload = async (appDocId, documentTitle) => {
       }
     });
 
-    ApplicationReview.addAllAproved(formData)
+    ApplicationReview.addGovernmentAgencyApplicationReveiw(formData)
     .then((response) => {
       //console.log(response.data)
         showAlert({
@@ -792,6 +794,7 @@ const handleDownload = async (appDocId, documentTitle) => {
   const handleSubmit = () => {
     
     const formData=new FormData();
+    checkedRows.isApproved = false;
     if(2 <= (basicDetailesValues?.reviewApplications?.length || 0)){
       checkedRows.isRejected = true;
     }

@@ -76,8 +76,8 @@ const handlePurposeChange = (event) => {
 
     const handleInputChange = (value, valuetitle) => {        
 
-        const ekycmode = formValues.ekycMode;
-        const ekycmodetitles = formValues.ekycModeTitles;
+        const ekycmode = [...(formValues.ekycMode || [])];
+        const ekycmodetitles = [...(formValues.ekycModeTitles || [])];
 
         const ekycModeIndex = ekycmode.indexOf(value);
         const ekycModeTitleIndex = ekycmodetitles.indexOf(valuetitle);
@@ -104,7 +104,7 @@ const handlePurposeChange = (event) => {
     const validateForm = () => {
         const errors = {};
 
-        if(formValues.ekycMode.length === 0){
+        if(!formValues.ekycMode?.length){
             errors.ekycMode = errorMsg.ekycMode.blank;
         } 
         if(!formValues.purpose){
@@ -138,7 +138,12 @@ const handlePurposeChange = (event) => {
 
         ESPApplicationService.getFirstStepData()
         .then((response)=>{
-            setFormValues(response.data);
+            const data = response.data || {};
+            setFormValues({
+                ekycMode: data.ekycMode || [],
+                ekycModeTitles: data.ekycModeTitles || [],
+                purpose: data.purpose || '',
+            });
         })
         .catch((err)=>{
 
@@ -210,24 +215,43 @@ const handlePurposeChange = (event) => {
     }
 
     const downloadCoverLetter = async () => {
+        if (!formValues.purpose) {
+            setFormErrors((prev) => ({ ...prev, purpose: errorMsg.purpose.blank }));
+            return;
+        }
 
-
+        if (!formValues.ekycMode?.length) {
+            setFormErrors((prev) => ({ ...prev, ekycMode: errorMsg.ekycMode.blank }));
+            return;
+        }
 
         try {
             setIsLoading(true);
             const response = await ESPApplicationService.downloadCoverLetter(formValues);
-            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+
+            if (response.data?.type && response.data.type.includes('application/json')) {
+                const errorText = await response.data.text();
+                throw new Error(errorText || 'Error in downloading cover letter.');
+            }
+
+            const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/pdf' });
             const link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
-            const contentDisposition = response.headers['content-disposition'];
-            const filename = "ESP Cover Letter";
-            link.setAttribute('download', filename);
+            link.setAttribute('download', 'ESP Cover Letter.pdf');
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
-            setIsLoading(false);
+            window.URL.revokeObjectURL(link.href);
         } catch (error) {
             console.error('Error downloading file:', error);
+            showAlert({
+                messageTitle: 'Error',
+                messageContent: 'Unable to download cover letter. Please select purpose and eKYC mode(s), then try again.',
+                enableHeaderCloseBtn: false,
+                disableOutsideKeyDown: true,
+                confirmText: 'Ok',
+            });
+        } finally {
             setIsLoading(false);
         }
 
@@ -298,7 +322,7 @@ const handlePurposeChange = (event) => {
                             <FormControlLabel
                                 key={index}
                                 control={
-                                    <Checkbox   checked={formValues.ekycMode.includes(item.ekycModeId)} 
+                                    <Checkbox   checked={(formValues.ekycMode || []).includes(item.ekycModeId)} 
                                                 onChange={()=>handleInputChange(item.ekycModeId, item.ekycModeTitle)} 
                                                 name="ekycMode" sx={{color: 'inherit'}} disabled={!reviewData?.ekycMode}/>
                                 }
@@ -323,7 +347,7 @@ const handlePurposeChange = (event) => {
                                 <Typography variant="body1"><b>3. Download Cover Letter</b></Typography>
                             </Box>
                             <Box>
-                                <Button type="button" color="primary" onClick={downloadCoverLetter} disabled={formValues.ekycMode.length===0}>
+                                <Button type="button" color="primary" onClick={downloadCoverLetter} disabled={!formValues.ekycMode?.length || !formValues.purpose}>
                                         Download
                                 </Button>
 

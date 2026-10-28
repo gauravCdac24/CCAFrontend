@@ -12,15 +12,17 @@ import FormWrapper from '../../../global/util/FormWrapper';
 import AuditAgency from '../../../../service/AdminService/AuditAgency';
 import AuditorCertificateTypeService from '../../../../service/AdminService/AuditorCertificateTypeService';
 import AuditService from '../../../../service/AuditService/AuditService';
+import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import { useSelector } from 'react-redux';
 import AnnexureA2Main from './AnnexureA2/AnnexureA2Main';
 import AuditControls from './AuditControls';
 import { decrypt } from '../../../global/util/EncryptDecrypt';
+import { canSelectAuditAgency } from '../../../global/util/licenseAcquisitionWorkflow';
 
 // Error Messages
 const errorMsg = {
     AuditAgencyName: {
-        blank: 'Please select Audit Agency Name.',
+        blank: 'Please select audit agency',
     },
     captchaError: {
         blank: 'Please enter captcha.',
@@ -30,6 +32,8 @@ const errorMsg = {
 const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
     const userName = useSelector((state) => state.jwtAuthentication.username);
+    const rolePath = useSelector((state) => state.jwtAuthentication.rolePath);
+    const navigate = useNavigate();
     const { id } = useParams();
     const intentAppIds = decrypt(id);
     console.log("intentAppIds",intentAppIds)
@@ -39,6 +43,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
     const [captchaInput, setCaptchaInput] = useState('');
     const [isLoading, setLoading] = useState(false);
     const [allAuditAgencyList, setAllAuditAgencyList] = useState([]);
+    const [isAccessAllowed, setIsAccessAllowed] = useState(null);
 
     // Reset form values
     const handleReset = () => {
@@ -48,22 +53,18 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
     };
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        const normalizedValue = value === '' || value == null ? '' : String(value);
         const selectedAgency = allAuditAgencyList.find(
-            (agency) => agency.auditAgencyId === value
+            (agency) => String(agency.auditAgencyId) === normalizedValue
         );
-    
-        console.log("Selected Agency:", selectedAgency); // Debugging selected agency
-        console.log("Before Update:", audiAgencyFormValues); // Debugging state before update
-    
+
         setAudiAgencyFormValues((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: normalizedValue,
             name: selectedAgency?.auditAgencyName || '',
             mobileNo: selectedAgency?.mobileNo || '',
             emailId: selectedAgency?.emailId || '',
         }));
-    
-        console.log("After Update:", audiAgencyFormValues); // Debugging state after update
     };
     
 
@@ -76,14 +77,22 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
     })
 
-    // Fetch all audit agencies
+    // Fetch active audit agencies only (for applicant dropdown)
     const getAllAuditAgency = () => {
         setLoading(true);
-        AuditAgency.getAllAuditAgencyList()
+        AuditAgency.getAllActiveAuditAgencyList()
             .then((response) => {
-                console.log('Audit Agencies:', response.data); // Debugging API response
-                setAllAuditAgencyList(response.data); // Handle null/undefined data gracefully
+                setAllAuditAgencyList(response.data || []);
             })
+            .catch(() =>
+                // Fallback: filter Active from full list if active-only API is unavailable
+                AuditAgency.getAllAuditAgencyList().then((response) => {
+                    const list = Array.isArray(response.data)
+                        ? response.data.filter((agency) => agency?.status === 'Active')
+                        : [];
+                    setAllAuditAgencyList(list);
+                })
+            )
             .catch(() => {
                 showAlert({
                     messageTitle: 'Error',
@@ -96,6 +105,55 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
     useEffect(() => {
         getAllAuditAgency();
     }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const verifyAuditAgencyAccess = async () => {
+            setLoading(true);
+            try {
+                const response = await ApplicationForm.getApplicationDetailsFormByUsername(userName);
+                const applicationStatus = response.data?.intentApp?.applicationStatus;
+
+                if (!canSelectAuditAgency(applicationStatus)) {
+                    if (isMounted) {
+                        setIsAccessAllowed(false);
+                    }
+                    showAlert({
+                        messageTitle: 'Submission Complete',
+                        messageContent:
+                            'Audit agency and Annexure A2 have already been submitted. Further edits are not allowed.',
+                        confirmText: 'Ok',
+                        onConfirm: () => navigate(`${rolePath}/applicationform`),
+                    });
+                    navigate(`${rolePath}/applicationform`);
+                    return;
+                }
+
+                if (isMounted) {
+                    setIsAccessAllowed(true);
+                }
+            } catch (err) {
+                if (isMounted) {
+                    setIsAccessAllowed(true);
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        if (userName) {
+            verifyAuditAgencyAccess();
+        } else {
+            setIsAccessAllowed(true);
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }, [userName, rolePath, navigate]);
 
     // Validate form inputs
     const validateForm = () => {
@@ -116,15 +174,12 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
 
     const handleSubmit = () => {
-       
-       // const errors = validateForm();
-       const errors = 0;
+        const errors = validateForm();
 
         if (Object.keys(errors).length === 0) {
             setFormErrors({});
 
             if (captchaInput === captchaText) {
-
                 showAlert({
                     messageTitle: 'Confirm',
                     messageContent: 'Are you sure, you want to submit? You cannot select the audit agency again. Please verify before the submit audit agency.',
@@ -132,38 +187,35 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
                     closeText: 'No',
                     fullWidth: true,
                     maxWidth: 'sm',
-                    onConfirm: ()=>handleConfrimSubmit()
-                })
-
-                
-            }else{
+                    onConfirm: () => handleConfrimSubmit()
+                });
+            } else {
                 showAlert({
                     messageTitle: 'Error',
                     messageContent: 'Invalid Captcha',
                     confirmText: 'Ok',
-                })
+                });
             }
         } else {
             setFormErrors(errors);
+            if (errors.auditAgencyId) {
+                showAlert({
+                    messageTitle: 'Error',
+                    messageContent: errorMsg.AuditAgencyName.blank,
+                    confirmText: 'Ok',
+                });
+            }
         }
     };
 
 
     const handleConfrimSubmit = () => {
-       
-
-        // const errors = validateForm();
-        const errors = 0;
+        const errors = validateForm();
         if (Object.keys(errors).length === 0) {
             setFormErrors({});
 
             if (captchaInput === captchaText) {
                 setLoading(true);
-
-
-              console.log("sfgydgc=====>",audiAgencyFormValues)
-
-                
 
                 AuditService.addNewAuditAgencySlection(audiAgencyFormValues)
                     .then((response) =>
@@ -191,8 +243,19 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
             }
         } else {
             setFormErrors(errors);
+            if (errors.auditAgencyId) {
+                showAlert({
+                    messageTitle: 'Error',
+                    messageContent: errorMsg.AuditAgencyName.blank,
+                    confirmText: 'Ok',
+                });
+            }
         }
     };
+
+    if (isAccessAllowed === false || isAccessAllowed === null) {
+        return <LoaderProgress open={true} />;
+    }
 
     return (
         <>
@@ -216,7 +279,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
             onChange={(e) => {
                 handleInputChange(e);
                 const selectedAgency = allAuditAgencyList.find(
-                    (agency) => agency.auditAgencyId === e.target.value
+                    (agency) => String(agency.auditAgencyId) === String(e.target.value)
                 );
                 setAudiAgencyFormValues((prev) => ({
                     ...prev,
@@ -234,7 +297,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
             </MenuItem>
             {allAuditAgencyList.length > 0 ? (
                 allAuditAgencyList.map((agency) => (
-                    <MenuItem key={agency.auditAgencyId} value={agency.auditAgencyId}>
+                    <MenuItem key={agency.auditAgencyId} value={String(agency.auditAgencyId)}>
                         {agency.auditAgencyName}
                     </MenuItem>
                 ))
@@ -292,8 +355,19 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
 
 <Box mb={2}> {/* This adds margin bottom */}
-  <AuditControls />
+  <AuditControls selectedAuditAgencyId={audiAgencyFormValues.auditAgencyId} />
 </Box>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Box>
+                <Typography variant="h6">
+                <b>Note:</b>Certifying Authority is responsible to provide details present as below.
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+          
 <AnnexureA2Main />
   
 

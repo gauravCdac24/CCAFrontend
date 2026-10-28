@@ -38,13 +38,14 @@ const PublicInformationWebsite = () => {
   const WEBLINK_PATTERN = /^[A-Za-z0-9().,:&\-\s]+$/;
 
   const validateWebLink = (value) => {
-    if (!value.trim()) {
-      return 'Weblink cannot be empty.';
+    const str = value == null ? '' : String(value);
+    if (!str.trim()) {
+      return '';
     }
-    if (value.length < 3 || value.length > 500) {
+    if (str.length < 3 || str.length > 500) {
       return 'Weblink must be between 3 and 500 characters.';
     }
-    if (!WEBLINK_PATTERN.test(value)) {
+    if (!WEBLINK_PATTERN.test(str)) {
       return 'Only alphabets, numbers, and characters ().,:&- are allowed.';
     }
     return '';

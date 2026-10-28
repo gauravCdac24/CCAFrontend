@@ -229,93 +229,48 @@ const EKYCVerificationDetails = () => {
         errors[index] = {};
       }
 
-      // Validation for Approval Date
-      if (!item.approvalDate) {
-        switch (item.option) {
-          case "Offline Aadhaar eKYC":
-            errors[index].approvalDate = errorMsg.approvalDate.offlineAadhar;
-            break;
-          case "Online Aadhaar eKYC":
-            errors[index].approvalDate = errorMsg.approvalDate.onlineAadhar;
-            break;
-          case "PAN eKYC":
-            errors[index].approvalDate = errorMsg.approvalDate.panEKYC;
-            break;
-          case "CA eKYC":
-            errors[index].approvalDate = errorMsg.approvalDate.caEKYC;
-            break;
-          case "Organisational eKYC":
-            errors[index].approvalDate = errorMsg.approvalDate.organisationalEKYC;
-            break;
-          case "Banking eKYC":
-            errors[index].approvalDate = errorMsg.approvalDate.bankingEKYC;
-            break;
-          default:
-            break;
+      // DSC Count — format/length only when value present
+      if (item.noDSC) {
+        if (!/^[0-9]+$/.test(item.noDSC)) {
+          errors[index].noDSC = errorMsg.dscCount.format;
+        } else if (item.noDSC.length > 9) {
+          errors[index].noDSC = errorMsg.dscCount.length;
         }
       }
 
-      // Validation for DSC Count
-      if (!item.noDSC) {
-        switch (item.option) {
-          case "Offline Aadhaar eKYC":
-            errors[index].noDSC = errorMsg.dscCount.offlineAadhar;
-            break;
-          case "Online Aadhaar eKYC":
-            errors[index].noDSC = errorMsg.dscCount.onlineAadhar;
-            break;
-          case "PAN eKYC":
-            errors[index].noDSC = errorMsg.dscCount.panEKYC;
-            break;
-          case "CA eKYC":
-            errors[index].noDSC = errorMsg.dscCount.caEKYC;
-            break;
-          case "Organisational eKYC":
-            errors[index].noDSC = errorMsg.dscCount.organisationalEKYC;
-            break;
-          case "Banking eKYC":
-            errors[index].noDSC = errorMsg.dscCount.bankingEKYC;
-            break;
-          default:
-            break;
-        }
-      } else if (!/^[0-9]+$/.test(item.noDSC)) {
-        errors[index].noDSC = errorMsg.dscCount.format;
-      } else if (item.noDSC.length > 9) {
-        errors[index].noDSC = errorMsg.dscCount.length;
-      }
-
-      // Validation for External Service Details
-      if (item.externalService === "KUA Licence date:" && !item.extraData) {
-        errors[index].extraData = errorMsg.externalService.kuaLicenseDate;
-      } else if (item.externalService === "PAN KYC service details:" && !item.extraData) {
-        errors[index].extraData = errorMsg.externalService.panKYCServiceDetails;
-      } else if (item.externalService === "GST Service Details" && !item.extraData) {
-        errors[index].extraData = errorMsg.externalService.gstServiceDetails;
-      }
-
-      // Validation for Bank Name
-      if (item.externalService === "Name of Banks") {
-        if (!item.extraData) {
-          errors[index].extraData = errorMsg.bankName.blank;
-        } else if (item.extraData.length < 3 || item.extraData.length > 200) {
+      // Bank Name — format/length only when value present
+      if (item.externalService === "Name of Banks" && item.extraData) {
+        if (item.extraData.length < 3 || item.extraData.length > 200) {
           errors[index].extraData = errorMsg.bankName.length;
         } else if (!/^[A-Za-z0-9.&\-\s]+$/.test(item.extraData)) {
           errors[index].extraData = errorMsg.bankName.format;
         }
       }
 
-      // Validation for External Service Details
-      if (!item.detailsExternalService) {
-        errors[index].detailsExternalService = errorMsg.detailsExternalService.blank;
-      } else if (item.detailsExternalService.length < 3 || item.detailsExternalService.length > 200) {
-        errors[index].detailsExternalService = errorMsg.detailsExternalService.length;
-      } else if (!/^[A-Za-z0-9().,&\-\s]+$/.test(item.detailsExternalService)) {
-        errors[index].detailsExternalService = errorMsg.detailsExternalService.format;
+      // External Service Details — format/length only when value present
+      if (item.detailsExternalService) {
+        if (item.detailsExternalService.length < 3 || item.detailsExternalService.length > 200) {
+          errors[index].detailsExternalService = errorMsg.detailsExternalService.length;
+        } else if (!/^[A-Za-z0-9().,&\-\s]+$/.test(item.detailsExternalService)) {
+          errors[index].detailsExternalService = errorMsg.detailsExternalService.format;
+        }
+      }
+
+      // PAN KYC / GST extra text fields — format only when present
+      if (
+        (item.externalService === "PAN KYC service details:" ||
+          item.externalService === "GST Service Details") &&
+        item.extraData
+      ) {
+        if (item.extraData.length < 3 || item.extraData.length > 200) {
+          errors[index].extraData = errorMsg.detailsExternalService.length;
+        } else if (!/^[A-Za-z0-9().,&\-\s]+$/.test(item.extraData)) {
+          errors[index].extraData = errorMsg.detailsExternalService.format;
+        }
       }
     });
 
-    return errors.some(error => Object.keys(error).length > 0) ? errors : {}; // return errors if any
+    return errors.some(error => Object.keys(error).length > 0) ? errors : {};
   };
 
   

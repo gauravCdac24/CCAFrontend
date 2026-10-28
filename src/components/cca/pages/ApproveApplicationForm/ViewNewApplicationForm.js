@@ -249,12 +249,27 @@ const ViewNewApplicationForm = () => {
     //alert(parseInt(id))
     switch (parseInt(id)) {
       case 1:
-        return <IndividualViewData userName={applicantUserName} />;
+        return (
+          <IndividualViewData
+            userName={applicantUserName}
+            onSuccess={getAllApplicationForm}
+          />
+        );
       case 2:
       case 3:
-        return <FirmViewData userName={applicantUserName} />;
+        return (
+          <FirmViewData
+            userName={applicantUserName}
+            onSuccess={getAllApplicationForm}
+          />
+        );
       case 4:
-        return <GovernmentViewData userName={applicantUserName} />;
+        return (
+          <GovernmentViewData
+            userName={applicantUserName}
+            onSuccess={getAllApplicationForm}
+          />
+        );
       default:
         return <Typography variant="h6">Unknown step</Typography>;
     }

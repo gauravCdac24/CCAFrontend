@@ -202,10 +202,16 @@ const TrustedPersonsList = () => {
   };
 
   const getTrustedPersonsList = async () => {
+    if (!applicantUserName) {
+      return;
+    }
 
     setLoading(true);
     try {
-      const response = await AnnexureService.getAuditorVerification(annexure);
+      const response = await AnnexureService.getAuditorVerification({
+        userName: applicantUserName,
+        apiNum: '18',
+      });
       console.log("bggu=-=->", response.data)
 
       const trustedPersonsList = response?.data?.trustedPersonDetails || [];
@@ -223,13 +229,17 @@ const TrustedPersonsList = () => {
         setPersonsData(list);
         setAnnexure(prevState => ({
           ...prevState,
-          auditorVerification: response?.data?.auditorVerification
+          userName: applicantUserName,
+          auditorVerification: response?.data?.auditorVerification || ''
         }));
 
+      } else {
+        setAnnexure(prevState => ({
+          ...prevState,
+          userName: applicantUserName,
+          auditorVerification: response?.data?.auditorVerification || ''
+        }));
       }
-
-
-
 
       setLoading(false);
 
@@ -247,7 +257,7 @@ const TrustedPersonsList = () => {
 
     getTrustedPersonsList();
 
-  }, [])
+  }, [applicantUserName])
 
 
 

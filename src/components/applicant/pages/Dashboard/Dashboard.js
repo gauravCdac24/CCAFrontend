@@ -555,7 +555,6 @@
 // export default Dashboard;
 
 import { useState, useEffect} from "react";
-import AnimatedNumbers from "react-animated-numbers";
 import Chart from "react-apexcharts";
 import { MultiSelect } from "react-multi-select-component";
 import Box from '@mui/material/Box';
@@ -564,7 +563,9 @@ import Box from '@mui/material/Box';
 import VerifiedUserIcon from '@mui/icons-material/Person';
 import CAIcon from '@mui/icons-material/School';
 import DSCIssuedIcon from '@mui/icons-material/CollectionsBookmark';
-import { Grid, IconButton } from "@mui/material";
+import { Grid } from "@mui/material";
+import Grid2 from '@mui/material/Grid2';
+import DashboardInfoCard from "../../../dashboard/Util/DashboardInfoCard";
 
 const Dashboard = () =>{
 
@@ -858,109 +859,26 @@ const Dashboard = () =>{
                 {/* Info Box */}
 
 
-                        <Grid container>
-							<Grid item  xs sx={{backgroundColor: 'infobox.color1', 
-                                      borderRadius: '4px',
-                                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
-                                      p:1,
-                                      m:1,
-                                      height: '100px'
-                                      }}>
-								<Grid container>
-									<Grid item >
-                                            <IconButton aria-label="icon">
-                                                <DSCIssuedIcon sx={{fontSize: '40px'}} color="primary"/>
-                                            </IconButton>
-                                    </Grid>
-                                        <Grid item xs>
-                                            <Grid container direction="column">
-                                                <Grid item sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>DSC Issued</Grid>
-                                                <Grid item sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                                                <AnimatedNumbers
-                                                        includeComma
-                                                        transitions={(index) => ({
-                                                        type: "spring",
-                                                        duration: index + 5,
-                                                        })}
-                                                        animateToNumber={infoList.totalDSCIssued}
-                                                        
-                                                    />
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
-									</Grid>
-							</Grid>
-						
-
-
-                        
-							<Grid item  xs sx={{backgroundColor: 'infobox.color2', 
-                                      borderRadius: '4px',
-                                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
-                                      p:1,
-                                      m:1,
-                                      height: '100px'
-                                      }}>
-								<Grid container>
-									<Grid item>
-                                            <IconButton aria-label="icon">
-                                                <VerifiedUserIcon sx={{fontSize: '40px'}} color="primary"/>
-                                            </IconButton>
-                                    </Grid>
-                                        <Grid item xs>
-                                            <Grid container direction="column">
-                                                <Grid item sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>eSign Issued</Grid>
-                                                <Grid item sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                                                <AnimatedNumbers
-                                                        includeComma
-                                                        transitions={(index) => ({
-                                                        type: "spring",
-                                                        duration: index + 5,
-                                                        })}
-                                                        animateToNumber={infoList.totalEsignIssued}
-                                                        
-                                                    />
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
-									</Grid>
-							</Grid>
-						
-							<Grid item  xs sx={{backgroundColor: 'infobox.color3', 
-                                      borderRadius: '4px',
-                                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
-                                      p:1,
-                                      m:1,
-                                      height: '100px'
-                                      }}>
-								<Grid container>
-									<Grid item>
-                                            <IconButton aria-label="icon">
-                                                <CAIcon sx={{fontSize: '40px'}} color="primary"/>
-                                            </IconButton>
-                                    </Grid>
-                                        <Grid item xs>
-                                            <Grid container direction="column">
-                                                <Grid item sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>Total ASP</Grid>
-                                                <Grid item sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                                                <AnimatedNumbers
-                                                        includeComma
-                                                        transitions={(index) => ({
-                                                        type: "spring",
-                                                        duration: index + 5,
-                                                        })}
-                                                        animateToNumber={infoList.totalASP}
-                                                        
-                                                    />
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
-									</Grid>
-							</Grid>
-						
-							
-						
-						</Grid>
+                        <Grid2 container spacing={1} sx={{ alignItems: 'stretch' }}>
+                            <DashboardInfoCard
+                              bgColor="infobox.color1"
+                              icon={DSCIssuedIcon}
+                              label="DSC Issued"
+                              value={infoList.totalDSCIssued}
+                            />
+                            <DashboardInfoCard
+                              bgColor="infobox.color2"
+                              icon={VerifiedUserIcon}
+                              label="eSign Issued"
+                              value={infoList.totalEsignIssued}
+                            />
+                            <DashboardInfoCard
+                              bgColor="infobox.color3"
+                              icon={CAIcon}
+                              label="Total ASP"
+                              value={infoList.totalASP}
+                            />
+						</Grid2>
 
 
                 {/* Info Box End */}

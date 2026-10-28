@@ -21,9 +21,9 @@ const updateCountry = (obj)=>{
 
 	const obj1 = {...obj};
 
-	obj1.countryId = encrypt(obj1.countryId);
+	obj1.countryId = encrypt(String(obj1.countryId));
 
-	return API.post(ADMIN_SERVICE+UPDATE_COUNTRY, obj);
+	return API.post(ADMIN_SERVICE+UPDATE_COUNTRY, obj1);
 }
 
 const getAllCountryList = () =>{

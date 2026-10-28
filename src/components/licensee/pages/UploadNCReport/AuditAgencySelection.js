@@ -75,14 +75,21 @@ const AuditAgencySelection = forwardRef(({userName,licenseId}, ref) => {
     })
 
 
-     // Fetch all audit agencies
+     // Fetch active audit agencies only
      const getAllAuditAgencyFrom = () => {
         setLoading(true);
-        AuditAgency.getAllAuditAgencyList()
+        AuditAgency.getAllActiveAuditAgencyList()
             .then((response) => {
-                console.log('Audit Agencies:', response.data); // Debugging API response
-                setAllAuditAgencyList(response.data); // Handle null/undefined data gracefully
+                setAllAuditAgencyList(response.data || []);
             })
+            .catch(() =>
+                AuditAgency.getAllAuditAgencyList().then((response) => {
+                    const list = Array.isArray(response.data)
+                        ? response.data.filter((agency) => agency?.status === 'Active')
+                        : [];
+                    setAllAuditAgencyList(list);
+                })
+            )
             .catch(() => {
                 showAlert({
                     messageTitle: 'Error',
@@ -94,14 +101,21 @@ const AuditAgencySelection = forwardRef(({userName,licenseId}, ref) => {
 
 
 
-    // Fetch all audit agencies
+    // Fetch active audit agencies only
     const getAllAuditAgency = () => {
         setLoading(true);
-        AuditAgency.getAllAuditAgencyList()
+        AuditAgency.getAllActiveAuditAgencyList()
             .then((response) => {
-                console.log('Audit Agencies:', response.data); // Debugging API response
-                setAllAuditAgencyList(response.data); // Handle null/undefined data gracefully
+                setAllAuditAgencyList(response.data || []);
             })
+            .catch(() =>
+                AuditAgency.getAllAuditAgencyList().then((response) => {
+                    const list = Array.isArray(response.data)
+                        ? response.data.filter((agency) => agency?.status === 'Active')
+                        : [];
+                    setAllAuditAgencyList(list);
+                })
+            )
             .catch(() => {
                 showAlert({
                     messageTitle: 'Error',

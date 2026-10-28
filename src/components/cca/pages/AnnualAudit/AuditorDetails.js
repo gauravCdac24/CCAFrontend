@@ -20,7 +20,8 @@ import react, { forwardRef, useEffect, useImperativeHandle, useState } from 'rea
 import Captcha from '../../../global/util/Captcha';
 import LoaderProgress from '../../../global/common/LoaderProgress';
 import showAlert from '../../../global/common/MessageBox/AlertService';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import useAnnualAuditRoute from '../../../global/util/useAnnualAuditRoute';
 import FormWrapper from '../../../global/util/FormWrapper';
 import AuditAgency from '../../../../service/AdminService/AuditAgency';
 import AuditorCertificateTypeService from '../../../../service/AdminService/AuditorCertificateTypeService';
@@ -60,9 +61,10 @@ const errorMsg = {
 };
 
 const AuditorDetails = (() => {
-    const{id}=useParams();
-    const ApplicantUserName=decrypt(id)
-    console.log(ApplicantUserName)
+    const { userName: ApplicantUserName } = useAnnualAuditRoute();
+    const location = useLocation();
+    const routeReadOnly = location.state?.readOnly === true;
+    const [isViewOnly, setIsViewOnly] = useState(routeReadOnly);
     const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({ auditAgencyName: '',applicantUserName:ApplicantUserName, intentAppId: '',undertakingFileName:'', remark:'',undertakingFile: null, auditors: [], auditorDesscription: [{ auditorName: '', certificateType: '', file: null,auditorDescriptionId:'' ,certificateName:'',certificateExpiry:''}], auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' ,auditScopeId:''}] });
     const [formErrors, setFormErrors] = useState({});
     const [captchaText, setCaptchaText] = useState('');
@@ -73,8 +75,10 @@ const AuditorDetails = (() => {
     const [fileName, setFileName] = useState('');
 
     useEffect(() => {
-        getAllAuuditorByUserName();
-    }, []);
+        if (ApplicantUserName) {
+            getAllAuuditorByUserName();
+        }
+    }, [ApplicantUserName]);
 
    const getAllAuuditorByUserName = () => {
     setLoading(true);
@@ -105,6 +109,7 @@ const AuditorDetails = (() => {
                 intentAppId: response.data.intentAppId ?? audiAgencyFormValues.intentAppId,
                 undertakingFileName: response.data.undertakingFileName ?? audiAgencyFormValues.undertakingFileName,
                 undertakingFile: response.data.undertakingFile ?? audiAgencyFormValues.undertakingFile,
+                remark: response.data.remark ?? audiAgencyFormValues.remark,
                 auditorDesscription: response.data.auditorDesscription
                     ? response.data.auditorDesscription?.map((item) => ({
                         auditorDescriptionId: item.auditorDescriptionId ?? '',
@@ -130,6 +135,12 @@ const AuditorDetails = (() => {
 
             // Explicitly set fileName and log auditor names
             setFileName(response.data.undertakingFileName || '');
+            const reviewStatus = response.data.ccaUndertakingReviewStatus;
+            const readOnly = response.data.readOnly === true
+                || reviewStatus === 'APPROVED'
+                || reviewStatus === 'REJECTED'
+                || routeReadOnly;
+            setIsViewOnly(readOnly);
             if (response.data.auditorDesscription) {
                 response.data.auditorDesscription.forEach((auditor) => {
                     console.log('Auditor Name:', auditor.auditorName);
@@ -1037,6 +1048,7 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
       rows={4}
       variant="outlined"
       fullWidth
+      disabled={isViewOnly}
        onChange={(e) => handleChanges(e, 'remarks')}
        error={!!errors.remarks} // Shows red border if there's an error
       helperText={errors.remarks || ''} // Displays the error message
@@ -1048,6 +1060,7 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
     />
   </Grid>
 </Grid>
+{!isViewOnly && (
 <Grid container direction="row" sx={{ mt: 4 }} spacing={2} justifyContent="center" alignItems="center">
     <Grid item>
         <Button 
@@ -1073,6 +1086,7 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
         </Button>
     </Grid>
 </Grid>
+)}
 
 
 

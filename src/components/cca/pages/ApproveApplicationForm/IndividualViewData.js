@@ -81,7 +81,7 @@ const ViewCessationApplication = (props) => {
   const [checkedRows, setCheckedRows] = useState({
     userName: userName,
     reviewerUserName: reviewerUserName,
-    isRejected: true,
+    isRejected: false,
   });
 
   const [tabValue, setTabValue] = useState(0);
@@ -623,7 +623,7 @@ const ViewCessationApplication = (props) => {
     e.preventDefault();
     showAlert({
       messageTitle: "Confirm",
-      messageContent: "Are you sure you want to submit?",
+      messageContent: "Are you sure you want to approve this application for audit?",
       confirmText: "Yes",
       closeText: "No",
       maxWidth: "sm",
@@ -631,18 +631,43 @@ const ViewCessationApplication = (props) => {
     });
   };
 
+  const buildCcaApprovalPayload = (isRejected) => {
+    const applicantUserName = userName || checkedRows.userName;
+    if (!applicantUserName) {
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Applicant user name is missing. Please reopen the application and try again.",
+        confirmText: "Ok",
+      });
+      return null;
+    }
+
+    return {
+      userName: applicantUserName,
+      reviewerUserName: reviewerUserName || checkedRows.reviewerUserName || "",
+      isRejected,
+      remarks: checkedRows.remarks || "",
+    };
+  };
+
   const handleConfrimSubmit = () => {
-    ApplicationForm.addAllRejectedAData(checkedRows)
+    const payload = buildCcaApprovalPayload(false);
+    if (!payload) {
+      return;
+    }
+
+    ApplicationForm.addAllAprovedJson(payload)
       .then((response) => {
-        //console.log(response.data)
         showAlert({
           messageTitle: "Success",
           messageContent: response.data,
           confirmText: "Ok",
-          // onConfirm: () =>
-          //   (window.location.href = "/cca/rejectedreviewapplication"),
           onConfirm: () => {
-            if (props.onSuccess) props.onSuccess();
+            if (props.onSuccess) {
+              props.onSuccess();
+            } else {
+              window.location.href = "/cca/approvedreviewapplication";
+            }
           },
         });
       })
@@ -664,7 +689,7 @@ const ViewCessationApplication = (props) => {
 
     showAlert({
       messageTitle: "Confirm",
-      messageContent: "Are you sure you want to submit?",
+      messageContent: "Are you sure you want to send this application to rejection?",
       confirmText: "Yes",
       closeText: "No",
       maxWidth: "sm",
@@ -673,26 +698,23 @@ const ViewCessationApplication = (props) => {
   };
 
   const handleSubmit = () => {
-    const formData = new FormData();
+    const payload = buildCcaApprovalPayload(true);
+    if (!payload) {
+      return;
+    }
 
-    Object.entries(checkedRows).forEach(([key, value]) => {
-      if (key === "file1") {
-        formData.append(key, value);
-      } else {
-        formData.append(key, String(value));
-      }
-    });
-
-    ApplicationForm.addAllAproved(formData)
+    ApplicationForm.addAllAprovedJson(payload)
       .then((response) => {
         showAlert({
           messageTitle: "Success",
           messageContent: response.data,
           confirmText: "Ok",
-          // onConfirm: () =>
-          //   (window.location.href = "/cca/approvedreviewapplication"),
           onConfirm: () => {
-            if (props.onSuccess) props.onSuccess();
+            if (props.onSuccess) {
+              props.onSuccess();
+            } else {
+              window.location.href = "/cca/approvedreviewapplication";
+            }
           },
         });
       })
@@ -1618,12 +1640,12 @@ const ViewCessationApplication = (props) => {
                           }
                         />
                         <FormControlLabel
-                          value="Office"
+                          value="Official"
                           control={
                             <Radio
                               checked={
                                 basicDetailsFormValues2.communicationAddress ===
-                                "Office"
+                                "Official"
                               }
                             />
                           }
@@ -1631,7 +1653,7 @@ const ViewCessationApplication = (props) => {
                             <span>
                               Office{" "}
                               {basicDetailsFormValues2.communicationAddress ===
-                                "Office" && <span>✓</span>}
+                                "Official" && <span>✓</span>}
                             </span>
                           }
                         />
@@ -3159,11 +3181,27 @@ const ViewCessationApplication = (props) => {
             type="submit"
             variant="contained"
             sx={{ minWidth: "160px", height: "40px", whiteSpace: "nowrap" }}
-            //onClick={R}
             aria-label="Submit"
+            onClick={handleRejectedSubmit}
+          >
+            Approval
+          </Button>
+        </Grid>
+        <Grid item>
+          <Button
+            type="button"
+            variant="contained"
+            sx={{
+              minWidth: "160px",
+              height: "40px",
+              color: "#FFFFFF",
+              backgroundColor: "black",
+              whiteSpace: "nowrap",
+            }}
+            aria-label="Reject"
             onClick={handleApprovedSubmit}
           >
-            Submit
+            Send To Rejection
           </Button>
         </Grid>
       </Grid>

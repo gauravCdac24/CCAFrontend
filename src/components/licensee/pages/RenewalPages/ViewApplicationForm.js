@@ -33,6 +33,9 @@ import PaymentProof from './PaymentProof';
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import dayjs from 'dayjs';
 import LicenseIssuanceService from '../../../../service/LicenseIssuanceService/LicenseIssuanceService';
+import printApplicationPreview from '../../../global/util/printApplicationPreview';
+import OfflinePaymentPage from '../../../applicant/pages/ApplicationForm/OfflinePaymentPage';
+import RenewApplicationForm from '../../../../service/RenewLicenseService/ApplicationForm';
 
 
 
@@ -187,7 +190,25 @@ const ViewApplicationForm = () => {
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true,
                 maxWidth:'md',
-                fullWidth:true
+                fullWidth:true,
+                headerButtonText: 'Print PDF',
+                onHeaderButtonClick: async ({ contentElement }) => {
+                    try {
+                        await printApplicationPreview({
+                            contentElement: contentElement(),
+                            fetchFile: (appDocId) => ApplicationForm.viewFile(appDocId),
+                            userName,
+                            title: 'Renewal Application Form Preview',
+                        });
+                    } catch (error) {
+                        showAlert({
+                            messageTitle: 'Print PDF',
+                            messageContent: error?.message || 'Unable to prepare the application for printing.',
+                            confirmText: 'Ok',
+                            enableHeaderCloseBtn: true,
+                        });
+                    }
+                },
             });
         } else {
             showAlert({
@@ -457,25 +478,34 @@ const ViewApplicationForm = () => {
     };
     
 
-    const handlePaymentApplicationForm= (cid) => {
-        
-        ApplicationForm.getApplicationPayment(cid)
-            .then((response) => {
-                console.log("Fetched Application Type list:", response.data);
-                showAlert({
-                    messageTitle: ' payment done',
-                    messageContent: response.data,
-                    confirmText: 'Ok',
-                    enableHeaderCloseBtn: true,
-                    disableOutsideKeyDown: true,
-                });
-            })
-            .catch((err) => {
-                console.error("Error fetching Application Type list:", err);
-            })
-            .finally(() => {
-               
-            });
+    const handleDDSubmit = () => {
+        ref.current.handleSubmit();
+    };
+
+    const handleDDReset = () => {
+        ref.current.handleReset();
+    };
+
+    const handlePaymentApplicationForm = (cid) => {
+        showAlert({
+            messageTitle: 'Application Payment',
+            messageContent: (
+                <OfflinePaymentPage
+                    cid={cid}
+                    ref={ref}
+                    submitPayment={RenewApplicationForm.getApplicationPayment}
+                    redirectPath={`/${rolePath}/renewallicense`}
+                />
+            ),
+            enableHeaderCloseBtn: true,
+            disableOutsideKeyDown: true,
+            fullWidth: true,
+            maxWidth: 'md',
+            buttonOneText: 'Submit',
+            buttonTwoText: 'Reset',
+            onButtonOneClick: () => handleDDSubmit(),
+            onButtonTwoClick: () => handleDDReset(),
+        });
     };
 
 

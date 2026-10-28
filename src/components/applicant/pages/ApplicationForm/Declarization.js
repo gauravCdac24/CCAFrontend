@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import { useNavigate } from 'react-router-dom';
 import IndivSubmitPreview from './IndivSubmitPreview';
+import printApplicationPreview from '../../../global/util/printApplicationPreview';
 
 const Declarization = ({ handleBack, data }) => {
   const [checkedState, setCheckedState] = useState({});
@@ -132,6 +133,24 @@ console.log(allUndertakingList)
       disableOutsideKeyDown: true,
       maxWidth: 'md',
       fullWidth: true,
+      headerButtonText: 'Print PDF',
+      onHeaderButtonClick: async ({ contentElement }) => {
+        try {
+          await printApplicationPreview({
+            contentElement: contentElement(),
+            fetchFile: (appDocId) => ApplicationForm.viewFile(appDocId),
+            userName,
+            title: 'Application Form Preview',
+          });
+        } catch (error) {
+          showAlert({
+            messageTitle: 'Print PDF',
+            messageContent: error?.message || 'Unable to prepare the application for printing.',
+            confirmText: 'Ok',
+            enableHeaderCloseBtn: true,
+          });
+        }
+      },
     });
   };
 
@@ -161,6 +180,17 @@ console.log(allUndertakingList)
         }
       </Grid>
 
+            <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Box>
+                <Typography variant="h6">
+                <b>Note:</b> <br /> 1. Application will proceed once the payment will be verified by CCA. <br />
+                2. Online Submitted application must be submitted physical to CCA office.
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+          
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3, ml: 1 }}>
         <Button
           onClick={handleBacks}

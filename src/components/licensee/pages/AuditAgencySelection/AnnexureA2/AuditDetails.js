@@ -99,30 +99,25 @@ const AuditDetails = () => {
                 errors[index] = {};
             }
 
-            //Observations
-            if (!item.observations) {
-                errors[index].observations = errorMsg.observations.blank;
-            }else if (countWords(item.observations) > 50){
-                errors[index].observations = errorMsg.observations.words;
-            } 
-            else if (item.observations.length < 3 || item.observations.length > 500) {
-                errors[index].observations = errorMsg.observations.length;
-            } else if (!/^[A-Za-z0-9\(\).,&\- ]+$/.test(item.observations)) {
-                errors[index].observations = errorMsg.observations.format;
+            //Observations (optional; format/length only when present)
+            if (item.observations) {
+                if (countWords(item.observations) > 50){
+                    errors[index].observations = errorMsg.observations.words;
+                } 
+                else if (item.observations.length < 3 || item.observations.length > 500) {
+                    errors[index].observations = errorMsg.observations.length;
+                } else if (!/^[A-Za-z0-9\(\).,&\- ]+$/.test(item.observations)) {
+                    errors[index].observations = errorMsg.observations.format;
+                }
             }
 
-            //From Date & To Date
-
-             if (!item.fromDate) {
-                errors[index].fromDate = errorMsg.fromDate.blank;
-            }else if(item.fromDate >= item.toDate){
+            //From Date & To Date (optional; range check only when both present)
+             if (item.fromDate && item.toDate && item.fromDate >= item.toDate){
                 errors[index].fromDate = errorMsg.fromDate.diff
                 
             }
             
-            if (!item.toDate) {
-                errors[index].toDate = errorMsg.toDate.blank;
-            }else if(item.fromDate >= item.toDate){
+            if (item.fromDate && item.toDate && item.fromDate >= item.toDate){
                 
                 errors[index].toDate = errorMsg.toDate.diff
             }

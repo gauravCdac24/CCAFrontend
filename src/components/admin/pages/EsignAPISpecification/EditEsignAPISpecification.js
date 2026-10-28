@@ -18,7 +18,7 @@ import { decrypt } from '../../../global/util/EncryptDecrypt';
 //Errors
 const errorMsg = {
     apiSpecification: {
-        blank: "Please enter API Specification.",
+        blank: "Please enter eSign API Specification.",
         length: "The length must be between 3 and 250 characters.",
         format: "Only alphabets, () and & are allowed."
     },
@@ -108,7 +108,7 @@ const EditEsignAPISpecification = () => {
             errors.apiSpecification = errorMsg.apiSpecification.blank;
         } else if (formValues.apiSpecification.length < 3 || formValues.apiSpecification.length > 250) {
             errors.apiSpecification = errorMsg.apiSpecification.length;
-        } else if(!/^[A-Za-z&\)\( ]+$/.test(formValues.apiSpecification)){
+        } else if(!/^[A-Za-z0-9&.\)\( ]+$/.test(formValues.apiSpecification)){
             errors.apiSpecification = errorMsg.apiSpecification.format;
         }
 
@@ -138,7 +138,7 @@ const EditEsignAPISpecification = () => {
                 .then((response)=>{
 
                     showAlert({
-                        messageTitle: 'Edit API Specification',
+                        messageTitle: 'Edit eSign API Specification',
                         messageContent: response.data,
                         confirmText: 'Ok',
                         onConfirm: () => {navigate(`${rolePath}/apispecification`)},
@@ -202,7 +202,7 @@ const EditEsignAPISpecification = () => {
                 </Box>
 
             
-                <FormWrapper headingText="Edit API Specification">
+                <FormWrapper headingText="Edit eSign API Specification">
 
 
                     <Box component="form" noValidate sx={{ mt: 2, p: 2}} onSubmit={handleFormSubmit} >
@@ -211,20 +211,20 @@ const EditEsignAPISpecification = () => {
 
                             <Grid item xs={12} sm>
                                 <InputLabel shrink={false} htmlFor={"apiSpecification"}>
-                                    <Typography variant='body1'>API Specification*</Typography>
+                                    <Typography variant='body1'>eSign API Specification*</Typography>
                                 </InputLabel>
                                 <TextField
                                     id="apiSpecification"
                                     margin="dense"
                                     required
                                     fullWidth
-                                    placeholder='API Specification'
+                                    placeholder='eSign API Specification'
                                     name="apiSpecification"
                                     variant='outlined'
                                     error={!!formErrors.apiSpecification}
                                     helperText={formErrors.apiSpecification || ''}
                                     onChange={handleInputChange}
-                                    onKeyDown={(e) => validatePattern(e, /^[A-Za-z&\)\( ]+$/)}
+                                    onKeyDown={(e) => validatePattern(e, /^[A-Za-z0-9&.\)\( ]+$/)}
                                     value={formValues.apiSpecification}
                                     size="small"
                                     inputProps={{ maxLength: 250 }}

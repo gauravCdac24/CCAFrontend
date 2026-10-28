@@ -6,7 +6,6 @@ import { FormControl, FormHelperText, MenuItem, Select, Typography} from '@mui/m
 import { InputLabel } from '@mui/material';
 import { useEffect, useState } from 'react';
 import Captcha from '../../global/util/Captcha';
-import validatePattern from '../../global/util/ValidatePattern';
 import DashboardService from '../../../service/DashboardService/DashboardService';
 import LoaderProgress from '../../global/common/LoaderProgress';
 import showAlert from '../../global/common/MessageBox/AlertService';
@@ -15,7 +14,6 @@ import FormWrapper from '../../global/util/FormWrapper';
 import { useSelector } from 'react-redux';
 import StateService from '../../../service/AdminService/StateService';
 import CountryService from '../../../service/AdminService/CountryService';
-import ESPApplicationService from '../../../service/ESPApplicationService/ESPApplicationService';
 import { decrypt } from '../../global/util/EncryptDecrypt';
 
 //Errors
@@ -49,7 +47,7 @@ const errorMsg = {
     eSignIssued: {
         blank: "Please enter number of eSign Issued.",
         length: "The length must be between 1 and 10 characters.",
-        format: "Only digits are allowed, and leading zeros are not permitted."
+        format: "Only digits are allowed, and leading zeros are not permitted.",
     },
 
     captchaError: {
@@ -84,8 +82,6 @@ const EditDSCeSignIssued = () => {
     const [countryList, setCountryList] = useState([]);
     const [stateList, setStateList] = useState([]);
     const [filteredState, setFilteredState] = useState([]);
-    const [isESP, setIsESP] = useState(false);
-    const [data, setData] = useState([]);
 
     const [selectedMonth, setSelectedMonth] = useState('January');
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -94,21 +90,20 @@ const EditDSCeSignIssued = () => {
     const rolePath = useSelector((state) => state.jwtAuthentication.rolePath);
     let {id} = useParams();
 
-    const checkForESP = async () => {
+    const getStateNameById = (stateId) => {
+        const state = filteredState.find(
+            (item) => Number(item.stateId) === Number(stateId)
+        );
+        return state?.stateName || '';
+    };
 
-        try{
-
-            const response = await ESPApplicationService.checkForESP();
-            setIsESP(decrypt(response.data) === 'true' ? true: false);
-
-        }catch(err){
-
+    const sanitizeNumericInput = (value) => {
+        const digitsOnly = String(value ?? '').replace(/\D/g, '').slice(0, 10);
+        if (digitsOnly.length > 1 && digitsOnly.startsWith('0')) {
+            return digitsOnly.replace(/^0+/, '') || '0';
         }
-
-    }
-
-    
-
+        return digitsOnly;
+    };
 
     const fetchData = async(month, year) => {
 
@@ -129,9 +124,13 @@ const EditDSCeSignIssued = () => {
                             setCountryList(countries.data);
                             setStateList(states.data);
             
-                            const filteredStates = states.data.filter(
-                                state => state.countryId.countryName === 'India'
-                            );
+                            const filteredStates = states.data.filter((state) => {
+                                const countryName =
+                                    typeof state.countryId === 'object'
+                                        ? state.countryId?.countryName
+                                        : null;
+                                return countryName === 'India';
+                            });
                             setFilteredState(filteredStates);
             
                             const filteredCountry = countries.data.find(
@@ -151,8 +150,8 @@ const EditDSCeSignIssued = () => {
                                     countryId: filteredCountry.countryId,
                                     dscesignIssuedId: res.dscesignIssuedId,
                                     stateId: row.stateId,
-                                    dscIssued: res?.dscIssued || "0",
-                                    eSignIssued: res?.eSignIssued || "0"
+                                    dscIssued: res?.dscIssued ?? '',
+                                    eSignIssued: res?.eSignIssued ?? ''
                                 }
 
                                 formValues1.push(obj);
@@ -178,7 +177,6 @@ const EditDSCeSignIssued = () => {
             const year = arraylist[1]
 
             fetchData(month, year);
-            checkForESP();
         }else {
             navigate(`${rolePath}/dscesignissued`, { replace: true });
         }
@@ -195,7 +193,13 @@ const EditDSCeSignIssued = () => {
     
         setFormValues((prevValues) => {
             const updatedArray = [...prevValues];
-            updatedArray[index] = { ...updatedArray[index], [name]: value };
+            let nextValue = value;
+
+            if (name === 'dscIssued' || name === 'eSignIssued') {
+                nextValue = sanitizeNumericInput(value);
+            }
+
+            updatedArray[index] = { ...updatedArray[index], [name]: nextValue };
     
             return updatedArray;
         });
@@ -334,23 +338,6 @@ const EditDSCeSignIssued = () => {
         navigate(`${rolePath}/dscesignissued`, { replace: true })
     }
 
-    const handleNumberKeyDown = (e, value) => {
-        
-        if (e.key === 'Backspace' || e.key === 'Tab') {
-            return;
-        }
-        const nextValue = value + e.key;
-        if (/^0[0-9]+$/.test(nextValue)) {
-            e.preventDefault();
-            return;
-        }
-        if (e.key === '0' && value.length === 0) {
-            return;
-        }
-        if (!/^[0-9]$/.test(e.key)) {
-            e.preventDefault();
-        }
-    };
 
     return (
         <>
@@ -466,20 +453,25 @@ const EditDSCeSignIssued = () => {
                                         <Select
                                             id="stateId"
                                             required
-                                            value={row.stateId}
+                                            value={row.stateId === '' || row.stateId == null ? '' : Number(row.stateId)}
                                             onChange={(e)=>handleInputChange(e, index)}
                                             displayEmpty
                                             name="stateId"
                                             error={!!(formErrors.ferror && formErrors.ferror[index]?.stateId)}
                                             size='small'
-                                            disabled 
-                                            
+                                            disabled
+                                            renderValue={(selected) => {
+                                                if (selected === '' || selected == null) {
+                                                    return 'Select State/Province';
+                                                }
+                                                return getStateNameById(selected) || 'Select State/Province';
+                                            }}
                                         >
                                             <MenuItem value="">
                                                 Select State/Province
                                             </MenuItem>
-                                            {filteredState.map((state, index) => (
-                                                <MenuItem key={index} value={state.stateId}>
+                                            {filteredState.map((state) => (
+                                                <MenuItem key={state.stateId} value={Number(state.stateId)}>
                                                     {state.stateName}
                                                 </MenuItem>
                                             ))}
@@ -505,15 +497,13 @@ const EditDSCeSignIssued = () => {
                                         error={!!(formErrors.ferror && formErrors.ferror[index]?.dscIssued)}
                                         helperText={(formErrors.ferror && formErrors.ferror[index]?.dscIssued) || ''}
                                         onChange={(e)=>handleInputChange(e, index)}
-                                        onKeyDown={(e) => handleNumberKeyDown(e, row.dscIssued || '')}
-                                        value={row.dscIssued}
+                                        value={row.dscIssued ?? ''}
                                         size="small"
-                                        slotProps={{
-                                            htmlInput: {
-                                                maxLength: 10
-                                            }
+                                        inputProps={{
+                                            inputMode: 'numeric',
+                                            pattern: '[0-9]*',
+                                            maxLength: 10,
                                         }}
-                                        
                                     />
                                 </Grid2>
 
@@ -532,15 +522,13 @@ const EditDSCeSignIssued = () => {
                                         error={!!(formErrors.ferror && formErrors.ferror[index]?.eSignIssued)}
                                         helperText={(formErrors.ferror && formErrors.ferror[index]?.eSignIssued) || ''}
                                         onChange={(e)=>handleInputChange(e, index)}
-                                        onKeyDown={(e) => handleNumberKeyDown(e, row.eSignIssued || '')}
-                                        value={row.eSignIssued}
+                                        value={row.eSignIssued ?? ''}
                                         size="small"
-                                        slotProps={{
-                                            htmlInput: {
-                                                maxLength: 10
-                                            }
+                                        inputProps={{
+                                            inputMode: 'numeric',
+                                            pattern: '[0-9]*',
+                                            maxLength: 10,
                                         }}
-                                        disabled={!isESP}
                                     />
                                 </Grid2>
 

@@ -7,6 +7,7 @@ import CityService from '../../../../service/AdminService/CityService';
 import CountryService from '../../../../service/AdminService/CountryService';
 import StateService from '../../../../service/AdminService/StateService';
 import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getFinalSubmissionSuccessAlert, getFinalSubmissionErrorAlert } from '../../../global/util/applicationFormSteps';
 
 const IndivSubmitPreview = forwardRef(({allUndertakingsList}, ref)  => {
    
@@ -75,9 +76,10 @@ console.log("allUndertakingsList---->",allUndertakingsList)
       .then((response) => {
         console.log(JSON.stringify(response));
         if (response) {
+          const successAlert = getFinalSubmissionSuccessAlert();
           showAlert({
-            messageTitle: 'Success',
-            messageContent: 'Application Form successfully submitted',
+            messageTitle: successAlert.messageTitle,
+            messageContent: successAlert.messageContent,
             confirmText: 'OK',
             disableOutsideKeyDown: true,
             enableHeaderCloseBtn: false,
@@ -90,13 +92,10 @@ console.log("allUndertakingsList---->",allUndertakingsList)
          
       })
       .catch((err) => {
+        const errorAlert = getFinalSubmissionErrorAlert(err);
         showAlert({
-          messageTitle: 'Error',
-          messageContent: err.response?.data
-            ? typeof err.response.data === 'object'
-              ? 'Your request cannot be processed at this time. Please try again later.'
-              : err.response.data
-            : 'Your request cannot be processed at this time. Please try again later.',
+          messageTitle: errorAlert.messageTitle,
+          messageContent: errorAlert.messageContent,
           confirmText: 'Ok',
           enableHeaderCloseBtn: true,
           disableOutsideKeyDown: true
@@ -475,7 +474,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
 </Box>
 
   <Grid item sm={12}>
-    <Typography variant="h6">1. Full Name*:</Typography>
+    <Typography variant="h6">1. Full Name<span className="req-asterisk">*</span>:</Typography>
   </Grid>
 
   {/* <Grid item sm={6}>
@@ -542,7 +541,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
 
 
 <Typography variant="h6">3. Address:</Typography>
-<Typography variant="h6">A. Residential Address*:</Typography>
+<Typography variant="h6">A. Residential Address<span className="req-asterisk">*</span>:</Typography>
   
   <Grid container spacing={2} sx={{ ml: 1 }}>
   <Grid item sm={6}>
@@ -626,7 +625,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
   </Grid>
   
   
-    <Typography variant="h6">B. Office Address*:</Typography>
+    <Typography variant="h6">B. Office Address<span className="req-asterisk">*</span>:</Typography>
   
     <Grid container spacing={2} sx={{ ml: 1 }}>
   <Grid item sm={6}>
@@ -708,7 +707,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
   {/* Title */}
   <Grid item sm={6}>
     <Typography variant="h6">
-      4. Address for Communication*:
+      4. Address for Communication<span className="req-asterisk">*</span>:
     </Typography>
   </Grid>
 
@@ -716,7 +715,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
   <Grid item sm={6}>
     <RadioGroup
       row
-      value={basicDetailsFormValues2.communicationAddress}
+      value={basicDetailsFormValues2.communicationAddress ?? ''}
       sx={{ alignItems: 'center' }}
     >
       <FormControlLabel
@@ -733,15 +732,15 @@ const handleDownloads = async (appDocId, documentTitle) => {
         }
       />
       <FormControlLabel
-        value="Office"
+        value="Official"
         control={
           <Radio
-            checked={basicDetailsFormValues2.communicationAddress === 'Office'}
+            checked={basicDetailsFormValues2.communicationAddress === 'Official'}
           />
         }
         label={
           <span>
-            Office {basicDetailsFormValues2.communicationAddress === 'Office' && <span>✓</span>}
+            Office {basicDetailsFormValues2.communicationAddress === 'Official' && <span>✓</span>}
           </span>
         }
       />
@@ -751,7 +750,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
 
 
 
-  <Typography variant="h6">5. Father's Name*:</Typography>
+  <Typography variant="h6">5. Father's Name<span className="req-asterisk">*</span>:</Typography>
 
   {/* Salutation */}
   {/* <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -803,7 +802,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     {/* Title */}
     <Grid item sm={6}>
       <Typography variant="h6" sx={{ display: 'inline' }}>
-        6. Sex* (For Individual Applicant only):
+        6. Sex<span className="req-asterisk">*</span> (For Individual Applicant only):
       </Typography>
     </Grid>
 
@@ -811,7 +810,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     <Grid item sm={6}>
       <RadioGroup
         row
-        value={basicDetailsFormValues.application.gender}
+        value={basicDetailsFormValues?.application?.gender ?? ''}
         sx={{ display: 'flex', alignItems: 'center' }}
       >
         <FormControlLabel
@@ -846,7 +845,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     {/* Title */}
     <Grid item sm={6}>
       <Typography variant="h6" sx={{ display: 'inline' }}>
-        7. Date of Birth (dd/mm/yyyy)*:
+        7. Date of Birth (dd/mm/yyyy)<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
 
@@ -864,7 +863,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     {/* Title */}
     <Grid item sm={6}>
       <Typography variant="h6" sx={{ display: 'inline' }}>
-        8. Nationality*:
+        8. Nationality<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
 
@@ -973,7 +972,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
 
   <Box sx={{ margin: '20px 0' }}>
   <Typography variant="h6">
-    12. Passport Details#:
+    12. Passport Details:
   </Typography>
 
   <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -1048,7 +1047,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
 
 
   <Typography variant="h6">
-    14. Pan Card Details#:
+    14. Pan Card Details:
   </Typography>
 
   <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -1098,7 +1097,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     {/* ISP Name */}
     <Grid item sm={6}>
       <Typography variant="body1">
-        ISP Name*:
+        ISP Name<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
     <Grid item sm={6}>
@@ -1158,13 +1157,13 @@ const handleDownloads = async (appDocId, documentTitle) => {
 
   
       <Typography variant="h6">
-        14. Capital in the business or profession *Rs:
+        14. Capital in the business or profession <span className="req-asterisk">*</span>Rs:
       </Typography>
     
       <Grid container spacing={2} sx={{ml:1}}>
       <Grid item sm={6}>
       <Typography variant="body1">
-        Capital in the business or profession *Rs.: 
+        Capital in the business or profession <span className="req-asterisk">*</span>Rs.: 
       </Typography>
     </Grid>
     <Grid item sm={6}>
@@ -1206,7 +1205,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
       </Typography>
       <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Bank Name*:</Typography>
+        <Typography variant="body1">Bank Name<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankName || 'N/A'}</Typography>
@@ -1214,7 +1213,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Branch*:</Typography>
+        <Typography variant="body1">Branch<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.branchName || 'N/A'}</Typography>
@@ -1222,7 +1221,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Bank Account No.*:</Typography>
+        <Typography variant="body1">Bank Account No.<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankAccountNo || 'N/A'}</Typography>
@@ -1230,7 +1229,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Type of Bank Account*:</Typography>
+        <Typography variant="body1">Type of Bank Account<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankAccountType || 'N/A'}</Typography>
@@ -1283,7 +1282,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     </Box>
     <Box>
     <Typography variant="h6" gutterBottom style={{ marginTop: '10px' }}>
-            31.  Location of facility in India for generation of Digital Signature Certificate *
+            31.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
           </Typography>
     <TableContainer>
     <Table>
@@ -1354,7 +1353,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     {/* Static Label for Additional Documents */}
     <Grid item xs={12}>
       <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-       35. Document*:
+       35. Document<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
 
@@ -1418,7 +1417,9 @@ const handleDownloads = async (appDocId, documentTitle) => {
             <Grid item xs={12}>
               <Box>
                 <Typography variant="h6">
-                <b>Note:</b> All documents that you have uploaded must be submitted in physical copy.
+                  {/*<b>Note:</b> All documents that you have uploaded must be submitted in physical copy along with application form.*/}
+                <b>Note:</b> <br /> 1. Application will proceed once the payment will be verified by CCA. <br />
+                2. Online Submitted application must be submitted physical to CCA office.
                 </Typography>
               </Box>
             </Grid>

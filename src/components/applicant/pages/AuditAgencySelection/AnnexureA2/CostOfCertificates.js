@@ -119,52 +119,44 @@ const CostOfCertificates = () => {
   // };
 
   const validateFields = () => {
-    let valid = true; // We use 'valid' here, so we must use 'valid' below
+    let valid = true;
     let newErrors = {};
 
-    // 1. FIX: Convert to String for Maintenance Cost
+    // Format/type only when value present
     const maintenanceCostStr = String(costData.avgDscIssuMaintenanceCost || "");
-
-    if (!maintenanceCostStr.trim()) {
-      newErrors.avgDscIssuMaintenanceCost = "This field is required";
-      valid = false;
-    } else if (!DIGITS_PATTERN.test(maintenanceCostStr)) {
-      newErrors.avgDscIssuMaintenanceCost = "Only digits are allowed.";
-      valid = false;
-    } else if (parseInt(maintenanceCostStr) > 25000) {
-      newErrors.avgDscIssuMaintenanceCost =
-        "Maximum cost should not exceed 25000.";
-      valid = false;
+    if (maintenanceCostStr.trim()) {
+      if (!DIGITS_PATTERN.test(maintenanceCostStr)) {
+        newErrors.avgDscIssuMaintenanceCost = "Only digits are allowed.";
+        valid = false;
+      } else if (parseInt(maintenanceCostStr) > 25000) {
+        newErrors.avgDscIssuMaintenanceCost =
+          "Maximum cost should not exceed 25000.";
+        valid = false;
+      }
     }
 
-    // 2. FIX: Convert to String for Fee Charged (THIS IS YOUR CURRENT ERROR)
     const feeChargedStr = String(costData.avgFeeChargedByCA || "");
-
-    if (!feeChargedStr.trim()) {
-      newErrors.avgFeeChargedByCA = "Fee charged cannot be empty.";
-      valid = false;
-    } else if (!DIGITS_PATTERN.test(feeChargedStr)) {
-      newErrors.avgFeeChargedByCA = "Only digits are allowed.";
-      valid = false;
-    } else if (parseInt(feeChargedStr) > 25000) {
-      newErrors.avgFeeChargedByCA = "Maximum fee should not exceed 25000.";
-      valid = false;
+    if (feeChargedStr.trim()) {
+      if (!DIGITS_PATTERN.test(feeChargedStr)) {
+        newErrors.avgFeeChargedByCA = "Only digits are allowed.";
+        valid = false;
+      } else if (parseInt(feeChargedStr) > 25000) {
+        newErrors.avgFeeChargedByCA = "Maximum fee should not exceed 25000.";
+        valid = false;
+      }
     }
 
-    // 3. FIX: Convert to String for Explanation
     const explanationStr = String(costData.explanationForCostMismatch || "");
-
-    if (!explanationStr.trim()) {
-      newErrors.explanationForCostMismatch = "Explanation cannot be empty";
-      valid = false;
-    } else if (explanationStr.length < 3 || explanationStr.length > 250) {
-      newErrors.explanationForCostMismatch =
-        "The length must be between 3 and 250 characters.";
-      valid = false;
-    } else if (!STRING_PATTERN.test(explanationStr)) {
-      newErrors.explanationForCostMismatch =
-        "Only alphabets, numbers, characters ().,&- are allowed";
-      valid = false;
+    if (explanationStr.trim()) {
+      if (explanationStr.length < 3 || explanationStr.length > 250) {
+        newErrors.explanationForCostMismatch =
+          "The length must be between 3 and 250 characters.";
+        valid = false;
+      } else if (!STRING_PATTERN.test(explanationStr)) {
+        newErrors.explanationForCostMismatch =
+          "Only alphabets, numbers, characters ().,&- are allowed";
+        valid = false;
+      }
     }
 
     setErrors(newErrors);

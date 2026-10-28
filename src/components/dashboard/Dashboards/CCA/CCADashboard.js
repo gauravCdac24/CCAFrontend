@@ -1,5 +1,4 @@
 import { useState, useEffect} from "react";
-import AnimatedNumbers from "react-animated-numbers";
 import Box from '@mui/material/Box';
 
 //Mui Icons
@@ -8,7 +7,7 @@ import VerifiedUserIcon from '@mui/icons-material/Person';
 import DSCIssuedIcon from '@mui/icons-material/CollectionsBookmark';
 import EsignIssuedIcon from '@mui/icons-material/Style';
 
-import {IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
+import {Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import Grid from '@mui/material/Grid2';
 
 
@@ -23,6 +22,7 @@ import CustomBarChart from "../../Util/CustomBarChart";
 import CustomPieChart from "../../Util/CustomPieChart";
 import CustomAreaChart from "../../Util/CustomAreaChart";
 import CustomAreaBrushChart from "../../Util/CustomAreaBrushChart";
+import DashboardInfoCard from "../../Util/DashboardInfoCard";
 import { timeStampToDate } from "../../../global/util/TimestampConverter";
 import EKYCModeService from "../../../../service/AdminService/EKYCModeService";
 
@@ -287,158 +287,35 @@ const CCADashboard = () =>{
                 {/* Info Box */}
 
 
-          <Grid container spacing={1} >
-							<Grid  size={{ xs: 12, sm: 12, md: 'grow' }} sx={{backgroundColor: 'infobox.color1', 
-                                      borderRadius: '4px',
-                                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
-                                      p:3,
-                                      m:1,
-                                      cursor: 'pointer',
-                                      '&:hover': {
-                                        boxShadow: 'rgba(0, 0, 0, 0.35) 0px -50px 36px -28px inset'
-                                      }
-                                      }}
-                                      onClick={navigateToRegisteredCA}
-                                      >
-								<Grid container>
-									<Grid>
-                      <IconButton aria-label="icon">
-                          <RegisteredUserIcon sx={{fontSize: '40px'}} color="primary"/>
-                      </IconButton>
-                  </Grid>
-                  <Grid>
-                    <Grid container direction="column">
-                      <Grid  sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>Registered CA</Grid>
-                      <Grid  sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                      {/* <AnimatedNumbers
-                        includeComma
-                        transitions={(index) => ({
-                        type: "spring",
-                        duration: index + 5,
-                        
-                        })}
-                        animateToNumber={infoList?.totalCA || 0}
-                                                        
-                    /> */}
-                    {infoList?.totalCA || 0}
-                  </Grid>
-                </Grid>
-              </Grid>
-						</Grid>
-					</Grid>
-
-          <Grid    size={{ xs: 12, sm: 12, md: 'grow' }} sx={{backgroundColor: 'infobox.color2', 
-                                      borderRadius: '4px',
-                                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
-                                      p:3,
-                                      m:1,
-                                      cursor: 'pointer',
-                                      '&:hover': {
-                                        boxShadow: 'rgba(0, 0, 0, 0.35) 0px -50px 36px -28px inset'
-                                      }
-                                      }}
-                                      onClick={navigateToRegisteredESP}>
-								<Grid container>
-									<Grid>
-                      <IconButton aria-label="icon">
-                          <VerifiedUserIcon sx={{fontSize: '40px'}} color="primary"/>
-                      </IconButton>
-                  </Grid>
-                  <Grid>
-                    <Grid container direction="column">
-                      <Grid  sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>Registered ESP</Grid>
-                      <Grid  sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                      {/* <AnimatedNumbers
-                        includeComma
-                        transitions={(index) => ({
-                        type: "spring",
-                        duration: index + 5,
-                        })}
-                        animateToNumber={infoList?.totalESP || 0}
-                                                        
-                    /> */}
-                    {infoList?.totalESP || 0}
-                  </Grid>
-                </Grid>
-              </Grid>
-						</Grid>
-					</Grid>
-						
-
-          <Grid   size={{ xs: 12, sm: 12, md: 'grow' }} sx={{backgroundColor: 'infobox.color3', 
-                                      borderRadius: '4px',
-                                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
-                                      p:3,
-                                      m:1,
-                                      cursor: 'pointer',
-                                      '&:hover': {
-                                        boxShadow: 'rgba(0, 0, 0, 0.35) 0px -50px 36px -28px inset'
-                                      }
-                                      }}
-                                      onClick={navigateToDSCIssued}>
-								<Grid container>
-									<Grid>
-                      <IconButton aria-label="icon">
-                          <DSCIssuedIcon sx={{fontSize: '40px'}} color="primary"/>
-                      </IconButton>
-                  </Grid>
-                  <Grid>
-                    <Grid container direction="column">
-                      <Grid  sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>Total DSCs Issued</Grid>
-                      <Grid  sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                      {/* <AnimatedNumbers
-                        includeComma
-                        transitions={(index) => ({
-                        type: "spring",
-                        duration: index + 5,
-                        })}
-                        animateToNumber={infoList?.totalDSCIssued || 0}
-                                                        
-                    /> */}
-                    {infoList?.totalDSCIssued || 0}
-                  </Grid>
-                </Grid>
-              </Grid>
-						</Grid>
-					</Grid>
-                        
-					<Grid   size={{ xs: 12, sm: 12, md: 'grow' }} sx={{backgroundColor: 'infobox.color4', 
-                                      borderRadius: '4px',
-                                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
-                                      p:3,
-                                      m:1,
-                                      cursor: 'pointer',
-                                      '&:hover': {
-                                        boxShadow: 'rgba(0, 0, 0, 0.35) 0px -50px 36px -28px inset'
-                                      }
-                                      }}
-                                      onClick={navigateToeSignIssued}>
-								<Grid container>
-									<Grid >
-                      <IconButton aria-label="icon">
-                          <EsignIssuedIcon sx={{fontSize: '40px'}} color="primary"/>
-                      </IconButton>
-                  </Grid>
-                  <Grid>
-                    <Grid container direction="column">
-                      <Grid  sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>Total eSign Issued</Grid>
-                      <Grid  sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                      {/* <AnimatedNumbers
-                        includeComma
-                        transitions={(index) => ({
-                        type: "spring",
-                        duration: index + 5,
-                        })}
-                        animateToNumber={infoList?.totaleSignIssued || 0}
-                                                        
-                    /> */}
-                    {infoList?.totaleSignIssued || 0}
-                  </Grid>
-                </Grid>
-              </Grid>
-						</Grid>
-					</Grid>		
-						
+          <Grid container spacing={1} sx={{ alignItems: 'stretch' }} >
+            <DashboardInfoCard
+              bgColor="infobox.color1"
+              icon={RegisteredUserIcon}
+              label="Registered CA"
+              value={infoList?.totalCA || 0}
+              onClick={navigateToRegisteredCA}
+            />
+            <DashboardInfoCard
+              bgColor="infobox.color2"
+              icon={VerifiedUserIcon}
+              label="Registered ESP"
+              value={infoList?.totalESP || 0}
+              onClick={navigateToRegisteredESP}
+            />
+            <DashboardInfoCard
+              bgColor="infobox.color3"
+              icon={DSCIssuedIcon}
+              label="Total DSCs Issued"
+              value={infoList?.totalDSCIssued || 0}
+              onClick={navigateToDSCIssued}
+            />
+            <DashboardInfoCard
+              bgColor="infobox.color4"
+              icon={EsignIssuedIcon}
+              label="Total eSign Issued"
+              value={infoList?.totaleSignIssued || 0}
+              onClick={navigateToeSignIssued}
+            />
 
 		</Grid>
 

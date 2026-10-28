@@ -21,7 +21,6 @@ import Captcha from '../../global/util/Captcha';
 import LoaderProgress from '../../global/common/LoaderProgress';
 import showAlert from '../../global/common/MessageBox/AlertService';
 import { useNavigate, useParams } from 'react-router-dom';
-import FormWrapper from '../../global/util/FormWrapper';
 import AuditAgency from '../../../service/AdminService/AuditAgency';
 import AuditorCertificateTypeService from '../../../service/AdminService/AuditorCertificateTypeService';
 import AuditService from '../../../service/AuditService/AuditService';
@@ -31,6 +30,8 @@ import styled from '@emotion/styled';
 import API from '../../../api/ApplicationAPI';
 import { decrypt } from '../../global/util/EncryptDecrypt';
 import AnnualAuditService from '../../../service/AnnualAuditService/AnnualAuditService';
+import useAnnualAuditRoute from '../../global/util/useAnnualAuditRoute';
+import FormWrapper from '../../global/util/FormWrapper';
 
 const VisuallyHiddenInput = styled('input')({
     position: 'absolute',
@@ -56,9 +57,7 @@ const errorMsg = {
 };
 
 const AuditorDetails = (() => {
-    const{id}=useParams();
-    const ApplicantUserName=decrypt(id)
-    console.log(ApplicantUserName)
+    const { userName: ApplicantUserName } = useAnnualAuditRoute();
     const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({ auditAgencyName: '',applicantUserName:ApplicantUserName, intentAppId: '', undertakingFile: null, auditors: [], auditorDesscription: [{ auditorName: '', certificateType: '', file: null }], auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }] });
     const [formErrors, setFormErrors] = useState({});
     const [captchaText, setCaptchaText] = useState('');

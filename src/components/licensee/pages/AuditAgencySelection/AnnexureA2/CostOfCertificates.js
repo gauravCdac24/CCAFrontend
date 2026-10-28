@@ -48,47 +48,35 @@ const CostOfCertificates = () => {
   };
 
   const validateFields = () => {
-    let valid = true;
     let newErrors = {};
 
-    // Validate avgDscIssuMaintenanceCost
-    if (!costData.avgDscIssuMaintenanceCost.trim()) {
-      newErrors.avgDscIssuMaintenanceCost = 'Maintenance cost cannot be empty.';
-      valid = false;
-    } else if (!DIGITS_PATTERN.test(costData.avgDscIssuMaintenanceCost)) {
-      newErrors.avgDscIssuMaintenanceCost = 'Only digits are allowed.';
-      valid = false;
-    } else if (parseInt(costData.avgDscIssuMaintenanceCost) > 25000) {
-      newErrors.avgDscIssuMaintenanceCost = 'Maximum cost should not exceed 25000.';
-      valid = false;
+    // Optional; format/range only when value present
+    if (costData.avgDscIssuMaintenanceCost && costData.avgDscIssuMaintenanceCost.trim()) {
+      if (!DIGITS_PATTERN.test(costData.avgDscIssuMaintenanceCost)) {
+        newErrors.avgDscIssuMaintenanceCost = 'Only digits are allowed.';
+      } else if (parseInt(costData.avgDscIssuMaintenanceCost) > 25000) {
+        newErrors.avgDscIssuMaintenanceCost = 'Maximum cost should not exceed 25000.';
+      }
     }
 
-    // Validate avgFeeChargedByCA
-    if (!costData.avgFeeChargedByCA.trim()) {
-      newErrors.avgFeeChargedByCA = 'Fee charged cannot be empty.';
-      valid = false;
-    } else if (!DIGITS_PATTERN.test(costData.avgFeeChargedByCA)) {
-      newErrors.avgFeeChargedByCA = 'Only digits are allowed.';
-      valid = false;
-    } else if (parseInt(costData.avgFeeChargedByCA) > 25000) {
-      newErrors.avgFeeChargedByCA = 'Maximum fee should not exceed 25000.';
-      valid = false;
+    if (costData.avgFeeChargedByCA && costData.avgFeeChargedByCA.trim()) {
+      if (!DIGITS_PATTERN.test(costData.avgFeeChargedByCA)) {
+        newErrors.avgFeeChargedByCA = 'Only digits are allowed.';
+      } else if (parseInt(costData.avgFeeChargedByCA) > 25000) {
+        newErrors.avgFeeChargedByCA = 'Maximum fee should not exceed 25000.';
+      }
     }
 
-    // Validate explanationForCostMismatch
-    if (!costData.explanationForCostMismatch.trim()) {
-      newErrors.explanationForCostMismatch = 'Explanation cannot be empty';
-      valid = false;
-    } else if (costData.explanationForCostMismatch.length < 3 || costData.explanationForCostMismatch.length > 250) {
-      newErrors.explanationForCostMismatch = 'The length must be between 3 and 250 characters.';
-      valid = false;
-    } else if (!STRING_PATTERN.test(costData.explanationForCostMismatch)) {
-      newErrors.explanationForCostMismatch = 'Only alphabets, numbers, characters ().,&- are allowed';
-      valid = false;
+    if (costData.explanationForCostMismatch && costData.explanationForCostMismatch.trim()) {
+      if (costData.explanationForCostMismatch.length < 3 || costData.explanationForCostMismatch.length > 250) {
+        newErrors.explanationForCostMismatch = 'The length must be between 3 and 250 characters.';
+      } else if (!STRING_PATTERN.test(costData.explanationForCostMismatch)) {
+        newErrors.explanationForCostMismatch = 'Only alphabets, numbers, characters ().,&- are allowed';
+      }
     }
 
     setErrors(newErrors);
-    return valid;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {

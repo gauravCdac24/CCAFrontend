@@ -29,6 +29,7 @@ import AuditService from '../../../../service/AuditService/AuditService';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import styled from '@emotion/styled';
 import API from '../../../../api/ApplicationAPI';
+import useAnnualAuditRoute from '../../../global/util/useAnnualAuditRoute';
 import { decrypt } from '../../../global/util/EncryptDecrypt';
 import { DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -59,9 +60,7 @@ const errorMsg = {
 };
 
 const AuditorDetails = (() => {
-    const{id}=useParams();
-    const ApplicantUserName=decrypt(id)
-    console.log(ApplicantUserName)
+    const { userName: ApplicantUserName } = useAnnualAuditRoute();
     const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({ auditAgencyName: '',applicantUserName:ApplicantUserName, intentAppId: '',undertakingFileName:'', undertakingFile: null, auditors: [], auditorDesscription: [{ auditorName: '', certificateType: '', file: null,auditorDescriptionId:'' ,certificateName:'',certificateExpiry:''}], auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' ,auditScopeId:''}] });
     const [formErrors, setFormErrors] = useState({});
     const [captchaText, setCaptchaText] = useState('');

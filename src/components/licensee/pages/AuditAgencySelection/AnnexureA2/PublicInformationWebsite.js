@@ -28,10 +28,10 @@ const PublicInformationWebsite = () => {
   // Validation Patterns
   const WEBLINK_PATTERN = /^[A-Za-z0-9().,:&\-\s]+$/;
 
-  // Validate fields (only for webLink)
+  // Validate fields (optional; format/length only when value present)
   const validateWebLink = (value) => {
-    if (!value.trim()) {
-      return 'Weblink cannot be empty.';
+    if (!value || !value.trim()) {
+      return '';
     }
     if (value.length < 3 || value.length > 500) {
       return 'Weblink must be between 3 and 500 characters.';

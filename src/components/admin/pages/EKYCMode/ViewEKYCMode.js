@@ -57,7 +57,7 @@ const ViewEKYCMode = () => {
             .catch((err) => {
                 showAlert({
                     messageTitle: 'Error',
-                    messageContent: 'Error changing EKYC Mode status. Please try again later.',
+                    messageContent: 'Error changing eKYC Mode status. Please try again later.',
                     confirmText: 'OK',
                 });
             })
@@ -70,7 +70,7 @@ const ViewEKYCMode = () => {
         const obj = ekycModeList.find((obj) => obj.id === cid);
         if (obj) {
             showAlert({
-                messageTitle: 'View EKYC Mode',
+                messageTitle: 'View eKYC Mode',
                 messageContent: <ViewEKYCModeDetails ekycModeObj={obj} />,
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
@@ -78,8 +78,8 @@ const ViewEKYCMode = () => {
             });
         } else {
             showAlert({
-                messageTitle: 'View EKYC Mode',
-                messageContent: 'Error in getting EKYC Mode details, try after some time.',
+                messageTitle: 'View eKYC Mode',
+                messageContent: 'Error in getting eKYC Mode details, try after some time.',
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true,
@@ -94,8 +94,8 @@ const ViewEKYCMode = () => {
             navigate(`${rolePath}/ekycmode/editekycmode/${encryptedId}`);
         } else {
             showAlert({
-                messageTitle: 'Edit EKYC Mode',
-                messageContent: 'Error in updating EKYC Mode details, try after some time.',
+                messageTitle: 'Edit eKYC Mode',
+                messageContent: 'Error in updating eKYC Mode details, try after some time.',
                 confirmText: 'Ok',
                 enableHeaderCloseBtn: true,
                 disableOutsideKeyDown: true,
@@ -109,7 +109,7 @@ const ViewEKYCMode = () => {
     const columns = useMemo(
         () => [
             { field: 'id', headerName: 'Sl. No.', resizable: false, width: 90 },
-            { field: 'ekycModeTitle', headerName: 'EKYC Mode', resizable: false, width: 150 },
+            { field: 'ekycModeTitle', headerName: 'eKYC Mode', resizable: false, width: 150 },
             { field: 'isApprovalRequired', headerName: 'Approval Required', resizable: false, width: 150,
                 renderCell: (params) => (
                     <>{params.row.isApprovalRequired?'Yes':'No'}</>
@@ -150,7 +150,7 @@ const ViewEKYCMode = () => {
 
     return (
         <>
-            <CustomTable customTitle = "EKYC Modes" columns={columns} rows={ekycModeList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} />
+            <CustomTable customTitle = "eKYC Modes" columns={columns} rows={ekycModeList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} />
         </>
     );
 };

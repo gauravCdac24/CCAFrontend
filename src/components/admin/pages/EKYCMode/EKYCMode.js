@@ -23,7 +23,7 @@ const EKYCMode = () => {
 
                     <Grid item sx={{display: 'flex', justifyContent:'right', alignItems:'right', mr: 2}}>
                         <Button variant="contained"  startIcon={<AddIcon />} onClick={addEKYCMode}>
-                            <Typography variant="h6">Add EKYC Mode</Typography>
+                            <Typography variant="h6">Add eKYC Mode</Typography>
                         </Button>
                     </Grid>
                 </Grid>

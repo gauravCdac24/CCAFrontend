@@ -333,7 +333,7 @@ const handleDownload = async (appDocId, documentTitle) => {
         return 'No emails provided';
       };
   return (
-        <Box sx={{ width: '100%' }}>
+        <Box sx={{ width: '100%' }} data-print-root="application-preview">
 
 <Typography variant="h4" >Form for Application for Grant of Licence to be a Certifying Authority</Typography>
 <Box>
@@ -344,7 +344,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 </Box>
 
   <Grid item sm={12}>
-    <Typography variant="h6">1. Full Name*:</Typography>
+    <Typography variant="h6">1. Full Name<span className="req-asterisk">*</span>:</Typography>
   </Grid>
 
   {/* <Grid item sm={6}>
@@ -411,7 +411,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 
 
 <Typography variant="h6">3. Address:</Typography>
-<Typography variant="h6">A. Residential Address*:</Typography>
+<Typography variant="h6">A. Residential Address<span className="req-asterisk">*</span>:</Typography>
   
   <Grid container spacing={2} sx={{ ml: 1 }}>
   <Grid item sm={6}>
@@ -495,7 +495,7 @@ const handleDownload = async (appDocId, documentTitle) => {
   </Grid>
   
   
-    <Typography variant="h6">B. Office Address*:</Typography>
+    <Typography variant="h6">B. Office Address<span className="req-asterisk">*</span>:</Typography>
   
     <Grid container spacing={2} sx={{ ml: 1 }}>
   <Grid item sm={6}>
@@ -577,7 +577,7 @@ const handleDownload = async (appDocId, documentTitle) => {
   {/* Title */}
   <Grid item sm={6}>
     <Typography variant="h6">
-      4. Address for Communication*:
+      4. Address for Communication<span className="req-asterisk">*</span>:
     </Typography>
   </Grid>
 
@@ -602,15 +602,15 @@ const handleDownload = async (appDocId, documentTitle) => {
         }
       />
       <FormControlLabel
-        value="Office"
+        value="Official"
         control={
           <Radio
-            checked={basicDetailsFormValues2.communicationAddress === 'Office'}
+            checked={basicDetailsFormValues2.communicationAddress === 'Official'}
           />
         }
         label={
           <span>
-            Office {basicDetailsFormValues2.communicationAddress === 'Office' && <span>✓</span>}
+            Office {basicDetailsFormValues2.communicationAddress === 'Official' && <span>✓</span>}
           </span>
         }
       />
@@ -620,7 +620,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 
 
 
-  <Typography variant="h6">5. Father's Name*:</Typography>
+  <Typography variant="h6">5. Father's Name<span className="req-asterisk">*</span>:</Typography>
 
   {/* Salutation */}
   {/* <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -672,7 +672,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     {/* Title */}
     <Grid item sm={6}>
       <Typography variant="h6" sx={{ display: 'inline' }}>
-        6. Sex* (For Individual Applicant only):
+        6. Sex<span className="req-asterisk">*</span> (For Individual Applicant only):
       </Typography>
     </Grid>
 
@@ -715,7 +715,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     {/* Title */}
     <Grid item sm={6}>
       <Typography variant="h6" sx={{ display: 'inline' }}>
-        7. Date of Birth (dd/mm/yyyy)*:
+        7. Date of Birth (dd/mm/yyyy)<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
 
@@ -733,7 +733,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     {/* Title */}
     <Grid item sm={6}>
       <Typography variant="h6" sx={{ display: 'inline' }}>
-        8. Nationality*:
+        8. Nationality<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
 
@@ -842,7 +842,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 
   <Box sx={{ margin: '20px 0' }}>
   <Typography variant="h6">
-    12. Passport Details#:
+    12. Passport Details:
   </Typography>
 
   <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -900,10 +900,16 @@ const handleDownload = async (appDocId, documentTitle) => {
         {basicDetailsFormValues3.applicationDocument
           .filter(doc => doc.documentTitle === "passportDocument") // Filter for passportDocument
           .map((doc, index) => (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+            <Box
+              key={index}
+              sx={{ display: 'flex', alignItems: 'center', ml: 1 }}
+              data-app-doc-id={doc.appDocId}
+              data-doc-title={doc.documentTitle || 'passportDocument'}
+            >
               {/* View Icon */}
               <Link
-                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)} // Change the handler function if needed
+                data-print-hide
+                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
                 sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
             >
                 View
@@ -917,7 +923,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 
 
   <Typography variant="h6">
-    14. Pan Card Details#:
+    14. Pan Card Details:
   </Typography>
 
   <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -944,10 +950,16 @@ const handleDownload = async (appDocId, documentTitle) => {
         {basicDetailsFormValues3.applicationDocument
           .filter(doc => doc.documentTitle === "panDocument") // Filter for panDocument
           .map((doc, index) => (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+            <Box
+              key={index}
+              sx={{ display: 'flex', alignItems: 'center', ml: 1 }}
+              data-app-doc-id={doc.appDocId}
+              data-doc-title={doc.documentTitle || 'panDocument'}
+            >
               {/* View Icon */}
               <Link
-                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)} // Change the handler function if needed
+                data-print-hide
+                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
                 sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
             >
                 View
@@ -967,7 +979,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     {/* ISP Name */}
     <Grid item sm={6}>
       <Typography variant="body1">
-        ISP Name*:
+        ISP Name<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
     <Grid item sm={6}>
@@ -1027,13 +1039,13 @@ const handleDownload = async (appDocId, documentTitle) => {
 
   
       <Typography variant="h6">
-        14. Capital in the business or profession *Rs:
+        14. Capital in the business or profession <span className="req-asterisk">*</span>Rs:
       </Typography>
     
       <Grid container spacing={2} sx={{ml:1}}>
       <Grid item sm={6}>
       <Typography variant="body1">
-        Capital in the business or profession *Rs.: 
+        Capital in the business or profession <span className="req-asterisk">*</span>Rs.: 
       </Typography>
     </Grid>
     <Grid item sm={6}>
@@ -1053,9 +1065,15 @@ const handleDownload = async (appDocId, documentTitle) => {
       {basicDetailsFormValues3.applicationDocument
         .filter(doc => doc.documentTitle === "capitalDocument") // Filter for capitalDocument
         .map((doc, index) => (
-          <Box key={index} sx={{ display: 'inline', marginLeft: '8px' }}>
+          <Box
+            key={index}
+            sx={{ display: 'inline', marginLeft: '8px' }}
+            data-app-doc-id={doc.appDocId}
+            data-doc-title={doc.documentTitle || 'capitalDocument'}
+          >
               <Link
-                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)} // Change the handler function if needed
+                data-print-hide
+                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
                 sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
             >
                 View
@@ -1075,7 +1093,7 @@ const handleDownload = async (appDocId, documentTitle) => {
       </Typography>
       <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Bank Name*:</Typography>
+        <Typography variant="body1">Bank Name<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankName || 'N/A'}</Typography>
@@ -1083,7 +1101,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Branch*:</Typography>
+        <Typography variant="body1">Branch<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.branchName || 'N/A'}</Typography>
@@ -1091,7 +1109,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Bank Account No.*:</Typography>
+        <Typography variant="body1">Bank Account No.<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankAccountNo || 'N/A'}</Typography>
@@ -1099,7 +1117,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Grid>
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-        <Typography variant="body1">Type of Bank Account*:</Typography>
+        <Typography variant="body1">Type of Bank Account<span className="req-asterisk">*</span>:</Typography>
     </Grid>
     <Grid item sm={6}>
         <Typography variant="body1">{bankDetails?.bankAccountType || 'N/A'}</Typography>
@@ -1152,7 +1170,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Box>
     <Box>
     <Typography variant="h6" gutterBottom style={{ marginTop: '10px' }}>
-            31.  Location of facility in India for generation of Digital Signature Certificate *
+            31.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
           </Typography>
     <TableContainer>
     <Table>
@@ -1203,9 +1221,14 @@ const handleDownload = async (appDocId, documentTitle) => {
     
     {/* Adding a Box to contain the link */}
     {cpsDocument && (
-        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', ml: 2 }}
+          data-app-doc-id={cpsDocument.appDocId}
+          data-doc-title={cpsDocument.documentTitle || 'CPSDocument'}
+        >
             <Link
-                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)} // Change the handler function if needed
+                data-print-hide
+                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)}
                 sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
             >
                 view

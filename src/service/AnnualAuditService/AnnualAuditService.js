@@ -35,6 +35,10 @@ const GET_ALL_DATA_REVIEW_REMARKS="/get-All-ShortComming";
 const CHANGE_APPLICANT_TO_REVIEWE="/reviewer-remarks-by-applicant";
 const APPLICATION_REJECTED="/review-by-cca";
 const GET_ANNUAL_AUDIT_START_DATE_BY_USERNAME="/get-annual-audit-started";
+const GET_ANNUAL_AUDIT_SCHEDULES_FOR_AGENCY_SELECTION="/get-annual-audit-schedules-for-agency-selection";
+const GET_ANNUAL_AUDIT_SCHEDULE_LIST="/get-annual-audit-schedule-list";
+const GET_AUDIT_AGENCY_SELECTION_BY_SCHEDULE="/get-audit-agency-selection-by-schedule";
+const GET_ANNUAL_AUDIT_WORKFLOW_ACTIONS="/get-annual-audit-workflow-actions";
 
    const VIEW_FILE="/downloadFile";
    const DOWNLOAD_AUDITOR_REPORT="/download-auditor-report";
@@ -227,8 +231,9 @@ const applicationRejected = (obj) =>{
 const submitLicenseeAuditForm = (obj) =>{
 	return API.post(AUDIT_SERVICE+ADD_AUNNUAL_AUDIT,obj)
 }
-const downloadAuditorReport = () =>{
+const downloadAuditorReport = (applicantUserName) =>{
 	return API.get(AUDIT_SERVICE+DOWNLOAD_AUDITOR_REPORT,{
+		params: { applicantUserName },
 		responseType: 'blob', 
 		...sconfig
 	})
@@ -242,6 +247,40 @@ const getAnnualAuditStartDateByUsername= (userName) =>{
 			id:encrypt(userName)
 		}
 	})
+}
+
+const getAnnualAuditScheduleList = (id, role = 'LICENSEE') => {
+	return API.get(AUDIT_SERVICE + GET_ANNUAL_AUDIT_SCHEDULE_LIST, {
+		params: {
+			id: encrypt(id),
+			role,
+		},
+	});
+}
+
+const getAnnualAuditSchedulesForAgencySelection = (userName) => {
+	return API.get(AUDIT_SERVICE + GET_ANNUAL_AUDIT_SCHEDULES_FOR_AGENCY_SELECTION, {
+		params: {
+			id: encrypt(userName),
+		},
+	});
+}
+
+const getAuditAgencySelectionBySchedule = (auditScheduleId) => {
+	return API.get(AUDIT_SERVICE + GET_AUDIT_AGENCY_SELECTION_BY_SCHEDULE, {
+		params: {
+			auditScheduleId: encrypt(String(auditScheduleId)),
+		},
+	});
+}
+
+const getAnnualAuditWorkflowActions = (userName, role = 'LICENSEE') => {
+	return API.get(AUDIT_SERVICE + GET_ANNUAL_AUDIT_WORKFLOW_ACTIONS, {
+		params: {
+			id: encrypt(userName),
+			role,
+		},
+	});
 }
 
 
@@ -275,5 +314,9 @@ export default{
 				submitLicenseeAuditForm,
 				downloadAuditorReport,
 				getAnnualAuditStartDateByUsername,
+				getAnnualAuditSchedulesForAgencySelection,
+				getAnnualAuditScheduleList,
+				getAuditAgencySelectionBySchedule,
+				getAnnualAuditWorkflowActions,
 				
             };
