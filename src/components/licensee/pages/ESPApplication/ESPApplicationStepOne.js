@@ -6,9 +6,11 @@ import ESPApplicationService from "../../../../service/ESPApplicationService/ESP
 import LicenseIssuanceService from "../../../../service/LicenseIssuanceService/LicenseIssuanceService";
 import showAlert from "../../../global/common/MessageBox/AlertService";
 
+const MIN_EKYC_MODES = 2;
+
 const errorMsg = {
     ekycMode: {
-        blank: "Please select at least one eKYC mode.",
+        blank: "Please select at least two eKYC modes.",
     },
     purpose:{
         blank: "Please select the purpose."
@@ -90,24 +92,25 @@ const handlePurposeChange = (event) => {
             ekycmodetitles.splice(ekycModeTitleIndex, 1);
         }
 
-        setFormValues({
+        const nextValues = {
                 ...formValues,
-                'ekycMode': ekycmode,
-                'ekycModeTitles': ekycmodetitles
-        })
+                ekycMode: ekycmode,
+                ekycModeTitles: ekycmodetitles
+        };
 
-        const errors = validateForm();
-        setFormErrors(errors);
+        setFormValues(nextValues);
+        setFormErrors(validateForm(nextValues));
 
     };
 
-    const validateForm = () => {
+    const validateForm = (values = formValues) => {
         const errors = {};
+        const selectedModes = values.ekycMode || [];
 
-        if(!formValues.ekycMode?.length){
+        if(selectedModes.length < MIN_EKYC_MODES){
             errors.ekycMode = errorMsg.ekycMode.blank;
         } 
-        if(!formValues.purpose){
+        if(!values.purpose){
             errors.purpose = errorMsg.purpose.blank;
         }
 
@@ -220,7 +223,7 @@ const handlePurposeChange = (event) => {
             return;
         }
 
-        if (!formValues.ekycMode?.length) {
+        if ((formValues.ekycMode || []).length < MIN_EKYC_MODES) {
             setFormErrors((prev) => ({ ...prev, ekycMode: errorMsg.ekycMode.blank }));
             return;
         }
@@ -347,7 +350,7 @@ const handlePurposeChange = (event) => {
                                 <Typography variant="body1"><b>3. Download Cover Letter</b></Typography>
                             </Box>
                             <Box>
-                                <Button type="button" color="primary" onClick={downloadCoverLetter} disabled={!formValues.ekycMode?.length || !formValues.purpose}>
+                                <Button type="button" color="primary" onClick={downloadCoverLetter} disabled={(formValues.ekycMode || []).length < MIN_EKYC_MODES || !formValues.purpose}>
                                         Download
                                 </Button>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Grid, Typography, TextField, FormControl, InputLabel, MenuItem, Select, FormHelperText, FormControlLabel, Checkbox, RadioGroup, Radio, Button, ListItemText, OutlinedInput, ListSubheader } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -10,7 +10,8 @@ import SubServiceMaster from '../../../../service/AdminService/SubServiceMaster'
 import validatePattern from '../../../global/util/ValidatePattern';
 import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
-import CheckboxTreeView from './CheckboxTreeView'
+import CheckboxTreeView, { MUI_X_PRODUCTS } from './CheckboxTreeView'
+import { defaultSelectedIds, idsFromServiceLabels, selectedServiceLabels, serviceFlagsFromLabels } from '../../../global/util/applicationServices';
 
 const errorMessages = {
   bankName: {
@@ -147,6 +148,13 @@ const isFieldEnabled = (fieldName) => {
 };
 
   const [servicesData, setServicesData] = useState([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState(() => defaultSelectedIds(MUI_X_PRODUCTS));
+  const handleServiceSelection = useCallback((ids) => {
+    setSelectedServiceIds((prev) => {
+      const same = prev.length === ids.length && prev.every((id, index) => id === ids[index]);
+      return same ? prev : ids;
+    });
+  }, []);
   const [selectedDSCSubServices, setSelectedDSCSubServices] = useState([]);
   const [selectedESignSubServices, setSelectedESignSubServices] = useState([]);
   const [isESignSelected, setIsESignSelected] = useState(false);
@@ -255,6 +263,12 @@ const isFieldEnabled = (fieldName) => {
             SSL: SSL || false,
            
           }));
+
+          const savedServices = response.data?.services || response.data?.bankDetails?.services;
+          const savedIds = idsFromServiceLabels(savedServices, MUI_X_PRODUCTS);
+          if (savedIds.length > 0) {
+            setSelectedServiceIds(savedIds);
+          }
   
           // Log updated state
           setTimeout(() => {
@@ -408,8 +422,14 @@ const isFieldEnabled = (fieldName) => {
             
             const requestMethod = (basicDetailsFormValues.bankDetails.bankDetailsId || basicDetailsFormValues.bankDraft.bankDraftId) ? ApplicationForm.updateNewApplicationForm4 : ApplicationForm.addNewApplicationForm4;
 
+            const serviceLabels = selectedServiceLabels(selectedServiceIds, MUI_X_PRODUCTS);
+            const payload = {
+              ...basicDetailsFormValues,
+              ...serviceFlagsFromLabels(serviceLabels),
+              services: serviceLabels.join(", "),
+            };
 
-            requestMethod(basicDetailsFormValues)
+            requestMethod(payload)
                     .then((response) => {
 
                         
@@ -746,7 +766,7 @@ const isFieldEnabled = (fieldName) => {
 )}
 
 
-<CheckboxTreeView />
+<CheckboxTreeView selectedIds={selectedServiceIds} onSelectionChange={handleServiceSelection} />
 
       </Grid>
 

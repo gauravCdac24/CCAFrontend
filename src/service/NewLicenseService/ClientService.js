@@ -29,10 +29,10 @@ const getAllAppWithRequiredDocuments = () => {
 Get all new application where status = Bank Guarantee Proof Uploaded
 
 ---*/
-const getNewAppWithBankGuaranteeProof = () =>{
-
-    return API.get(NEW_LICENSE_SERVICE_BASE_URL+GET_NEW_APPLICATION_WITH_BANK_GUARANTEE_PROOF);
-
+const getNewAppWithBankGuaranteeProof = (role) => {
+    return API.get(NEW_LICENSE_SERVICE_BASE_URL + GET_NEW_APPLICATION_WITH_BANK_GUARANTEE_PROOF, {
+        params: role ? { role } : undefined,
+    });
 }
 
 /*---

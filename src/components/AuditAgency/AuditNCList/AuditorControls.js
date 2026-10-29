@@ -75,6 +75,10 @@ const AuditorControls = () => {
     annexureA6: null,
     annexureVI: null,
   });
+  const rejectLockKey = `nc-review-rejected:${ApplicantUserName}`;
+  const [ncReviewRejected, setNcReviewRejected] = useState(
+    () => sessionStorage.getItem(`nc-review-rejected:${ApplicantUserName}`) === "1"
+  );
   const [selectedFiles, setSelectedFiles] = useState([]); // Track files per row
   let controlCounter = 0;
 
@@ -408,7 +412,8 @@ const AuditorControls = () => {
     // Call the API
     AuditService.getAuditorRejectedData(formData)
       .then((response) => {
-        //console.log(response.data)
+        sessionStorage.setItem(rejectLockKey, "1");
+        setNcReviewRejected(true);
         showAlert({
           messageTitle: 'Success',
           messageContent: response.data,
@@ -450,8 +455,15 @@ const AuditorControls = () => {
     const formData = new FormData();
     formData.append("controlId", id);
     formData.append("remarks", radioValue.remarks);
-    const validCompliance = radioValue?.compliance[id.split('-')[0]];
-    formData.append('compliance', validCompliance);
+    const parameterKey = id.lastIndexOf("-") > 0 ? id.substring(0, id.lastIndexOf("-")) : id;
+    const editedCompliance = radioValue?.compliance && typeof radioValue.compliance === "object"
+      ? radioValue.compliance[parameterKey]
+      : "";
+    let validCompliance = editedCompliance || complianceValues?.[parameterKey] || "";
+    if (validCompliance === "undefined" || validCompliance === "null") {
+      validCompliance = "";
+    }
+    formData.append("compliance", validCompliance);
     formData.append("applicantUserName", radioValue.applicantUserName);
 
     // Call the API
@@ -544,30 +556,102 @@ const AuditorControls = () => {
     }));
   };
 
+  const buildAuditReportFormData = (preview) => {
+    const formData = new FormData();
+    formData.append("applicantUserName", radioValue.applicantUserName);
+    formData.append("auditCoverReport", radioValue.auditCoverReport);
+    if (radioValue.annexureA5) {
+      formData.append("annexureA5", radioValue.annexureA5);
+    }
+    if (radioValue.annexureA6) {
+      formData.append("annexureA6", radioValue.annexureA6);
+    }
+    if (radioValue.annexureVI) {
+      formData.append("annexureVI", radioValue.annexureVI);
+    }
+    if (preview) {
+      formData.append("preview", "true");
+    }
+    return formData;
+  };
+
+  const requireCoverReport = () => {
+    if (!radioValue.auditCoverReport || radioValue.auditCoverReport.size === 0) {
+      showAlert({
+        messageTitle: 'Validation Error',
+        messageContent: 'Please upload the Audit Cover Report.',
+        confirmText: 'OK',
+        enableHeaderCloseBtn: true,
+        disableOutsideKeyDown: true,
+      });
+      return false;
+    }
+    return true;
+  };
+
  const handleSubmit = (e) => {
   e.preventDefault();
 
-  // Validate that the file is present and not empty
-  if (!radioValue.auditCoverReport || radioValue.auditCoverReport.size === 0) {
-    showAlert({
-      messageTitle: 'Validation Error',
-      messageContent: 'Please upload the Audit Cover Report.',
-      confirmText: 'OK',
-      enableHeaderCloseBtn: true,
-      disableOutsideKeyDown: true,
-    });
+  if (ncReviewRejected) {
     return;
   }
 
-  // Show confirmation before submitting
+  if (!requireCoverReport()) {
+    return;
+  }
+
   showAlert({
     messageTitle: 'Confirm',
-    messageContent: 'Are you sure you want to submit?',
+    messageContent: 'Are you sure you want to submit and eSign the audit report?',
     confirmText: 'Yes',
     closeText: 'No',
     onConfirm: handleConfrimSubmit,
   });
 };
+
+  const handlePreview = async (e) => {
+    e.preventDefault();
+    if (ncReviewRejected || !requireCoverReport()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await AuditService.downloadDocument(buildAuditReportFormData(true));
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const previewUrl = window.URL.createObjectURL(blob);
+      setLoading(false);
+      showAlert({
+        messageTitle: "Audit Report Preview",
+        messageContent: (
+          <Box sx={{ height: "75vh", overflow: "auto" }}>
+            <iframe
+              title="Audit Report Preview"
+              src={previewUrl}
+              width="100%"
+              height="100%"
+              style={{ border: "none", minWidth: "1100px" }}
+            />
+          </Box>
+        ),
+        confirmText: "Close",
+        enableHeaderCloseBtn: true,
+        disableOutsideKeyDown: true,
+        maxWidth: "lg",
+        fullWidth: true,
+        onConfirm: () => window.URL.revokeObjectURL(previewUrl),
+      });
+    } catch (error) {
+      console.error("Error generating audit report preview:", error);
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Unable to generate the audit report preview. Please try again.",
+        confirmText: "Ok",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const handleConfrimSubmit = async () => {
@@ -575,23 +659,8 @@ const AuditorControls = () => {
       setLoading(true);
 
 
-      const formData = new FormData();
-      formData.append("applicantUserName", radioValue.applicantUserName);
-      formData.append("auditCoverReport", radioValue.auditCoverReport);
-      if (radioValue.annexureA5) {
-        formData.append("annexureA5", radioValue.annexureA5);
-      }
-      if (radioValue.annexureA6) {
-        formData.append("annexureA6", radioValue.annexureA6);
-      }
-      if (radioValue.annexureVI) {
-        formData.append("annexureVI", radioValue.annexureVI);
-      }
-
-      //alert(radioValue.applicantUserName) 
-
       if (!coverLetterDoc.file) {
-        const response = await AuditService.downloadDocument(formData);
+        const response = await AuditService.downloadDocument(buildAuditReportFormData(false));
 
 
         console.log("rowid", response)
@@ -1150,6 +1219,7 @@ const AuditorControls = () => {
                                                 <Button
                                                   variant="contained"
                                                   color="primary"
+                                                  disabled={ncReviewRejected}
                                                   onClick={(e) => handleApproveData(e, `${parameterKey}-${control.auditControllId}`)}
                                                 >
                                                   Approve
@@ -1157,7 +1227,8 @@ const AuditorControls = () => {
 
                                                 <Button
                                                   variant="contained"
-                                                  color="secondary" // Changed to secondary for better distinction
+                                                  color="secondary"
+                                                  disabled={ncReviewRejected}
                                                   onClick={(e) => handleRejectData(e, `${parameterKey}-${control.auditControllId}`)}
                                                 >
                                                   Rejected
@@ -1220,10 +1291,11 @@ const AuditorControls = () => {
                 id="auditCoverReport"
                 type="file"
                 style={{ display: "none" }}
+                disabled={ncReviewRejected}
                 onChange={(e) => handleFilesChanges(e, "auditCoverReport")}
               />
               <label htmlFor="auditCoverReport">
-                <Button variant="contained" component="span" sx={{ minWidth: 140 }}>
+                <Button variant="contained" component="span" sx={{ minWidth: 140 }} disabled={ncReviewRejected}>
                   Choose File
                 </Button>
               </label>
@@ -1294,6 +1366,7 @@ const AuditorControls = () => {
                               variant="text"
                               size="small"
                               sx={{ textTransform: "none" }}
+                              disabled={ncReviewRejected}
                               onClick={() =>
                                 downloadAuditorCertificate(
                                   row.auditorDescriptionId,
@@ -1383,10 +1456,11 @@ const AuditorControls = () => {
                   id={key}
                   type="file"
                   style={{ display: "none" }}
+                  disabled={ncReviewRejected}
                   onChange={(e) => handleFileChanges(e, key)}
                 />
                 <label htmlFor={key}>
-                  <Button variant="contained" component="span" sx={{ minWidth: 140 }}>
+                  <Button variant="contained" component="span" sx={{ minWidth: 140 }} disabled={ncReviewRejected}>
                     Choose File
                   </Button>
                 </label>
@@ -1426,7 +1500,7 @@ const AuditorControls = () => {
                 variant="contained"
                 sx={{ minWidth: 140 }}
                 onClick={downloadUndertakingFile}
-                disabled={!undertakingAuditForm.undertakingFileName}
+                disabled={ncReviewRejected || !undertakingAuditForm.undertakingFileName}
               >
                 Download File
               </Button>
@@ -1466,24 +1540,25 @@ const AuditorControls = () => {
             <Grid item>
               <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
                 <Button
-                  type="submit"
+                  type="button"
                   variant="contained"
                   color="primary"
                   sx={{ width: "auto", minWidth: "120px", px: 2 }}
                   onClick={handleForwordToApplicant}
-                  disabled={radioValue.auditCoverReport}
+                  disabled={!ncReviewRejected && Boolean(radioValue.auditCoverReport)}
                 >
                   Forward To Applicant
                 </Button>
 
                 <Button
-                  type="submit"
+                  type="button"
                   variant="contained"
                   color="secondary"
                   sx={{ width: "auto", minWidth: "120px", px: 2 }}
                   onClick={handleSubmit}
+                  disabled={ncReviewRejected}
                 >
-                  Final Revision
+                  Submit &amp; eSign
                 </Button>
 
                 {auditEsignStatus.canRetryEsign && (
@@ -1493,10 +1568,23 @@ const AuditorControls = () => {
                     color="warning"
                     sx={{ width: "auto", minWidth: "120px", px: 2 }}
                     onClick={handleRetryEsign}
+                    disabled={ncReviewRejected}
                   >
                     Retry eSign
                   </Button>
                 )}
+              </Box>
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  color="primary"
+                  sx={{ width: "auto", minWidth: "120px", px: 2 }}
+                  onClick={handlePreview}
+                  disabled={ncReviewRejected}
+                >
+                  Preview
+                </Button>
               </Box>
             </Grid>
           </Grid>

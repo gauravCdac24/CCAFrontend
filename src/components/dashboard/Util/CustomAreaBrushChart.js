@@ -2,6 +2,7 @@ import { Box } from '@mui/material';
 import React from 'react';
 import Chart from 'react-apexcharts';
 import { useSelector } from 'react-redux';
+import { sanitizeCategories, sanitizeChartSeries } from './chartSeries';
 
 const CustomAreaBrushChart = ({ 
   series, 
@@ -16,8 +17,11 @@ const CustomAreaBrushChart = ({
   const nonce = useSelector((state) => state.customNonce.nonce);
 
 
+  const safeSeries = sanitizeChartSeries(series);
+  const safeCategories = sanitizeCategories(categories);
+
   const brushChart = {
-    series: series,
+    series: safeSeries,
     options: {
       chart: {
         id: `brushchart${id}`,
@@ -31,7 +35,7 @@ const CustomAreaBrushChart = ({
           enabled: true,
           xaxis: {
             min: 0,
-            max: categories.length-1
+            max: Math.max(safeCategories.length - 1, 0)
           }
         },
         nonce: nonce
@@ -39,7 +43,7 @@ const CustomAreaBrushChart = ({
       colors: colors,
       xaxis: {
         type: 'category',
-        categories: categories,
+        categories: safeCategories,
         tooltip: {
           enabled: false
         }        
@@ -76,7 +80,7 @@ const CustomAreaBrushChart = ({
       <Box>
         <Chart
           options={brushChart.options}
-          series={brushChart.series}
+          series={safeSeries}
           type="area"
           height={height}
         />

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import DashboardService from "../../../../service/DashboardService/DashboardService";
 import CustomTable from "../../../global/util/CustomTable";
 import { timeStampToDate } from "../../../global/util/TimestampConverter";
+import { formatLicenseCountdown, getLicenseCountdownTarget } from "../../../global/util/licenseCountdown";
+import DaysLeftCell from "../../../global/util/DaysLeftCell";
 import { Box, Button, Typography, Link,Grid2 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import showAlert from "../../../global/common/MessageBox/AlertService";
@@ -17,14 +19,25 @@ const rolePath = useSelector((state)=>state.jwtAuthentication.rolePath);
         try {
             const response = await DashboardService.getAllActiveCA();
 
-            const list = response.data.map((obj, index) => ({
-                id: index + 1,
-                caId: obj.caId, // Make sure caId exists in response
-                licenseName: obj.licenseName,
-                userName: obj.userName,
-                issueDate: timeStampToDate(obj.issueDate),
-                expiryDate: obj.expiryDate ? timeStampToDate(obj.expiryDate) : '-'
-            }));
+            const list = response.data.map((obj, index) => {
+                const countdownTarget = getLicenseCountdownTarget(obj.expiryDate, obj.issueDate)?.getTime() ?? null;
+                const row = {
+                    id: index + 1,
+                    caId: obj.caId, // Make sure caId exists in response
+                    licenseName: obj.licenseName,
+                    userName: obj.userName,
+                    issueDate: timeStampToDate(obj.issueDate),
+                    expiryDate: obj.expiryDate ? timeStampToDate(obj.expiryDate) : '-',
+                    countdownTarget,
+                };
+                Object.defineProperty(row, 'daysLeft', {
+                    enumerable: true,
+                    get() {
+                        return formatLicenseCountdown(countdownTarget);
+                    },
+                });
+                return row;
+            });
 
             setRegisteredCAList(list);
         } catch (err) {
@@ -89,6 +102,16 @@ const rolePath = useSelector((state)=>state.jwtAuthentication.rolePath);
         },
         { field: 'issueDate', headerName: 'Date of grant of Licence', resizable: false, width: 200 },
         { field: 'expiryDate', headerName: 'Licence Valid upto', resizable: false, width: 200 },
+        {
+            field: 'daysLeft',
+            headerName: 'Days Left',
+            description: 'Year:Months:Days HH:MM:SS remaining in the 5-year licence term',
+            resizable: false,
+            width: 220,
+            renderCell: (params) => (
+                <DaysLeftCell target={params.row.countdownTarget} />
+            ),
+        },
     ], [navigate]);
 
     const handleBack = () => {

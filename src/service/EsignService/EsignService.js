@@ -48,6 +48,21 @@ const newEsignRequest = (esignData) =>{
     return API.post(ESIGN_SERVICE_BASE_URL+ESIGN_NEW_REQUEST,formData, config);
 };
 
+/**
+ * Local/mock eSign completion: posts to gateway esignresponse (no CDAC callback).
+ * Returns the redirect Location from the backend mock bypass.
+ */
+const completeLocalEsignSkip = (aspTxnID) => {
+    const body = new URLSearchParams();
+    body.append("espTxnID", aspTxnID);
+    return API.post(ESIGN_SERVICE_BASE_URL + "/esignresponse", body, {
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Local-Esign-Skip": "true",
+        },
+    });
+};
+
 const downloadEsignedDocument = (id) =>{
 
     return API.get(ESIGN_SERVICE_BASE_URL+GET_DIGITALLY_SIGNED_DOCUMENT,{
@@ -120,6 +135,7 @@ const downloadDigitallySignedDocument  = async (id, filename) => {
 
 export default {
     newEsignRequest,
+    completeLocalEsignSkip,
     downloadEsignedDocument,
     downloadDigitallySignedDocument,
     viewDigitallySignedDocument

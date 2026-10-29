@@ -11,6 +11,7 @@ import {
 import ApplicationForm from "../../../../service/NewLicenseService/ApplicationForm";
 import dayjs from "dayjs";
 import { decrypt } from "../../../global/util/EncryptDecrypt";
+import { parseStoredServices } from "../../../global/util/applicationServices";
 
 const statusFlow = [
   "Application Submitted",
@@ -37,6 +38,7 @@ const SingleUserTracker = ({ username }) => {
   const userName = decrypt(username); // assuming decrypt returns plain string
 
   const [allTimeline, setAllTimeline] = useState([]);
+  const [services, setServices] = useState([]);
   const [userData, setUserData] = useState({
     userName: userName,
     status: "",
@@ -45,21 +47,36 @@ const SingleUserTracker = ({ username }) => {
   useEffect(() => {
     const fetchTimelineList = async () => {
       try {
-        const response = await ApplicationForm.getAllApplicationTimelineList(userName);
-        const sortedTimeline = response.data.sort(
-          (a, b) => new Date(a.created) - new Date(b.created)
-        );
-        setAllTimeline(sortedTimeline);
+        const [timelineResult, servicesResult] = await Promise.allSettled([
+          ApplicationForm.getAllApplicationTimelineList(userName),
+          ApplicationForm.getApplicationForm4ByUsername(userName),
+        ]);
 
-        if (sortedTimeline.length > 0) {
-          const latestStatus = sortedTimeline[sortedTimeline.length - 1];
-          setUserData((prev) => ({
-            ...prev,
-            status: latestStatus.applicationStatus,
-          }));
+        if (timelineResult.status === "fulfilled") {
+          const sortedTimeline = [...(timelineResult.value.data || [])].sort(
+            (a, b) => new Date(a.created) - new Date(b.created)
+          );
+          setAllTimeline(sortedTimeline);
+
+          if (sortedTimeline.length > 0) {
+            const latestStatus = sortedTimeline[sortedTimeline.length - 1];
+            setUserData((prev) => ({
+              ...prev,
+              status: latestStatus.applicationStatus,
+            }));
+          }
+        } else {
+          console.error("Error fetching application timeline:", timelineResult.reason);
+        }
+
+        if (servicesResult.status === "fulfilled") {
+          setServices(parseStoredServices(servicesResult.value?.data));
+        } else {
+          setServices([]);
+          console.error("Error fetching applicant services:", servicesResult.reason);
         }
       } catch (error) {
-        console.error("Error fetching application timeline:", error);
+        console.error("Error fetching licensee history:", error);
       }
     };
 
@@ -88,6 +105,24 @@ const SingleUserTracker = ({ username }) => {
             size="small"
           />
         </Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.75, mt: 1.5 }}>
+          <Typography component="span">
+            <strong>Services: </strong>
+          </Typography>
+          {services.length === 0 ? (
+            <Typography component="span" color="text.secondary">-</Typography>
+          ) : (
+            services.map((service) => (
+              <Chip
+                key={service}
+                label={service}
+                variant="outlined"
+                size="small"
+                color="primary"
+              />
+            ))
+          )}
+        </Box>
       </Grid>
 
       <Grid item xs={12}>

@@ -2,6 +2,7 @@ import { Box } from '@mui/material';
 import React from 'react';
 import Chart from 'react-apexcharts';
 import { useSelector } from 'react-redux';
+import { sanitizeChartSeries } from './chartSeries';
 
 const CustomPieChart = ({ 
   series, 
@@ -18,8 +19,10 @@ const CustomPieChart = ({
   const isDarkMode = useSelector((state) => state.colorMode.isDarkMode);
   const nonce = useSelector((state) => state.customNonce.nonce);
 
+  const safeSeries = sanitizeChartSeries(series);
+
   const mainChartPie ={
-    series: series,
+    series: safeSeries,
     options: {
       chart: {
         id: `mainchart${id}`,
@@ -76,7 +79,7 @@ const CustomPieChart = ({
       <Box>
         <Chart
           options={mainChartPie.options}
-          series={mainChartPie.series}
+          series={safeSeries}
           type={type}
           height={height}
         />

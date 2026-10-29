@@ -162,6 +162,7 @@ const ReviewNCReports = lazy(()=>import('../components/ReviewCommitteePage/Revie
 const NewApplicationRecommended = lazy(()=>import('../components/cca/pages/RecommendedApplication/NewApplication'));
 const RenewalApplicationRecommended = lazy(()=>import('../components/cca/pages/RecommendedApplication/RenewalApplication'));
 const IssueNewLicense = lazy(()=>import('../components/cca/pages/IssueLicense/NewApplication'));
+const FillLicenseDetails = lazy(()=>import('../components/admin/pages/IssueLicense/FillLicenseDetails'));
 const AuditorLicense = lazy(()=>import('../components/cca/pages/AuditOfLicense/ViewApplicationForm'));
 const AuditorDetailsFromCCA = lazy(()=>import('../components/cca/pages/AuditOfLicense/AuditorDetails'));
 const SendToRejection = lazy(()=>import('../components/cca/pages/AuditOfLicense/SendToRejection'));
@@ -283,6 +284,8 @@ const RegisteredESPDashboard = lazy(()=>import('../components/dashboard/Global/R
 
 const ViewHistory = lazy(()=>import('../components/admin/pages/ViewHistory/RegisteredCA'))
 const LicenseeHistory = lazy(()=>import('../components/admin/pages/ViewHistory/ViewHistory'))
+const ApplicationHistory = lazy(()=>import('../components/admin/pages/ViewHistory/ApplicationHistory'))
+const AuditHistory = lazy(()=>import('../components/admin/pages/ViewHistory/AuditHistory'))
 
 //Reports
 
@@ -990,6 +993,12 @@ const PrivateRoutesConfig = {
             path: 'issuenewlicense',
             element:(
                 <PrivateRoute component={IssueNewLicense} />
+            )
+        },
+        {
+            path: 'issuelicense/filllicensedetails',
+            element:(
+                <PrivateRoute component={FillLicenseDetails} />
             )
         },
 
@@ -1941,6 +1950,14 @@ const PrivateRoutesConfig = {
                                                  {
                                                 path: 'cawisehistory/licenseehistory/:id',
                                                 element:(<PrivateRoute component={LicenseeHistory} />)
+                                                },
+                                                {
+                                                path: 'viewhistory/applicationhistory',
+                                                element:(<PrivateRoute component={ApplicationHistory} />)
+                                                },
+                                                {
+                                                path: 'viewhistory/audithistory',
+                                                element:(<PrivateRoute component={AuditHistory} />)
                                                 },
 
 

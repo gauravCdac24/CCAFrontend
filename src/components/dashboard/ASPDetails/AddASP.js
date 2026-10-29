@@ -2,7 +2,9 @@ import Box from '@mui/material/Box';
 import Grid2 from '@mui/material/Grid2';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
-import { Checkbox, FormControl, FormControlLabel, FormHelperText, MenuItem, Select, Typography} from '@mui/material';
+import { FormControl, FormHelperText, IconButton, MenuItem, Select, Typography} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import { InputLabel } from '@mui/material';
 import { useEffect, useState } from 'react';
 import Captcha from '../../global/util/Captcha';
@@ -19,6 +21,8 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import StateService from '../../../service/AdminService/StateService';
 import CountryService from '../../../service/AdminService/CountryService';
+import EsignAPISpecificationService from '../../../service/AdminService/EsignAPISpecificationService';
+import ESignAPIVersionMasterService from '../../../service/AdminService/ESignAPIVersionMasterService';
 
 //Errors
 const errorMsg = {
@@ -47,8 +51,24 @@ const errorMsg = {
         diff: "Onboarding date must be less than exit date."
     },
 
-    exitDate:{
-        diff: "Exit date must be greater than Onboarding Date."
+    apiSpecificationId: {
+        blank: "Please select API specification."
+    },
+
+    apiVersionId: {
+        blank: "Please select API version."
+    },
+
+    auditFile: {
+        blank: "Please upload ASP audit report.",
+        format: "Audit report must be a PDF or Word file.",
+        size: "Each audit report must be 5 MB or smaller."
+    },
+
+    auditDate: {
+        blank: "Please select audit report date.",
+        future: "Audit report date cannot be in the future.",
+        before: "Audit report date cannot be before the onboarding date."
     },
 
     captchaError: {
@@ -58,6 +78,17 @@ const errorMsg = {
 };
 
 
+const emptyAuditRow = () => ({ file: null, fileName: '', auditDate: '' });
+
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+});
+
+const activeMaster = (list) => (list || []).filter((item) => !item.status || String(item.status).toLowerCase() === 'active');
+
 const AddASP = () => {
     const [formValues, setFormValues] = useState({
         aspId:'',
@@ -66,8 +97,15 @@ const AddASP = () => {
         countryId: '',
         stateId: '',
         onBoardingDate: '',
-        exitDate: ''
+        exitDate: '',
+        apiSpecificationId: '',
+        apiVersionId: ''
     });
+    const [auditReports, setAuditReports] = useState([emptyAuditRow()]);
+    const [auditErrors, setAuditErrors] = useState([]);
+    const [apiSpecList, setApiSpecList] = useState([]);
+    const [apiVersionList, setApiVersionList] = useState([]);
+    const [fileInputKey, setFileInputKey] = useState(0);
 
     const [formErrors, setFormErrors] = useState({});
     const [captchaText ,setCaptchaText] = useState('');
@@ -116,6 +154,12 @@ const AddASP = () => {
 
     useEffect(() => {
         getAllCountryAndState();
+        EsignAPISpecificationService.getAllAPISpecification()
+            .then((response) => setApiSpecList(activeMaster(response.data)))
+            .catch(() => setApiSpecList([]));
+        ESignAPIVersionMasterService.getAllAPIVersion()
+            .then((response) => setApiVersionList(activeMaster(response.data)))
+            .catch(() => setApiVersionList([]));
     }, []);
     
 
@@ -129,9 +173,13 @@ const AddASP = () => {
             countryId: '',
             stateId: '',
             onBoardingDate: '',
-            exitDate: ''
-        }); 
-
+            exitDate: '',
+            apiSpecificationId: '',
+            apiVersionId: ''
+        });
+        setAuditReports([emptyAuditRow()]);
+        setAuditErrors([]);
+        setFileInputKey((key) => key + 1);
         setCaptchaInput('');
         setFormErrors({});
     }
@@ -191,9 +239,35 @@ const AddASP = () => {
             errors.onBoardingDate = errorMsg.onBoardingDate.blank;
         }
 
-        if(formValues.exitDate && formValues.onBoardingDate && formValues.exitDate <= formValues.onBoardingDate){
-            errors.onBoardingDate = errorMsg.onBoardingDate.diff;
-            errors.exitDate = errorMsg.exitDate.diff;
+        if(!formValues.apiSpecificationId){
+            errors.apiSpecificationId = errorMsg.apiSpecificationId.blank;
+        }
+
+        if(!formValues.apiVersionId){
+            errors.apiVersionId = errorMsg.apiVersionId.blank;
+        }
+
+        const rowErrors = auditReports.map((row) => {
+            const rowError = {};
+            if(!row.file){
+                rowError.file = errorMsg.auditFile.blank;
+            } else if(!/\.(pdf|doc|docx)$/i.test(row.file.name)){
+                rowError.file = errorMsg.auditFile.format;
+            } else if(row.file.size > 5 * 1024 * 1024){
+                rowError.file = errorMsg.auditFile.size;
+            }
+            if(!row.auditDate){
+                rowError.auditDate = errorMsg.auditDate.blank;
+            } else if(dayjs(row.auditDate).isAfter(dayjs(), 'day')){
+                rowError.auditDate = errorMsg.auditDate.future;
+            } else if(formValues.onBoardingDate && row.auditDate < formValues.onBoardingDate){
+                rowError.auditDate = errorMsg.auditDate.before;
+            }
+            return rowError;
+        });
+        setAuditErrors(rowErrors);
+        if(rowErrors.some((rowError) => Object.keys(rowError).length > 0)){
+            errors.auditReports = 'invalid';
         }
 
 
@@ -223,7 +297,33 @@ const AddASP = () => {
         return errors;
     };
 
-    const handleFormSubmit = (e) => {
+    const handleAuditFileChange = (index, file) => {
+        setAuditReports((rows) => rows.map((row, rowIndex) => (
+            rowIndex === index ? { ...row, file: file || null, fileName: file ? file.name : '' } : row
+        )));
+    };
+
+    const handleAuditDateChange = (index, date) => {
+        if (!dayjs(date).isValid()) {
+            return;
+        }
+        const formattedDate = dayjs(date).format('YYYY-MM-DD');
+        setAuditReports((rows) => rows.map((row, rowIndex) => (
+            rowIndex === index ? { ...row, auditDate: formattedDate } : row
+        )));
+    };
+
+    const addAuditRow = () => {
+        setAuditReports((rows) => [...rows, emptyAuditRow()]);
+        setAuditErrors([]);
+    };
+
+    const removeAuditRow = (index) => {
+        setAuditReports((rows) => rows.filter((_, rowIndex) => rowIndex !== index));
+        setAuditErrors([]);
+    };
+
+    const handleFormSubmit = async (e) => {
         e.preventDefault();
 
         const errors = validateForm();
@@ -236,8 +336,30 @@ const AddASP = () => {
 
                 setLoading(true);
 
-                //Save
-                DashboardService.addASPDetails(formValues)
+                let auditPayload;
+                try {
+                    auditPayload = await Promise.all(auditReports.map(async (row) => ({
+                        fileName: row.file.name,
+                        fileContent: await fileToBase64(row.file),
+                        auditDate: row.auditDate,
+                    })));
+                } catch (readError) {
+                    setLoading(false);
+                    showAlert({
+                        messageTitle: 'Error',
+                        messageContent: 'Audit report file could not be read.',
+                        confirmText: 'Ok',
+                        enableHeaderCloseBtn: true,
+                        disableOutsideKeyDown: false
+                    });
+                    return;
+                }
+
+                DashboardService.addASPDetails({
+                    ...formValues,
+                    exitDate: '',
+                    auditReports: auditPayload,
+                })
                 .then((response)=>{
 
                     showAlert({
@@ -401,29 +523,23 @@ const AddASP = () => {
                             </Grid2>
 
                             <Grid2 size={{ xs: 12, sm: 6 }}>
-                                <InputLabel shrink={false} htmlFor={"issueDate"}>
-                                    <Typography variant='body1' >Exit Date</Typography>
+                                <InputLabel shrink={false} htmlFor={"exitDate"}>
+                                    <Typography variant='body1' color="text.disabled">Exit Date</Typography>
                                 </InputLabel>
                                 <LocalizationProvider dateAdapter={AdapterDayjs} sx={{zIndex: 10015}}> 
                                     <DatePicker
                                         id="exitDate"
-                                        disableFuture
+                                        disabled
                                         name="exitDate"
-                                        onChange={(date) => handleDateChange('exitDate', date)}
-                                        value={dayjs(formValues.exitDate)}
+                                        value={null}
                                         slotProps={{
                                             textField: {
                                                 size: 'small',
                                                 fullWidth: true,
                                                 placeholder: "Exit Date",
-                                                error: !!formErrors.exitDate,
-                                                helperText: formErrors.exitDate || ''
-                                            },
-                                            popper: {
-                                                style: { zIndex: 110015 },
+                                                disabled: true,
                                             },
                                         }}
-                                        
                                         sx={{ mt: 1}}
                                     />
                                 </LocalizationProvider>
@@ -488,6 +604,129 @@ const AddASP = () => {
                                 </Select>
                                 {formErrors.stateId && <FormHelperText error>{formErrors.stateId}</FormHelperText>}
                             </FormControl>
+                        </Grid2>
+                    </Grid2>
+
+                    <Grid2 container spacing={2} sx={{ mt: 2 }}>
+                        <Grid2 size={{ xs: 12, sm: 6 }}>
+                            <InputLabel shrink={false} htmlFor="apiSpecificationId">
+                                <Typography variant='body1'>API Specification*</Typography>
+                            </InputLabel>
+                            <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
+                                <Select
+                                    id="apiSpecificationId"
+                                    required
+                                    value={formValues.apiSpecificationId}
+                                    onChange={handleInputChange}
+                                    displayEmpty
+                                    name="apiSpecificationId"
+                                    error={!!formErrors.apiSpecificationId}
+                                    size="small"
+                                >
+                                    <MenuItem value="">Select API Specification</MenuItem>
+                                    {apiSpecList.map((item) => (
+                                        <MenuItem key={item.esignApiSpecId} value={String(item.esignApiSpecId)}>
+                                            {item.apiSpecification}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {formErrors.apiSpecificationId && <FormHelperText error>{formErrors.apiSpecificationId}</FormHelperText>}
+                            </FormControl>
+                        </Grid2>
+                        <Grid2 size={{ xs: 12, sm: 6 }}>
+                            <InputLabel shrink={false} htmlFor="apiVersionId">
+                                <Typography variant='body1'>API Version*</Typography>
+                            </InputLabel>
+                            <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
+                                <Select
+                                    id="apiVersionId"
+                                    required
+                                    value={formValues.apiVersionId}
+                                    onChange={handleInputChange}
+                                    displayEmpty
+                                    name="apiVersionId"
+                                    error={!!formErrors.apiVersionId}
+                                    size="small"
+                                >
+                                    <MenuItem value="">Select API Version</MenuItem>
+                                    {apiVersionList.map((item) => (
+                                        <MenuItem key={item.esignApiVerId} value={String(item.esignApiVerId)}>
+                                            {item.apiVersion}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {formErrors.apiVersionId && <FormHelperText error>{formErrors.apiVersionId}</FormHelperText>}
+                            </FormControl>
+                        </Grid2>
+                    </Grid2>
+
+                    <Box sx={{ mt: 2 }}>
+                        <Typography variant='body1'>ASP Audit Report*</Typography>
+                        {auditReports.map((row, index) => (
+                            <Grid2 container spacing={2} key={`${fileInputKey}-${index}`} sx={{ mt: 1 }} alignItems="flex-start">
+                                <Grid2 size={{ xs: 12, sm: 5 }}>
+                                    <Button variant="outlined" component="label" sx={{ mt: 1 }}>
+                                        Upload
+                                        <input
+                                            hidden
+                                            type="file"
+                                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                            onChange={(event) => handleAuditFileChange(index, event.target.files?.[0])}
+                                        />
+                                    </Button>
+                                    <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                        {row.fileName || 'No file chosen'}
+                                    </Typography>
+                                    {auditErrors[index]?.file && <FormHelperText error>{auditErrors[index].file}</FormHelperText>}
+                                </Grid2>
+                                <Grid2 size={{ xs: 12, sm: 5 }}>
+                                    <InputLabel shrink={false} htmlFor={`auditDate-${index}`}>
+                                        <Typography variant='body1'>Audit Report Date*</Typography>
+                                    </InputLabel>
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <DatePicker
+                                            disableFuture
+                                            value={row.auditDate ? dayjs(row.auditDate) : null}
+                                            onChange={(date) => handleAuditDateChange(index, date)}
+                                            slotProps={{
+                                                textField: {
+                                                    size: 'small',
+                                                    fullWidth: true,
+                                                    placeholder: 'Audit Report Date',
+                                                    error: !!auditErrors[index]?.auditDate,
+                                                    helperText: auditErrors[index]?.auditDate || '',
+                                                },
+                                                popper: {
+                                                    style: { zIndex: 110015 },
+                                                },
+                                            }}
+                                            sx={{ mt: 1 }}
+                                        />
+                                    </LocalizationProvider>
+                                </Grid2>
+                                <Grid2 size={{ xs: 12, sm: 2 }} sx={{ display: 'flex', alignItems: 'center', mt: 3 }}>
+                                    <IconButton aria-label="Add audit report" color="primary" onClick={addAuditRow}>
+                                        <AddIcon />
+                                    </IconButton>
+                                    <IconButton
+                                        aria-label="Remove audit report"
+                                        color="error"
+                                        onClick={() => removeAuditRow(index)}
+                                        disabled={auditReports.length === 1}
+                                    >
+                                        <RemoveIcon />
+                                    </IconButton>
+                                </Grid2>
+                            </Grid2>
+                        ))}
+                    </Box>
+
+                    <Grid2 container spacing={2} sx={{ mt: 2 }}>
+                        <Grid2 size={12}>
+                            <Typography variant="h6">
+                                <b>Note:</b> <br />
+                                1. Audit Reports and their Audit Dates are to be updated yearly.
+                            </Typography>
                         </Grid2>
                     </Grid2>
 

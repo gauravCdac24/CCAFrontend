@@ -8,6 +8,10 @@ const GRANT_IN_PRINCIPLE_APPROVAL = "/grant-in-principle-approval";
 
 const UPLOAD_BANK_GUARANTEE_PROOF = "/upload-bank-guarantee-proof";
 const ISSUE_LICENSE_TO_APPLICANT = "/issue-license-to-applicant";
+const LICENSE_FORM_DEFAULTS = "/license-form-defaults";
+const SUBMIT_LICENSE_DETAILS_FOR_REVIEW = "/submit-license-details-for-review";
+const APPROVE_LICENSE_REVIEW = "/approve-license-review";
+const SEND_LICENSE_REVIEW_TO_ADMIN = "/send-license-review-to-admin";
 const GET_LICENSE_DETAILS_BY_USERNAME = "/license-details-by-username";
 const VIEW_LICENSE_DOCUMENT = "/view-license-document"
 
@@ -65,6 +69,46 @@ const uploadBankGuaranteeProof = (obj)=>{
   
   }
 
+
+  const getLicenseFormDefaults = (intentAppId, applicantUsername) => {
+    return API.get(LICENSE_ISSUANCE_SERVICE_BASE_URL + LICENSE_FORM_DEFAULTS, {
+      params: {
+        id: encrypt(intentAppId),
+        pid: encrypt(applicantUsername),
+      },
+    });
+  };
+
+  const submitLicenseDetailsForReview = (obj) => {
+    const username = auth().username;
+    return API.post(LICENSE_ISSUANCE_SERVICE_BASE_URL + SUBMIT_LICENSE_DETAILS_FOR_REVIEW, {
+      intentAppId: encrypt(obj.intentAppId),
+      applicantUsername: encrypt(obj.applicantUsername),
+      submittedBy: encrypt(username),
+      serialNo: obj.serialNo,
+      issueDate: obj.issueDate,
+      expiryDate: obj.expiryDate,
+      publicKey: obj.publicKey,
+    });
+  };
+
+  const approveLicenseReview = (obj) => {
+    const username = auth().username;
+    return API.post(LICENSE_ISSUANCE_SERVICE_BASE_URL + APPROVE_LICENSE_REVIEW, {
+      reviewId: obj.reviewId,
+      remark: obj.remark || '',
+      reviewedBy: encrypt(username),
+    });
+  };
+
+  const sendLicenseReviewToAdmin = (obj) => {
+    const username = auth().username;
+    return API.post(LICENSE_ISSUANCE_SERVICE_BASE_URL + SEND_LICENSE_REVIEW_TO_ADMIN, {
+      reviewId: obj.reviewId,
+      remark: obj.remark || '',
+      reviewedBy: encrypt(username),
+    });
+  };
 
   const issueLicenseToApplicant = (obj)=>{
 
@@ -146,6 +190,10 @@ const uploadBankGuaranteeProof = (obj)=>{
   
 export default {grantInLicneseApproval,
                 uploadBankGuaranteeProof,
+                getLicenseFormDefaults,
+                submitLicenseDetailsForReview,
+                approveLicenseReview,
+                sendLicenseReviewToAdmin,
                 issueLicenseToApplicant,
                 getLicenseDetails,
                 viewLicenseDocument,

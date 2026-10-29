@@ -623,59 +623,7 @@ useEffect(() => {
             </Grid>
         </Box>
     ) : licenseDetails?.status === "Active" ? (
-        <Box
-            sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                mt: 6,
-            }}
-        >
-            <TableContainer
-                component={Box}
-                sx={{
-                    width: "600px",
-                    border: "1px solid",
-                    color: "primary.main",
-                    borderRadius: "10px",
-                }}
-            >
-                <Table aria-label="customized table">
-                    <TableBody>
-                        <TableRow>
-                            <TableCell align="left">
-                                <Typography variant="h6" color="textcolor.text">
-                                    Would you like cessation of this application?
-                                </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                                {getAllLicenseId?.status === "ApprovedNotice" ? (
-                                    <Button
-                                        type="button"
-                                        fullWidth
-                                        variant="contained"
-                                        sx={{ mt: 1 }}
-                                        onClick={applyForCessation}
-                                    >
-                                        Apply
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        type="button"
-                                        fullWidth
-                                        variant="contained"
-                                        sx={{ mt: 1 }}
-                                        onClick={uploadForCessation}
-                                    >
-                                        Upload
-                                    </Button>
-                                )}
-                            </TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Box>
+        null
     ) : (
         <>No Records Found</>
     )
@@ -797,6 +745,63 @@ useEffect(() => {
 
 
                         }
+
+                        {licenseDetails?.status === "Active" &&
+                            !(getAllCessationAppUndertakings && getAllCessationAppUndertakings.length > 0) && (
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                        mt: 6,
+                                    }}
+                                >
+                                    <TableContainer
+                                        component={Box}
+                                        sx={{
+                                            width: "600px",
+                                            border: "1px solid",
+                                            color: "primary.main",
+                                            borderRadius: "10px",
+                                        }}
+                                    >
+                                        <Table aria-label="customized table">
+                                            <TableBody>
+                                                <TableRow>
+                                                    <TableCell align="left">
+                                                        <Typography variant="h6" color="textcolor.text">
+                                                            Would you like cessation of this application?
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        {getAllLicenseId?.status === "ApprovedNotice" ? (
+                                                            <Button
+                                                                type="button"
+                                                                fullWidth
+                                                                variant="contained"
+                                                                sx={{ mt: 1 }}
+                                                                onClick={applyForCessation}
+                                                            >
+                                                                Apply
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                type="button"
+                                                                fullWidth
+                                                                variant="contained"
+                                                                sx={{ mt: 1 }}
+                                                                onClick={uploadForCessation}
+                                                            >
+                                                                Upload
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Box>
+                            )}
 
                     </>
 

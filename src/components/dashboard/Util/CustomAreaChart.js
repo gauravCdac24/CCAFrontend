@@ -2,6 +2,7 @@ import { Box } from '@mui/material';
 import React from 'react';
 import Chart from 'react-apexcharts';
 import { useSelector } from 'react-redux';
+import { sanitizeCategories, sanitizeChartSeries } from './chartSeries';
 
 const CustomAreaChart = ({ 
   series, 
@@ -18,8 +19,11 @@ const CustomAreaChart = ({
 
 
 
+  const safeSeries = sanitizeChartSeries(series);
+  const safeCategories = sanitizeCategories(categories);
+
   const mainChart = {
-    series: series,
+    series: safeSeries,
     options: {
       chart: {
         id: `mainchart${id}`,
@@ -34,7 +38,7 @@ const CustomAreaChart = ({
       
       xaxis: {
         type: 'category',
-        categories: categories,
+        categories: safeCategories,
         
         labels: {
           style: {
@@ -73,7 +77,7 @@ const CustomAreaChart = ({
     <Box>
         <Chart
           options={mainChart.options}
-          series={mainChart.series}
+          series={safeSeries}
           type="area"
           height={height}
         />

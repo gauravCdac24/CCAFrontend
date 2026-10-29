@@ -7,33 +7,37 @@ import showAlert from '../../../global/common/MessageBox/AlertService';
 import dateFormatter from '../../../global/util/DateFormatter';
 import CustomTable from '../../../global/util/CustomTable';
 import ApplicationTypeService from '../../../../service/AdminService/ApplicationType'
-import IndividualViewData from '../../../applicant/pages/ApplicationForm/IndividualViewData';
-import FirmViewData from '../../../applicant/pages/ApplicationForm/FirmViewData';
-import GovernmentViewData from '../../../applicant/pages/ApplicationForm/GovernmentViewData';
-import IssueLicense from './IssueLicense';
-import FirmApplicationForm from '../../../../service/NewLicenseService/FirmApplicationForm';
-import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
-import GovernmentAgencyForm from '../../../../service/NewLicenseService/GovernmentAgencyForm';
+import LicenseCcaReview from './LicenseCcaReview';
 import { hasLicenseAction } from '../../../global/util/licenseAcquisitionWorkflow';
+
+const formatApplicationStatus = (status) => {
+    if (!status) {
+        return 'NA';
+    }
+    return String(status)
+        .toLowerCase()
+        .split('_')
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};
 
 const NewApplication = () => {
     const [allApplicationList, setAllApplicationList] = useState([]);
-    const [allApplicationType, setAllApplicationType] = useState([]);
-    const [isLoading, setLoading] = useState(false);
+    const reviewRef = useRef();
 
-
-
-    const ref = useRef();
 
 
     const getApplicationDetails = async () => {
         try{
             const [applicationTypes, applicationList] = await Promise.all([
                 ApplicationTypeService.getAllApplicationTypeList(),
-                ClientService.getNewAppWithBankGuaranteeProof()
+                ClientService.getNewAppWithBankGuaranteeProof('CCA')
             ]);
 
-            const list = applicationList.data.map((obj, index) => {
+            const list = (applicationList.data || [])
+            .filter((obj) => hasLicenseAction(obj.allowedActions, 'REVIEW_LICENSE'))
+            .map((obj, index) => {
                 obj['id'] = index + 1;
                 obj['applicationInitiatedOn'] = dateFormatter(obj.applicationInitiatedOn);
                 obj['statusInitiatedOn'] = dateFormatter(obj.statusInitiatedOn);
@@ -42,10 +46,10 @@ const NewApplication = () => {
                      obj.applicationType === "2" ? "Company" :
                      obj.applicationType === "3" ? "Partnership Firm" :
                      obj.applicationType === "4" ? "Government Organization" : "NA")
+                obj['applicationStatusLabel'] = formatApplicationStatus(obj.applicationCurrentStatus);
                 return obj;
             });
             setAllApplicationList(list);
-            setAllApplicationType(applicationTypes.data);
 
         }catch(err){
             showAlert({
@@ -58,130 +62,27 @@ const NewApplication = () => {
     }
 
 
-    const handleSubmitDocuments = () =>{
-        ref.current.handleFormSubmit()
-    }
-
-    const handleResetForm = () =>{
-        ref.current.handleReset()
-    }
-
-
-    const submitLicenseDetails = (intentAppId, applicantUsername, applicantName) => {
-
-        if(applicantName === null)
-            return;
-
+    const reviewLicense = (row) => {
         showAlert({
-            messageTitle: 'License Details',
-            messageContent: <IssueLicense ref={ref} intentAppId={intentAppId} applicantName={applicantName} applicantUsername={applicantUsername} refreshList={getApplicationDetails}/>,
+            messageTitle: 'Review License Details',
+            messageContent: (
+                <LicenseCcaReview
+                    ref={reviewRef}
+                    intentAppId={row.intentAppId}
+                    applicantUsername={row.applicantUserName}
+                    refreshList={getApplicationDetails}
+                />
+            ),
             enableHeaderCloseBtn: true,
             disableOutsideKeyDown: true,
-            buttonOneText: "Submit",
-            buttonTwoText: "Reset",
-            onButtonOneClick: () => handleSubmitDocuments(),
-            onButtonTwoClick: () => handleResetForm()
-
-        })
-    }
-
-
-    const getFirmName = async(username) => {
-
-        try{
-            const res = await FirmApplicationForm.getAllFirmApplication(username);
-
-            
-
-            if (!res.data || !res.data.appFirmApplication) {
-                return null;
-            }
-
-            return res.data.appFirmApplication.officeName;
-        }catch(err){
-            return null;
-        }
-
-    }
-
-    const getIndividualName = async (username) => {
-        try {
-            const res = await ApplicationForm.getApplicationFormByUsername(username);
-    
-            if (!res.data || !res.data.application) {
-                return null;
-            }
-    
-            const { firstName1, middleName1, lastName1 } = res.data.application;
-            const name = `${firstName1 || ''} ${middleName1 || ''} ${lastName1 || ''}`.trim();
-    
-            return name || null;
-        } catch (err) {
-            
-            return null;
-        }
+            fullWidth: true,
+            maxWidth: 'md',
+            buttonOneText: 'Approve',
+            buttonTwoText: 'Sent to Admin',
+            onButtonOneClick: () => reviewRef.current?.approve(),
+            onButtonTwoClick: () => reviewRef.current?.sendToAdmin(),
+        });
     };
-
-
-    const getOrganizationName = async(username) => {
-
-        try{
-            const res = await GovernmentAgencyForm.getAllGovernmentAgency(username);
-
-            if (!res.data || !res.data.appGovtOrganizationApplication) {
-                return null;
-            }
-
-            return res.data.appGovtOrganizationApplication.orgName;
-        }catch(err){
-            return null;
-        }
-
-    }
-    
-    
-    const viewApplication = async (username, apptype, status, intentAppId, allowedActions = []) =>{
-
-        let component = null;
-
-        let applicantName = null;
-
-        switch (apptype) {
-            case 'Individual':
-                applicantName = await getIndividualName(username);
-                component = <IndividualViewData  userName={username}/>;
-                
-            break;  
-            case 'Company':
-            case 'Partnership Firm':
-                applicantName = await getFirmName(username);
-                component =  <FirmViewData  userName={username}/>;
-                
-
-            break;
-            case 'Government Agency':
-                applicantName = await getOrganizationName(username);
-                component =  <GovernmentViewData  userName={username}/>;
-                
-
-            break;
-            default:
-                component = <>No Data Available</>
-            break;
-        }
-                showAlert({
-                    messageTitle: 'View Application',
-                    messageContent: component,
-                    buttonOneText: hasLicenseAction(allowedActions, 'ISSUE_LICENSE') ? 'Submit License Details' : 'Ok',
-                    onButtonOneClick: hasLicenseAction(allowedActions, 'ISSUE_LICENSE') ? () => submitLicenseDetails(intentAppId, username, applicantName) : undefined,
-                    enableHeaderCloseBtn: true,
-                    disableOutsideKeyDown: true,
-                    maxWidth:'md',
-                    fullWidth:true
-        })
-
-    
-}
 
 
 
@@ -198,6 +99,7 @@ const NewApplication = () => {
             { field: 'acknowledgementNo', headerName: 'Acknowledgement Number', resizable: false, width: 200},
             { field: 'applicationInitiatedOn', headerName: 'Application Start Date', resizable: false, width: 200},
             { field: 'statusInitiatedOn', headerName: 'Recommended On', resizable: false, width: 200},
+            { field: 'applicationStatusLabel', headerName: 'Status', resizable: false, width: 260},
 
             {
                 field: 'action',
@@ -208,8 +110,8 @@ const NewApplication = () => {
                 sortable: false,
                 renderCell: (params) => (
                     <>
-                        <Tooltip title="View">
-                            <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="View" onClick={() => viewApplication(params.row.applicantUserName, params.row.applicationType, params.row.applicationCurrentStatus, params.row.intentAppId, params.row.allowedActions)} />
+                        <Tooltip title="Review License Details">
+                            <GridActionsCellItem icon={<VisibilityIcon color="success" />} label="Review" onClick={() => reviewLicense(params.row)} />
                         </Tooltip>
                         
                     </>

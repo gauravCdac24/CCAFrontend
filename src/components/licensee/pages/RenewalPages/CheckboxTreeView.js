@@ -50,7 +50,7 @@ const CustomTreeItem = React.forwardRef((props, ref) => {
   );
 });
 
-const CheckboxTreeView = ({ data = MUI_X_PRODUCTS, preSelectedParentId = '1', onSelectionChange }) => {
+const CheckboxTreeView = ({ data = MUI_X_PRODUCTS, preSelectedParentId = '1', onSelectionChange, selectedIds }) => {
   const getMandatoryChildrenIds = (parentId, items) => {
     const parent = items.find(item => item.id === parentId);
     if (!parent || !parent.children) return [];
@@ -100,6 +100,19 @@ const CheckboxTreeView = ({ data = MUI_X_PRODUCTS, preSelectedParentId = '1', on
       setSelectedItems(prev => [...new Set([...prev, ...mandatoryChildren])]);
     }
   }, [preSelectedParentId, data]);
+
+  useEffect(() => {
+    if (!Array.isArray(selectedIds) || selectedIds.length === 0) return;
+    setSelectedItems((prev) => {
+      const next = [...new Set(selectedIds)];
+      const same = prev.length === next.length && prev.every((id) => next.includes(id));
+      return same ? prev : next;
+    });
+  }, [selectedIds]);
+
+  useEffect(() => {
+    if (onSelectionChange) onSelectionChange(selectedItems);
+  }, [selectedItems, onSelectionChange]);
 
   const firstTreeData = data.filter(item => item.id === '1');
   const secondTreeData = data.filter(item => item.id === '2');

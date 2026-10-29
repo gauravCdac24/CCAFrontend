@@ -196,7 +196,26 @@ import { Box, Paper} from '@mui/material';
 import showAlert from "../common/MessageBox/AlertService";
 import LoaderProgress from "../common/LoaderProgress";
 
+// Local/dev: skip CDAC and complete eSign against the local mock endpoint.
+// Set to false for production CDAC flow.
+const LOCAL_ESIGN_SKIP = true;
+
 const alertMsg = `Aadhaar eSign is performed by a 3rd party digital signature provider, e-Hastakshar: C-DAC's On-line Digital Signing Service, in collaboration with UIDAI using the details associated with the Aadhaar number. Upon clicking "Proceed", you will be directed to the e-Hastakshar Aadhaar eSign website to complete the signing process. Do you want to continue?`;
+
+const resolveFrontendRedirect = (locationHeader) => {
+    if (!locationHeader) {
+        return `${window.location.origin}/esignresponse`;
+    }
+    try {
+        const absolute = new URL(locationHeader, window.location.origin);
+        return `${window.location.origin}${absolute.pathname}${absolute.search}${absolute.hash}`;
+    } catch (err) {
+        if (locationHeader.startsWith("/")) {
+            return `${window.location.origin}${locationHeader}`;
+        }
+        return locationHeader;
+    }
+};
 
 const Esign = ({efile,
                 maxFileSize,
@@ -238,8 +257,9 @@ const Esign = ({efile,
     const validateFile = (errors) => {
         const file = esignData.file;
         if (file) {
-            const allowedTypes = ["application/pdf"];
-            if (!allowedTypes.includes(file.type)) {
+            const allowedTypes = ["application/pdf", "application/octet-stream"];
+            // Blob from axios may have empty type; still allow if size is present
+            if (file.type && !allowedTypes.includes(file.type) && !String(file.type).includes("pdf")) {
                 errors.fileUpload = errorMsg.fileUpload.filetype;
             }
             const maxSize = esignData.maxSize * 1024 * 1024;
@@ -257,16 +277,44 @@ const Esign = ({efile,
         return errors;
     };
 
-    const handleSignDocument = () => {
-        const eSignRequestInput = document.getElementById("eSignRequest");
-        const aspTxnIDInput = document.getElementById("aspTxnID");
-
-        if(!eSignRequestInput.value || !aspTxnIDInput.value){
-            console.log("An error occurred while digitally signing the document.");
-        } else {
-            // Submits directly to your backend mock endpoint instead of CDAC
-            document.getElementById("esignformid").submit();
+    const finishLocalEsignSkip = async (aspTxnID) => {
+        setLoading(true);
+        try {
+            const response = await EsignService.completeLocalEsignSkip(aspTxnID);
+            const payload = response?.data || {};
+            if (payload.id && payload.pid) {
+                const qs = new URLSearchParams({
+                    id: payload.id,
+                    pid: payload.pid,
+                });
+                window.location.href = `${window.location.origin}/esignresponse?${qs.toString()}`;
+                return;
+            }
+            window.location.href = resolveFrontendRedirect(payload.redirectUrl);
+        } catch (err) {
+            console.error("Local eSign skip failed:", err);
+            showAlert({
+                messageTitle: "Error",
+                messageContent: "Local eSign skip failed. Please try Submit & eSign again.",
+                confirmText: "Ok",
+                disableOutsideKeyDown: true,
+                closeParent: true,
+            });
+            setLoading(false);
         }
+    };
+
+    const handleSignDocument = () => {
+        const aspTxnID = eSignRequest.aspTxnID || document.getElementById("aspTxnID")?.value;
+        if (!aspTxnID) {
+            console.log("An error occurred while digitally signing the document.");
+            return;
+        }
+        if (LOCAL_ESIGN_SKIP) {
+            finishLocalEsignSkip(aspTxnID);
+            return;
+        }
+        document.getElementById("esignformid").submit();
     }
 
     useEffect(()=>{
@@ -283,16 +331,22 @@ const Esign = ({efile,
             setLoading(true);
 
             EsignService.newEsignRequest(esignData)
-            .then((response) => {    
-                setEsignRequest({
+            .then((response) => {
+                const nextRequest = {
                     eSignRequest: response.data.eSignRequest,
                     aspTxnID: response.data.aspTxnID,
                     contentType: response.data.contentType
-                })
+                };
+                setEsignRequest(nextRequest);
+
+                if (LOCAL_ESIGN_SKIP) {
+                    // Skip CDAC callback entirely for local/dev Submit & eSign.
+                    return finishLocalEsignSkip(nextRequest.aspTxnID);
+                }
 
                 showAlert({
-                    messageTitle: 'Sign via Aadhaar eSign (Mock Bypass)',
-                    messageContent: <Box sx={{textAlign: 'justify'}}>Clicking sign will complete the eSign locally using test credentials without opening CDAC.</Box>,
+                    messageTitle: 'Sign via Aadhaar eSign',
+                    messageContent: <Box sx={{textAlign: 'justify'}}>{alertMsg}</Box>,
                     confirmText: 'Sign Document',
                     closeText: 'Cancel',
                     onConfirm: handleSignDocument,
@@ -319,7 +373,7 @@ const Esign = ({efile,
             setFormErrors(errors);
             showAlert({
                 messageTitle: 'Error',
-                messageContent: formErrors.fileUpload,
+                messageContent: formErrors.fileUpload || errors.fileUpload,
                 confirmText: 'Ok',
                 fullWidth: true,
                 maxWidth: 'sm',
@@ -329,16 +383,18 @@ const Esign = ({efile,
         }
     }
 
+    const gatewayEsignResponseUrl =
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api"}/esign-service/esignresponse`;
+
     return (<>
         <LoaderProgress open={isLoading} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Paper elevation={1} sx={{ pl: 2, pr: 2, pb: 1, m: 2, borderRadius: "10px", minWidth: {xs: '90%', sm: '450px', display: 'none'} }}>
-                {/* POINT ACTION TO YOUR LOCAL BACKEND RESPONSE ENDPOINT INSTEAD OF CDAC */}
-                <form action="http://localhost:3000/api/esign-service/esignresponse" method="post" id="esignformid">
+                {/* Production CDAC posts here only when LOCAL_ESIGN_SKIP is false */}
+                <form action={LOCAL_ESIGN_SKIP ? gatewayEsignResponseUrl : "https://esignservice.cdac.in/esign2.1/2.1/form/signdoc"} method="post" id="esignformid">
                     <input hidden type="text" id="eSignRequest" name="eSignRequest" value={eSignRequest.eSignRequest}/>
-                    {/* Send aspTxnID mapped as espTxnID or handled by backend fallback */}
-                    <input hidden type="text" id="aspTxnID" name="espTxnID" value={eSignRequest.aspTxnID}/>
+                    <input hidden type="text" id="aspTxnID" name={LOCAL_ESIGN_SKIP ? "espTxnID" : "aspTxnID"} value={eSignRequest.aspTxnID}/>
                     <input hidden type="text" id="Content-Type" name="Content-Type" value="application/xml"/>
                 </form>
             </Paper>

@@ -2,6 +2,7 @@ import { Box } from '@mui/material';
 import React from 'react';
 import Chart from 'react-apexcharts';
 import { useSelector } from 'react-redux';
+import { sanitizeCategories, sanitizeChartSeries } from './chartSeries';
 
 const CustomBarChart = ({ 
   series, 
@@ -24,8 +25,11 @@ const CustomBarChart = ({
   const isDarkMode = useSelector((state) => state.colorMode.isDarkMode);
   const nonce = useSelector((state) => state.customNonce.nonce);
 
+  const safeSeries = sanitizeChartSeries(series);
+  const safeCategories = sanitizeCategories(categories);
+
   const mainChartBar = {
-    series: series,
+    series: safeSeries,
     options: {
       chart: {
         id: `mainchart${id}`,
@@ -51,7 +55,7 @@ const CustomBarChart = ({
       },
       xaxis: {
         type: 'category',
-        categories: categories,
+        categories: safeCategories,
         labels: {
           style: {
             colors: isDarkMode ? '#FFFFFF' : '#000000',
@@ -87,7 +91,7 @@ const CustomBarChart = ({
       <Box>
         <Chart
           options={mainChartBar.options}
-          series={mainChartBar.series}
+          series={safeSeries}
           type="bar"
           height={height}
         />

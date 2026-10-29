@@ -23,6 +23,8 @@ import CustomAreaChart from "../../Util/CustomAreaChart";
 import CustomAreaBrushChart from "../../Util/CustomAreaBrushChart";
 import DashboardInfoCard from "../../Util/DashboardInfoCard";
 import { timeStampToDate } from "../../../global/util/TimestampConverter";
+import LicenceTimeLeft from "./LicenceTimeLeft";
+import LicenseIssuanceService from "../../../../service/LicenseIssuanceService/LicenseIssuanceService";
 import EKYCModeService from "../../../../service/AdminService/EKYCModeService";
 
 
@@ -102,6 +104,7 @@ const LicenseeDashboard = () =>{
 
     const rolePath = useSelector((state) => state.jwtAuthentication.rolePath);
     const username = useSelector((state) => state.jwtAuthentication.username);
+    const [licenseDates, setLicenseDates] = useState(null);
 
     const navigate = useNavigate();
 
@@ -177,7 +180,11 @@ const LicenseeDashboard = () =>{
       DashboardService.getLicenseeDashboardDetails()
       .then((response)=>{
 
-        setInfoList(response.data);
+        setInfoList({
+          totalASP: Number(response.data?.totalASP) || 0,
+          totalDSCIssued: Number(response.data?.totalDSCIssued) || 0,
+          totaleSignIssued: Number(response.data?.totaleSignIssued) || 0,
+        });
         setIsLoading(false);
 
       })
@@ -210,7 +217,18 @@ const LicenseeDashboard = () =>{
       try{
           const response = await DashboardService.getGraphDataEsignDSC(obj);
           console.log("[LicenseeDashboard] API response:", response.data);
-          setGraphData(response.data);
+          setGraphData({
+            years: Array.isArray(response.data?.years) ? response.data.years : [],
+            yearwise: Array.isArray(response.data?.yearwise) ? response.data.yearwise : [],
+            months: Array.isArray(response.data?.months) ? response.data.months : [],
+            monthwise: Array.isArray(response.data?.monthwise) ? response.data.monthwise : [],
+            states: Array.isArray(response.data?.states) ? response.data.states : [],
+            statewise: Array.isArray(response.data?.statewise) ? response.data.statewise : [],
+            ca: Array.isArray(response.data?.ca) ? response.data.ca : [],
+            cawise: Array.isArray(response.data?.cawise) ? response.data.cawise : [],
+            cayoflicensing: Array.isArray(response.data?.cayoflicensing) ? response.data.cayoflicensing : [],
+            espEkycModeApproved: Array.isArray(response.data?.espEkycModeApproved) ? response.data.espEkycModeApproved : [],
+          });
         }
       catch(err){
         console.error("[LicenseeDashboard] API error:", err);
@@ -237,6 +255,17 @@ const LicenseeDashboard = () =>{
       getYearList();
       getMonthList();
       getStateList();
+
+      LicenseIssuanceService.getLicenseDetails()
+        .then((res) => {
+          setLicenseDates({
+            expiryDate: res.data?.expiryDate,
+            issueDate: res.data?.issueDate,
+          });
+        })
+        .catch(() => {
+          setLicenseDates(null);
+        });
     }, [])
 
 
@@ -255,6 +284,9 @@ const LicenseeDashboard = () =>{
             
             <Box component="div" sx={{m: 1, color: 'infobox.text', flexGrow: 1, fontSize: '16px'}} >
 
+            {licenseDates && (
+              <LicenceTimeLeft expiryDate={licenseDates.expiryDate} issueDate={licenseDates.issueDate} />
+            )}
 
                 {/* Info Box */}
 
@@ -397,7 +429,7 @@ const LicenseeDashboard = () =>{
                     <Box >
                         <Box sx={{fontWeight: '600', m: 1}}>DSC and eSign Issuances by Year</Box>
                         <Box sx={{color: "#000000"}}>
-                          <CustomAreaChart series={[...graphData.yearwise]} categories={[...graphData.years]}   id="licenseed1" legend={true}/>
+                          <CustomAreaChart series={graphData.yearwise || []} categories={graphData.years || []}   id="licenseed1" legend={true}/>
                           {/* <CustomAreaBrushChart series={[...graphData.yearwise]} categories={[...graphData.years]}   id="licenseed1" /> */}
                         </Box>
                     </Box>
@@ -413,8 +445,8 @@ const LicenseeDashboard = () =>{
                         <Box sx={{fontWeight: '600', m: 1}}>DSC and eSign Issuances by Months</Box>
                         <Box sx={{color: "#000000"}}>
                           <CustomBarChart 
-                            series={[...graphData.monthwise]} 
-                            categories={[...graphData.months]} 
+                            series={graphData.monthwise || []} 
+                            categories={graphData.months || []} 
                             filltype="horizontal" 
                             colors={['#9013FE', '#feb45f']} 
                             id="ccad2" 
@@ -437,7 +469,7 @@ const LicenseeDashboard = () =>{
                     <Box >
                         <Box sx={{fontWeight: '600', m: 1}}>DSC and eSign Issuances by State</Box>
                         <Box sx={{color: "#000000"}}>
-                            <CustomAreaChart series={[...graphData.statewise]} categories={[...graphData.states]} colors={['#008B8B', '#F44336']} id="licenseed4" legend={true}/>
+                            <CustomAreaChart series={graphData.statewise || []} categories={graphData.states || []} colors={['#008B8B', '#F44336']} id="licenseed4" legend={true}/>
                             {/* <CustomAreaBrushChart series={[...graphData.statewise]} categories={[...graphData.states]} colors={['#008B8B', '#F44336']} id="licenseed4"/> */}
                         </Box>
                     </Box>     
