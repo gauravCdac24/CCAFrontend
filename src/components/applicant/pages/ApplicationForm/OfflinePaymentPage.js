@@ -271,7 +271,12 @@ const OfflinePaymentPage = forwardRef(({ cid, submitPayment, redirectPath = '/ap
   };
 
   const handleRefresh = () => {
-    window.location.href = redirectPath;
+    const path = String(redirectPath || '/')
+      .trim()
+      .replace(/^[a-z][a-z\d+\-.]*:\/\/[^/]*/i, '')
+      .replace(/^\/+/, '/');
+    const safePath = path.startsWith('/') ? path : `/${path}`;
+    window.location.assign(`${window.location.origin}${safePath}`);
   };
 
   return (

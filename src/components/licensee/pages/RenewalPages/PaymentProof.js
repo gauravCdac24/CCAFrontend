@@ -212,6 +212,7 @@ console.log(requiredDoc)
                 size="small"
                 onChange={(e) => setRequiredDoc((prev) => ({ ...prev, amount: e.target.value }))}
                 required
+                inputProps={{ maxLength: 5 }}
                 error={!!formErrors.amount}
                 helperText={formErrors.amount}
                 onKeyDown={(e) => ValidatePattern(e, /^[0-9]+$/)}
@@ -229,6 +230,7 @@ console.log(requiredDoc)
                 size="small"
                 onChange={(e) => setRequiredDoc((prev) => ({ ...prev, transactionNumber: e.target.value }))}
                 required
+                inputProps={{ maxLength: 30 }}
                 error={!!formErrors.transactionNumber}
                 helperText={formErrors.transactionNumber}
                 onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9]+$/)}
@@ -245,6 +247,7 @@ console.log(requiredDoc)
                   id="uploadDate"
                   disableFuture
                   maxDate={dayjs()}
+                  minDate={dayjs().startOf('year')}
                   onChange={handleDateChange}
                   value={requiredDoc.selectedDate ? dayjs(requiredDoc.selectedDate) : null}
                   slotProps={{

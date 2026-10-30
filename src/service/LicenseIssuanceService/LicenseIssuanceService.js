@@ -17,6 +17,9 @@ const VIEW_LICENSE_DOCUMENT = "/view-license-document"
 
 const GET_LICENSE_DETAILS = "/get-all-licensee-details";
 const GET_RENEWAL_START_DATE_BY_USERNAME = "/get-renewal-start-date-by-username";
+const GET_RENEWAL_WINDOW_BY_USERNAME = "/renewal-window-by-username";
+const GET_RENEWAL_EXTENSION_CANDIDATES = "/renewal-extension-candidates";
+const GRANT_RENEWAL_EXTENSION = "/grant-renewal-extension";
 
 const auth = () => {
   const state = store.getState();
@@ -61,7 +64,10 @@ const uploadBankGuaranteeProof = (obj)=>{
     form.append('file', obj.file);
     form.append('issueDate', obj.issueDate);
     form.append('expiryDate', obj.expiryDate);
-    form.append('transactionNumber', obj.transactionNumber);
+    form.append('transactionNumber', obj.transactionNumber || obj.bankGuaranteeNumber);
+    form.append('bankGuaranteeNumber', obj.bankGuaranteeNumber || obj.transactionNumber || '');
+    form.append('bankName', obj.bankName || '');
+    form.append('bankGuaranteeIssueDate', obj.bankGuaranteeIssueDate || '');
 
 
     return API.post(LICENSE_ISSUANCE_SERVICE_BASE_URL + UPLOAD_BANK_GUARANTEE_PROOF, form, config); 
@@ -186,6 +192,28 @@ const uploadBankGuaranteeProof = (obj)=>{
   })
 
   }
+
+  const getRenewalWindowByUsername = (username) => {
+    return API.get(LICENSE_ISSUANCE_SERVICE_BASE_URL + GET_RENEWAL_WINDOW_BY_USERNAME, {
+      params: {
+        id: encrypt(username),
+      }
+    })
+  }
+
+  const getRenewalExtensionCandidates = () => {
+    return API.get(LICENSE_ISSUANCE_SERVICE_BASE_URL + GET_RENEWAL_EXTENSION_CANDIDATES);
+  }
+
+  const grantRenewalExtension = (obj) => {
+    const username = auth().username;
+    return API.post(LICENSE_ISSUANCE_SERVICE_BASE_URL + GRANT_RENEWAL_EXTENSION, {
+      username: encrypt(obj.username),
+      grantedBy: encrypt(username),
+      extensionDate: obj.extensionDate,
+      remarks: obj.remarks || '',
+    });
+  }
   
   
 export default {grantInLicneseApproval,
@@ -200,4 +228,7 @@ export default {grantInLicneseApproval,
                 getAllLicenseDetails,
                 getLicenseDetailsByUserName,
                 getRenewalStartDateByUsername,
+                getRenewalWindowByUsername,
+                getRenewalExtensionCandidates,
+                grantRenewalExtension,
 };

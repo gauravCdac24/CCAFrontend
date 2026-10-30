@@ -10,7 +10,8 @@ import ApplicationTypeService from '../../../../service/AdminService/Application
 import IndividualViewData from '../../../applicant/pages/ApplicationForm/IndividualViewData';
 import FirmViewData from '../../../applicant/pages/ApplicationForm/FirmViewData';
 import GovernmentViewData from '../../../applicant/pages/ApplicationForm/GovernmentViewData';
-import BankGuranteeProof from '../BankGuaranteeProofDoc/BankGuaranteeProof';
+import BankGuranteeProof, { findGrantApprovalValue } from '../BankGuaranteeProofDoc/BankGuaranteeProof';
+import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
 import { hasLicenseAction } from '../../../global/util/licenseAcquisitionWorkflow';
 
 const NewApplication = () => {
@@ -58,12 +59,21 @@ const NewApplication = () => {
         ref.current.handleReset()
     }
 
-    const submitBankGuranteeProof = (intentAppId) => {
-
+    const submitBankGuranteeProof = async (intentAppId, applicantUsername) => {
+        let grantApprovalOn = '';
+        const username = String(applicantUsername || '').trim();
+        if (username) {
+            try {
+                const response = await ApplicationForm.getAllApplicationTimelineList(username);
+                grantApprovalOn = findGrantApprovalValue(response.data);
+            } catch (err) {
+                grantApprovalOn = '';
+            }
+        }
 
         showAlert({
             messageTitle: 'Bank Guarantee Proof',
-            messageContent: <BankGuranteeProof ref={ref} intentAppId={intentAppId} refreshApplication={getApplicationDetails}/>,
+            messageContent: <BankGuranteeProof ref={ref} intentAppId={intentAppId} applicantUsername={username} grantApprovalOn={grantApprovalOn} refreshApplication={getApplicationDetails}/>,
             enableHeaderCloseBtn: true,
             disableOutsideKeyDown: true,
             buttonOneText: "Submit",
@@ -101,7 +111,7 @@ const NewApplication = () => {
                     messageTitle: 'View Application',
                     messageContent: component,
                     buttonOneText: hasLicenseAction(allowedActions, 'VERIFY_BANK_GUARANTEE') ? 'Submit Bank Gurantee Proof' : 'Ok',
-                    onButtonOneClick: hasLicenseAction(allowedActions, 'VERIFY_BANK_GUARANTEE') ? () => submitBankGuranteeProof(intentAppId) : undefined,
+                    onButtonOneClick: hasLicenseAction(allowedActions, 'VERIFY_BANK_GUARANTEE') ? () => submitBankGuranteeProof(intentAppId, username) : undefined,
                     enableHeaderCloseBtn: true,
                     disableOutsideKeyDown: true,
                     maxWidth:'md',

@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useState} from 'react';
-import { Box, Grid, Button, Typography, InputLabel, FormHelperText, Tooltip } from '@mui/material';
+import { Box, Grid, Button, Typography, InputLabel, FormHelperText, Tooltip, Link } from '@mui/material';
 import Captcha from '../../../global/util/Captcha';
 import LoaderProgress from '../../../global/common/LoaderProgress';
 import showAlert from '../../../global/common/MessageBox/AlertService';
@@ -18,6 +18,17 @@ const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0,0,0,0)',
     border: '0',
   });
+
+const fieldLabelSx = {
+    flex: 1,
+    width: 'auto',
+    position: 'relative',
+    whiteSpace: 'normal',
+    overflow: 'visible',
+    textOverflow: 'clip',
+    maxWidth: 'unset',
+    transform: 'none',
+};
 
 //Errors
 const errorMsg = {
@@ -40,6 +51,12 @@ const errorMsg = {
         format: "Only Pdf file is allowed."
     },
 
+    crossCertificationArrangement: {
+        blank: "Please upload cross certification arrangement document.",
+        size: "The file size must not exceed 5MB. Please upload a smaller file.",
+        format: "Only Pdf file is allowed."
+    },
+
     captchaError: {
         blank: "Please enter captcha."
     },
@@ -50,19 +67,22 @@ const UploadDocuments = forwardRef(({intentAppId, refreshList}, ref) => {
         intentAppId:intentAppId,
         bankGuarantee: '',
         csr: '',
-        agreement: ''
+        agreement: '',
+        crossCertificationArrangement: ''
 
     });
  
     const [fileName, setFileName] = useState({
         bankGuarantee: '',
         csr: '',
-        agreement: ''
+        agreement: '',
+        crossCertificationArrangement: ''
     })
 
     const [bankGuaranteeKey, setBankGuaranteeKey] = useState(Date.now());
     const [csrKey, setCsrKey] = useState(Date.now());
     const [agreementKey, setAgreementKey] = useState(Date.now());
+    const [crossCertificationKey, setCrossCertificationKey] = useState(Date.now());
     const [formErrors, setFormErrors] = useState({});
     const [captchaText, setCaptchaText] = useState('');
     const [captchaInput, setCaptchaInput] = useState('');
@@ -134,24 +154,57 @@ const UploadDocuments = forwardRef(({intentAppId, refreshList}, ref) => {
             errors.agreement = errorMsg.agreement.blank;
         }
 
+        if (requiredDoc.crossCertificationArrangement) {
+
+            const allowedExtensions = /(\.pdf|\.PDF)$/i;
+            if (!allowedExtensions.exec(requiredDoc.crossCertificationArrangement.name)) {
+                errors.crossCertificationArrangement = errorMsg.crossCertificationArrangement.format;
+            }
+
+            const maxSize = 5*1024*1024;
+
+            if (requiredDoc.crossCertificationArrangement.size > maxSize) {
+                errors.crossCertificationArrangement = errorMsg.crossCertificationArrangement.size;
+            }
+        } else {
+            errors.crossCertificationArrangement = errorMsg.crossCertificationArrangement.blank;
+        }
+
     };
    
     const handleReset = () => {
         setRequiredDoc({
+            intentAppId,
             bankGuarantee: '',
             csr: '',
-            agreement: ''
+            agreement: '',
+            crossCertificationArrangement: ''
         });
 
         setFileName({
             bankGuarantee: '',
             csr: '',
-            agreement: ''
+            agreement: '',
+            crossCertificationArrangement: ''
         });
 
+        setBankGuaranteeKey(Date.now());
+        setCsrKey(Date.now() + 1);
+        setAgreementKey(Date.now() + 2);
+        setCrossCertificationKey(Date.now() + 3);
         setCaptchaInput('');
         setFormErrors({});
     }
+
+    const handleDownloadTemplate = (fileName) => {
+        const fileUrl = `${process.env.PUBLIC_URL}/file/${fileName}`;
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
 
     useImperativeHandle(ref, ()=>{
@@ -245,16 +298,27 @@ const UploadDocuments = forwardRef(({intentAppId, refreshList}, ref) => {
         <>
             <LoaderProgress open={isLoading} />
            
-            <FormWrapper headingText="Upload Required Documents">
+            <FormWrapper headingText="Upload Required Documents prior to commencement of operation as CA">
                 <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleFormSubmit}>
                     <Grid container spacing={2} direction="column">
 
                         {/*Bank Guarantee*/}
 
                         <Grid item  xs={12} sm>
-                            <InputLabel shrink={false} htmlFor={"bankGuarantee"}>
-                                <Typography variant='body1'>Upload Bank Guarantee*</Typography>
-                            </InputLabel>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                <InputLabel shrink={false} htmlFor={"bankGuarantee"} sx={fieldLabelSx}>
+                                    <Typography variant='body1'>Upload Bank Guarantee*</Typography>
+                                </InputLabel>
+                                <Link
+                                    component="button"
+                                    type="button"
+                                    underline="hover"
+                                    onClick={() => handleDownloadTemplate('BankGuaranteeTemplate.pdf')}
+                                    sx={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}
+                                >
+                                    Download Template
+                                </Link>
+                            </Box>
 
                                     <Grid container direction="row" sx={{border: '1px solid #cfcfcf', borderRadius: '5px'}}>
                                         <Grid item >
@@ -299,9 +363,20 @@ const UploadDocuments = forwardRef(({intentAppId, refreshList}, ref) => {
                             {/*CSR*/}
 
                             <Grid item  xs={12} sm>
-                            <InputLabel shrink={false} htmlFor={"csr"}>
-                                <Typography variant='body1'>Upload CSR*</Typography>
-                            </InputLabel>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                <InputLabel shrink={false} htmlFor={"csr"} sx={fieldLabelSx}>
+                                    <Typography variant='body1'>Upload CSR*</Typography>
+                                </InputLabel>
+                                <Link
+                                    component="button"
+                                    type="button"
+                                    underline="hover"
+                                    onClick={() => handleDownloadTemplate('CSRTemplate.pdf')}
+                                    sx={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}
+                                >
+                                    Download Template
+                                </Link>
+                            </Box>
 
                                     <Grid container direction="row" sx={{border: '1px solid #cfcfcf', borderRadius: '5px'}}>
                                         <Grid item >
@@ -347,9 +422,20 @@ const UploadDocuments = forwardRef(({intentAppId, refreshList}, ref) => {
                             {/*Agreement*/}
 
                             <Grid item  xs={12} sm>
-                            <InputLabel shrink={false} htmlFor={"agreement"}>
-                                <Typography variant='body1'>Upload Agreement*</Typography>
-                            </InputLabel>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                <InputLabel shrink={false} htmlFor={"agreement"} sx={fieldLabelSx}>
+                                    <Typography variant='body1'>Upload Agreement*</Typography>
+                                </InputLabel>
+                                <Link
+                                    component="button"
+                                    type="button"
+                                    underline="hover"
+                                    onClick={() => handleDownloadTemplate('AgreementTemplate.pdf')}
+                                    sx={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}
+                                >
+                                    Download Template
+                                </Link>
+                            </Box>
 
                                     <Grid container direction="row" sx={{border: '1px solid #cfcfcf', borderRadius: '5px'}}>
                                         <Grid item >
@@ -388,6 +474,64 @@ const UploadDocuments = forwardRef(({intentAppId, refreshList}, ref) => {
                                     
                                     {formErrors.agreement && (
                                         <FormHelperText error>{formErrors.agreement}</FormHelperText>
+                                    )}
+                                </Grid>
+
+                            {/*Cross Certification Arrangement*/}
+
+                            <Grid item  xs={12} sm>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                <InputLabel shrink={false} htmlFor={"crossCertificationArrangement"} sx={fieldLabelSx}>
+                                    <Typography variant='body1'>Upload Cross Certification Arrangement*</Typography>
+                                </InputLabel>
+                                <Link
+                                    component="button"
+                                    type="button"
+                                    underline="hover"
+                                    onClick={() => handleDownloadTemplate('CrossCertificationArrangementTemplate.pdf')}
+                                    sx={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}
+                                >
+                                    Download Template
+                                </Link>
+                            </Box>
+
+                                    <Grid container direction="row" sx={{border: '1px solid #cfcfcf', borderRadius: '5px'}}>
+                                        <Grid item >
+                                            <Button
+                                            component="label"
+                                            variant="contained"
+                                            startIcon={<CloudUploadIcon />}
+                                        >
+                                            Upload file
+                                            <VisuallyHiddenInput
+                                                key={crossCertificationKey}
+                                                type="file"
+                                                name="crossCertificationArrangement"
+                                                onChange={handleFileChange}
+                                            />
+                                        </Button>
+                                        
+                                        </Grid>
+                                        <Grid item xs sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                                        {fileName.crossCertificationArrangement && (
+                                            <Tooltip title={fileName.crossCertificationArrangement} placement="top">
+                                                <Typography variant='body2' sx={{
+                                                    display: 'inline-block',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    verticalAlign: 'middle',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    {fileName.crossCertificationArrangement}
+                                                </Typography>
+                                            </Tooltip>
+                                        )}    
+                                        </Grid>
+                                    </Grid>
+                                    
+                                    {formErrors.crossCertificationArrangement && (
+                                        <FormHelperText error>{formErrors.crossCertificationArrangement}</FormHelperText>
                                     )}
                                 </Grid>      
 

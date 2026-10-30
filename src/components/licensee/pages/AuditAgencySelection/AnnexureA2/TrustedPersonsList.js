@@ -12,6 +12,29 @@ import ValidatePattern from '../../../../global/util/ValidatePattern';
 import { encrypt } from '../../../../global/util/EncryptDecrypt';
 import { useSelector } from 'react-redux';
 
+const headCell = (minWidth) => ({
+  border: 0.5,
+  borderColor: 'grey.500',
+  fontWeight: 'bold',
+  minWidth,
+  width: minWidth,
+  whiteSpace: 'normal',
+  verticalAlign: 'bottom',
+  lineHeight: 1.35,
+  px: 1.5,
+  py: 1.25,
+});
+
+const bodyCell = (minWidth) => ({
+  border: 0.5,
+  borderColor: 'grey.500',
+  minWidth,
+  width: minWidth,
+  verticalAlign: 'top',
+  px: 1.25,
+  py: 1.25,
+});
+
 const errorMsg = {
   fullName: {
     blank: "Full name cannot be empty.",
@@ -426,85 +449,85 @@ const TrustedPersonsList = () => {
 
 
           <Box mt={2}>
-            <TableContainer >
-              <Table>
+            <TableContainer sx={{ width: '100%', overflowX: 'auto' }}>
+              <Table sx={{ minWidth: 2360, tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: 'tablecolor.main', color: 'tablecolor.text' }}>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>S. No.</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Name</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Designation</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Location of Posting DC/DR</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Role in CA</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>ID Card No</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Mobile No</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Identification Details in the CA Payroll</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Employed Since</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Training Details</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Date of last background verification</TableCell>
-                    <TableCell sx={{ border: 0.5, borderColor: 'grey.500', fontWeight: 'bold' }}>Actions</TableCell>
+                    <TableCell sx={headCell(80)}>S. No.</TableCell>
+                    <TableCell sx={headCell(220)}>Name</TableCell>
+                    <TableCell sx={headCell(200)}>Designation</TableCell>
+                    <TableCell sx={headCell(220)}>Location of Posting DC/DR</TableCell>
+                    <TableCell sx={headCell(180)}>Role in CA</TableCell>
+                    <TableCell sx={headCell(180)}>ID Card No</TableCell>
+                    <TableCell sx={headCell(170)}>Mobile No</TableCell>
+                    <TableCell sx={headCell(280)}>Identification Details in the CA Payroll</TableCell>
+                    <TableCell sx={headCell(200)}>Employed Since</TableCell>
+                    <TableCell sx={headCell(220)}>Training Details</TableCell>
+                    <TableCell sx={headCell(240)}>Date of last background verification</TableCell>
+                    <TableCell sx={headCell(120)}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {personsData.map((person, index) => (
                     <TableRow key={index + 1}>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>{index + 1}</TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
+                      <TableCell sx={bodyCell(80)}>{index + 1}</TableCell>
+                      <TableCell sx={bodyCell(220)}>
                         <TextField slotProps={{
                           htmlInput: { maxLength: 100 },
-                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z ]+$/)} fullWidth error={!!formErrors[index]?.fullName}
+                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z ]+$/)} fullWidth size="small" error={!!formErrors[index]?.fullName}
                           helperText={formErrors[index]?.fullName || ''} value={person.fullName} onChange={(e) => handleChange(person.id, 'fullName', e.target.value)} variant="outlined" placeholder="Enter Full Name" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
+                      <TableCell sx={bodyCell(200)}>
                         <TextField slotProps={{
                           htmlInput: { maxLength: 100 },
-                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z ]+$/)} fullWidth error={!!formErrors[index]?.designation}
+                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z ]+$/)} fullWidth size="small" error={!!formErrors[index]?.designation}
                           helperText={formErrors[index]?.designation || ''} value={person.designation} onChange={(e) => handleChange(person.id, 'designation', e.target.value)} variant="outlined" placeholder="Enter Designation" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
+                      <TableCell sx={bodyCell(220)}>
                         <TextField slotProps={{
                           htmlInput: { maxLength: 100 },
-                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9\(\),.\-& ]+$/)} fullWidth error={!!formErrors[index]?.locationOfPosting}
+                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9\(\),.\-& ]+$/)} fullWidth size="small" error={!!formErrors[index]?.locationOfPosting}
                           helperText={formErrors[index]?.locationOfPosting || ''} value={person.locationOfPosting} onChange={(e) => handleChange(person.id, 'locationOfPosting', e.target.value)} variant="outlined" placeholder="Enter Location" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
+                      <TableCell sx={bodyCell(180)}>
                         <TextField slotProps={{
                           htmlInput: { maxLength: 50 },
-                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z ]+$/)} fullWidth error={!!formErrors[index]?.role}
+                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z ]+$/)} fullWidth size="small" error={!!formErrors[index]?.role}
                           helperText={formErrors[index]?.role || ''} value={person.role} onChange={(e) => handleChange(person.id, 'role', e.target.value)} variant="outlined" placeholder="Enter Role" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
+                      <TableCell sx={bodyCell(180)}>
                         <TextField slotProps={{
                           htmlInput: { maxLength: 20 },
-                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9]+$/)} fullWidth error={!!formErrors[index]?.idCardNo}
+                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9]+$/)} fullWidth size="small" error={!!formErrors[index]?.idCardNo}
                           helperText={formErrors[index]?.idCardNo || ''} value={person.idCardNo} onChange={(e) => handleChange(person.id, 'idCardNo', e.target.value)} variant="outlined" placeholder="Enter ID Card No" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
+                      <TableCell sx={bodyCell(170)}>
                         <TextField slotProps={{
                           htmlInput: { maxLength: 10 },
-                        }} onKeyDown={(e) => ValidatePattern(e, /^[0-9]+$/)} fullWidth error={!!formErrors[index]?.mobileNo}
+                        }} onKeyDown={(e) => ValidatePattern(e, /^[0-9]+$/)} fullWidth size="small" error={!!formErrors[index]?.mobileNo}
                           helperText={formErrors[index]?.mobileNo || ''} value={person.mobileNo} onChange={(e) => handleChange(person.id, 'mobileNo', e.target.value)} variant="outlined" placeholder="Enter Mobile No" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
+                      <TableCell sx={bodyCell(280)}>
                         <TextField slotProps={{
                           htmlInput: { maxLength: 250 },
-                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9\(\),.\-& ]+$/)} fullWidth error={!!formErrors[index]?.identificationDetails}
+                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9\(\),.\-& ]+$/)} fullWidth size="small" error={!!formErrors[index]?.identificationDetails}
                           helperText={formErrors[index]?.identificationDetails || ''} value={person.identificationDetails} onChange={(e) => handleChange(person.id, 'identificationDetails', e.target.value)} variant="outlined" placeholder="Enter Identification Details" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
-                        <TextField fullWidth type="date" error={!!formErrors[index]?.employedSince}
+                      <TableCell sx={bodyCell(200)}>
+                        <TextField fullWidth size="small" type="date" error={!!formErrors[index]?.employedSince}
                           helperText={formErrors[index]?.employedSince || ''} value={person.employedSince} onChange={(e) => handleChange(person.id, 'employedSince', e.target.value)} variant="outlined" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
+                      <TableCell sx={bodyCell(220)}>
                         <TextField slotProps={{
                           htmlInput: { maxLength: 250 },
-                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9\(\),.\-& ]+$/)} fullWidth value={person.trainingDetails} error={!!formErrors[index]?.trainingDetails}
+                        }} onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9\(\),.\-& ]+$/)} fullWidth size="small" value={person.trainingDetails} error={!!formErrors[index]?.trainingDetails}
                           helperText={formErrors[index]?.trainingDetails || ''} onChange={(e) => handleChange(person.id, 'trainingDetails', e.target.value)} variant="outlined" placeholder="Enter Training Details" />
                       </TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500' }}>
-                        <TextField fullWidth error={!!formErrors[index]?.lastBackVerDate}
+                      <TableCell sx={bodyCell(240)}>
+                        <TextField fullWidth size="small" error={!!formErrors[index]?.lastBackVerDate}
                           helperText={formErrors[index]?.lastBackVerDate || ''} type="date" value={person.lastBackVerDate} onChange={(e) => handleChange(person.id, 'lastBackVerDate', e.target.value)} variant="outlined" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={bodyCell(120)}>
 
                         {personsData.length === index + 1 && (<IconButton color="primary" onClick={handleAddRow}><AddIcon /></IconButton>)}
                         {personsData.length > 1 && (<IconButton color="error" onClick={() => handleRemoveRow(person.id)}><RemoveIcon /></IconButton>)}

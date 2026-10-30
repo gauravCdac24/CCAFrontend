@@ -13,8 +13,15 @@ import {timeStampToDate} from '../../../../global/util/TimestampConverter';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import dateFormatter from '../../../../global/util/DateFormatter';
+import ValidatePattern from '../../../../global/util/ValidatePattern';
 
 const errorMsg = {
+
+  remarks: {
+    blank: "Kindly provide your remarks.",
+    format: "Only alphabets, numbers and the characters ,./ are allowed",
+    length: "Minimum 3 characters and Maximum 500 characters are allowed."
+  },
 
   captchaError: {
       blank: "Please enter captcha."
@@ -32,6 +39,7 @@ const ViewESPApplication = () => {
     const [captchaInput, setCaptchaInput] = useState('');
     const [previousReviewData, setPreviousReviewData] = useState([]);
     const [collapseItem, setCollapseItem] = useState([]);
+    const [remarks, setRemarks] = useState('');
     
     const {id} = useParams();
     const routeRootPath = useSelector((state) => state.jwtAuthentication.rolePath);
@@ -46,6 +54,14 @@ const ViewESPApplication = () => {
         error.captcha = errorMsg.captchaError.blank;
     }
 
+      if(!remarks.trim()){
+        error.remarks = errorMsg.remarks.blank;
+      }else if (!/^[A-Za-z0-9,./ ]+$/.test(remarks)) {
+        error.remarks = errorMsg.remarks.format;
+      }else if(remarks.trim().length < 3 || remarks.trim().length > 500){
+        error.remarks = errorMsg.remarks.length;
+      }
+
     return error;
 
     }
@@ -55,7 +71,7 @@ const ViewESPApplication = () => {
 
       setIsLoading(true);
 
-      ESPApplicationService.approveForeSignGoLive(decrypt(id))
+      ESPApplicationService.approveForeSignGoLive(decrypt(id), remarks.trim())
       .then((response)=>{
 
         // back
@@ -73,18 +89,20 @@ const ViewESPApplication = () => {
       })
       .catch((err)=>{
 
+        const message = typeof err?.response?.data === 'string' && err.response.data
+          ? err.response.data
+          : 'Unable to submit, try again.';
+
         showAlert({
           messageTitle: 'Error',
-          messageContent: 'Unable to submit, try again.',
+          messageContent: message,
           confirmText: 'Ok',
       })
 
       })
       .finally(()=>{
-
+        setIsLoading(false);
       })
-
-      setIsLoading(false);
 
     }
 
@@ -559,6 +577,33 @@ const handleBack = () => {
       </Box>
     ))
   }
+
+        <Grid container sx={{mt : 2}}>
+          <Grid item xs>
+            <Typography variant="h6" fontWeight="bold" >Remarks by CCA (Only alphabets, numbers and the characters ,./ are allowed, with a minimum of 3 and maximum of 500 characters.)</Typography>
+          </Grid>
+        </Grid>
+
+        <Grid container sx={{mt : 2}}>
+          <Grid item xs>
+            <TextField
+              multiline
+              rows={3}
+              sx={{ width: '100%' }}
+              onChange={(e) => setRemarks(e.target.value)}
+              onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z0-9,./ ]+$/)}
+              value={remarks}
+              placeholder="Write your remarks..."
+              inputProps={{ maxLength: 500 }}
+            />
+          </Grid>
+        </Grid>
+
+        {formError.remarks && (
+            <FormHelperText error>{formError.remarks}</FormHelperText>
+        )}
+
+        <Box sx={{textAlign: 'right', mt:1}}>Characters: {remarks.length}</Box>
 
 <><Grid container sx={{mt: 2, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
           <Grid item>

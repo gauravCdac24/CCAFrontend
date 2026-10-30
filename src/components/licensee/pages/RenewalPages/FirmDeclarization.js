@@ -16,6 +16,7 @@ const FirmDeclarization = ({ handlePreview, handleNext, handleBack,data  }) => {
   const [allUndertakingList, setAllUndertakingList] = useState([]); // Initialize as an array
   const [allSubServiceList, setAllSubServiceList] = useState([]);
   const userName = useSelector((state)=>state.jwtAuthentication.username);
+  const homePath = useSelector((state)=>state.jwtAuthentication.homePath);
   const appTypeMasterId= useSelector((state)=>state.licenseApplication.applicationType);
   console.log(userName);
   console.log(appTypeMasterId);
@@ -97,7 +98,7 @@ const FirmDeclarization = ({ handlePreview, handleNext, handleBack,data  }) => {
                     messageTitle: successAlert.messageTitle,
                     messageContent: successAlert.messageContent,
                     confirmText: 'OK',
-                    onConfirm: () => { navigate("/applicant/applicationform") },
+                    onConfirm: () => { navigate(homePath || "/licensee/licenseedashboard", { replace: true }); },
                     enableHeaderCloseBtn: true,
                     disableOutsideKeyDown: true
                 });

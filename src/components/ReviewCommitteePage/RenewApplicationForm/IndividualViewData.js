@@ -63,6 +63,7 @@ const ViewCessationApplication = ()=> {
     userName:userName,
     reviewerUserName:reviewerUserName,
     isRejected:false,
+    isApproved:false,
     reviewDate:'',
     file1:''
   });
@@ -111,7 +112,7 @@ const handleFileChange1 = (e) => {
     }
 };
 
-  const initialKeys = ['userName', 'reviewerUserName', 'isRejected','reviewDate','file1','remarks'];
+  const initialKeys = ['userName', 'reviewerUserName', 'isRejected', 'isApproved', 'reviewDate','file1','remarks'];
   const hasExtraKeys = Object.keys(checkedRows).some(key => !initialKeys.includes(key));
 
 
@@ -760,14 +761,25 @@ const handleDownloads = async (appDocId, documentTitle) => {
   
   
   const handleConfrimSubmit = () => {
-    ApplicationForm.addAllAproved(checkedRows)
+
+    const formData=new FormData();
+    checkedRows.isRejected = false;
+    checkedRows.isApproved = true;
+    Object.entries(checkedRows).forEach(([key, value]) => {
+      if (key === 'file1') {
+        formData.append(key, value);
+      } else {
+        formData.append(key, String(value));
+      }
+    });
+    ApplicationReview.addNewIndividualReview(formData)
     .then((response) => {
       //console.log(response.data)
         showAlert({
             messageTitle: 'Success',
             messageContent: response.data,
             confirmText: 'Ok',
-            onConfirm: () => window.location.href = '/applicationreviewcommittee/newapplication',
+            onConfirm: () => window.location.href = '/applicationreviewcommittee/renewapplication',
         });
         
     })
@@ -803,6 +815,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
   const handleSubmit = () => {
     
     const formData=new FormData();
+    checkedRows.isApproved = false;
     if(2<=  basicDetailesValues?.reviewApplications.length){
       checkedRows.isRejected = true;
     }
@@ -821,7 +834,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
             messageTitle: 'Success',
             messageContent: response.data,
             confirmText: 'Ok',
-            onConfirm: () => window.location.href = '/applicationreviewcommittee/newapplication',
+            onConfirm: () => window.location.href = '/applicationreviewcommittee/renewapplication',
         });
         
     })

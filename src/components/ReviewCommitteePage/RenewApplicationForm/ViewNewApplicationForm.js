@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GridActionsCellItem } from '@mui/x-data-grid';
 import { Box, Grid, Switch, Tooltip, Typography } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import showAlert from '../../global/common/MessageBox/AlertService';
 import dateFormatter from '../../global/util/DateFormatter';
@@ -14,6 +13,7 @@ import ApplicationType from '../../../service/AdminService/ApplicationType';
 import IntentService from '../../../service/AdminService/IntentService';
 import { setApplicationDetails } from '../../../store/LicenseApplication/Reducer';
 import ApplicationReviewCommittee from '../../../service/NewLicenseService/ApplicationReviewCommittee';
+import { hasLicenseAction, normalizeApplicationStatus } from '../../global/util/licenseAcquisitionWorkflow';
 import IndividualViewData from './IndividualViewData';
 import FirmViewData from './FirmViewData';
 import GovernmentViewData from './GovernmentViewData';
@@ -155,10 +155,11 @@ const ViewNewApplicationForm = () => {
                  applicantName:result[i]?.applicantName,
                  applicationCurrentStatus:result[i]?.applicationCurrentStatus,
                  applicantUserName:result[i]?.applicantUserName,
-                 intentAppId:result[i]?.intentAppId,
-                 applicationType:result[i]?.applicationType,
- 
-               };
+                intentAppId:result[i]?.intentAppId,
+                applicationType:result[i]?.applicationType,
+                allowedActions: result[i]?.allowedActions || [],
+
+              };
              
          
                updatedData.push(obj);
@@ -466,58 +467,56 @@ console.log("applicationCounts=======>",JSON.stringify(applicationCounts))
             minWidth: 100,
             sortable: false,
             renderCell: (params) => {
-                // Check if the application is under review
-                if (params.row.applicationCurrentStatus === 'underReview') {
-                    // Get the intentId for the current row
-                    const intentId = params.row.intentAppId; // Ensure this matches your data structure
-                    const currentCount = applicationCounts[intentId] || 0; // Get count or default to 0
-        
-                    // Debugging logs
-                    console.log("intentId==>", intentId);
-                    console.log('currentCount==>', currentCount);
-                    console.log('applicationReview==>', applicationReview);
-        
-                    // Check if the current count matches the required application review count
+                const actions = params.row.allowedActions || [];
+                const isEditUponReview =
+                    normalizeApplicationStatus(params.row.applicationCurrentStatus) ===
+                    normalizeApplicationStatus('Edit_Upon_Review');
+                const isUnderReview =
+                    normalizeApplicationStatus(params.row.applicationCurrentStatus) ===
+                    normalizeApplicationStatus('underReview');
+                const openReview = () =>
+                    handleDownload(params.row.applicationType, params.row.applicantUserName);
+
+                if (hasLicenseAction(actions, 'REVIEW_APPLICATION') || isUnderReview || isEditUponReview) {
+                    const intentId = params.row.intentAppId;
+                    const currentCount = applicationCounts[intentId] || 0;
                     const isCountMatching = applicationReview >= currentCount;
-        
-                    // Check if the intentId exists in applicationCounts
-                    const isIntentIdExists = Object.keys(applicationCounts).includes(intentId.toString());
-        
-                    // If counts are equal and intentId exists, show the CheckCircleIcon
-                    if (isCountMatching && isIntentIdExists) {
+                    const isIntentIdExists = Object.keys(applicationCounts).includes(String(intentId));
+
+                    if (!isEditUponReview && isCountMatching && isIntentIdExists) {
                         return (
                             <Tooltip title="Approval for Rejection by CCA">
                                 <span>
-                                    <CheckCircleIcon color="primary" /> {/* Check icon indicating success */}
+                                    <CheckCircleIcon color="primary" />
                                 </span>
                             </Tooltip>
                         );
-                    } else {
-                        // If counts are not equal, show the VisibilityIcon
-                        return (
-                            <Tooltip title="View">
-                                <GridActionsCellItem 
-                                    icon={<VisibilityIcon color="success" />} 
-                                    label="View" 
-                                    onClick={() => handleDownload(params.row.applicationType, params.row.applicantUserName)} 
-                                />
-                            </Tooltip>
-                        );
                     }
-                } else if (params.row.applicationCurrentStatus === 'Edit_Upon_Review') {
+
                     return (
-                        <Tooltip title="Edit">
-                            <GridActionsCellItem 
-                                icon={<EditIcon color="info" />} 
-                                label="Edit" 
-                                onClick={() => handleDownload(params.row.applicationType, params.row.applicantUserName)} 
+                        <Tooltip title="Review">
+                            <GridActionsCellItem
+                                icon={<VisibilityIcon color="success" />}
+                                label="Review"
+                                onClick={openReview}
                             />
                         </Tooltip>
-                        
                     );
-                } else {
-                    return null; // Return null for other statuses if not needed
                 }
+
+                if (hasLicenseAction(actions, 'VIEW')) {
+                    return (
+                        <Tooltip title="View">
+                            <GridActionsCellItem
+                                icon={<VisibilityIcon color="success" />}
+                                label="View"
+                                onClick={openReview}
+                            />
+                        </Tooltip>
+                    );
+                }
+
+                return null;
             },
         }
         

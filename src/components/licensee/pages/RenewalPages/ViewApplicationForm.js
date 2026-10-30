@@ -37,7 +37,42 @@ import printApplicationPreview from '../../../global/util/printApplicationPrevie
 import OfflinePaymentPage from '../../../applicant/pages/ApplicationForm/OfflinePaymentPage';
 import RenewApplicationForm from '../../../../service/RenewLicenseService/ApplicationForm';
 
+const calendarDay = (value) => {
+    if (value == null || value === '') {
+        return null;
+    }
+    if (Array.isArray(value) && value.length >= 3) {
+        const parsed = dayjs(new Date(Number(value[0]), Number(value[1]) - 1, Number(value[2])));
+        return parsed.isValid() ? parsed.startOf('day') : null;
+    }
+    if (typeof value === 'string') {
+        const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (iso) {
+            const parsed = dayjs(new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
+            return parsed.isValid() ? parsed.startOf('day') : null;
+        }
+        const dmy = value.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+        if (dmy) {
+            const parsed = dayjs(new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1])));
+            return parsed.isValid() ? parsed.startOf('day') : null;
+        }
+    }
+    const parsed = dayjs(value);
+    return parsed.isValid() ? parsed.startOf('day') : null;
+};
 
+const extensionClosesAt = (extensionUntil) => {
+    const start = calendarDay(extensionUntil);
+    if (!start) {
+        return null;
+    }
+    return start.add(1, 'day').startOf('day');
+};
+
+const isBeforeExtensionClose = (extensionUntil, now) => {
+    const closesAt = extensionClosesAt(extensionUntil);
+    return closesAt != null && now.isBefore(closesAt);
+};
 
 const ViewApplicationForm = () => {
     const [allApplicationFormList, setAllApplicationFormList] = useState([]);
@@ -494,7 +529,7 @@ const ViewApplicationForm = () => {
                     cid={cid}
                     ref={ref}
                     submitPayment={RenewApplicationForm.getApplicationPayment}
-                    redirectPath={`/${rolePath}/renewallicense`}
+                    redirectPath="/licensee/renewallicense"
                 />
             ),
             enableHeaderCloseBtn: true,
@@ -536,12 +571,14 @@ const ViewApplicationForm = () => {
         })
     }
     const [licenseDetails, setLicenseDetails] = useState({});
+    const [renewalWindow, setRenewalWindow] = useState(null);
+    const [clock, setClock] = useState(() => Date.now());
  const getLicenseDetailsByUsername = () => {
 
        // setIsLoading(true);
         LicenseIssuanceService.getLicenseDetails()
             .then((res) => {
-                setLicenseDetails(res.data);
+                setLicenseDetails(res.data || {});
             })
             .catch((err) => {
 
@@ -554,21 +591,54 @@ const ViewApplicationForm = () => {
     }
 
       useEffect(() => {
-    
             getLicenseDetailsByUsername();
-        }, [])
+            LicenseIssuanceService.getRenewalWindowByUsername(userName)
+                .then((res) => setRenewalWindow(res.data))
+                .catch(() => setRenewalWindow(null));
+        }, [userName])
 
- {/* added by sumit */ }
-    const isRenewalAvailable = () => {
-        if (licenseDetails.expiryDate) {
-            const expiryDate = dayjs(licenseDetails.expiryDate);
-            const currentDate = dayjs();
-            const daysUntilExpiry = expiryDate.diff(currentDate, "day");
-
-            // Check if the expiry date is within 45 days from today
-            return daysUntilExpiry <= 45 && daysUntilExpiry >= 0;
+    useEffect(() => {
+        if (renewalWindow?.window !== 'EXTENDED' || renewalWindow.extensionUntil == null) {
+            return undefined;
         }
-        return false;
+        const closesAt = extensionClosesAt(renewalWindow.extensionUntil);
+        if (!closesAt) {
+            return undefined;
+        }
+        const delay = closesAt.diff(dayjs());
+        if (delay <= 0) {
+            return undefined;
+        }
+        const timer = setTimeout(() => setClock(Date.now()), Math.min(delay, 2147483647));
+        return () => clearTimeout(timer);
+    }, [renewalWindow]);
+
+    const isRenewalAvailable = () => {
+        const now = dayjs(clock);
+        if (renewalWindow?.window === 'EXTENDED') {
+            if (renewalWindow.extensionUntil == null) {
+                return renewalWindow.canApply === true;
+            }
+            return isBeforeExtensionClose(renewalWindow.extensionUntil, now);
+        }
+        const expiry = licenseDetails && licenseDetails.expiryDate;
+        if (expiry) {
+            const expiryDay = calendarDay(expiry);
+            if (expiryDay) {
+                const daysUntilExpiry = expiryDay.diff(now.startOf('day'), 'day');
+                if (daysUntilExpiry >= 1) {
+                    return true;
+                }
+                return false;
+            }
+        }
+        if (renewalWindow?.window === 'BLOCKED' || renewalWindow?.window === 'NO_LICENSE') {
+            return false;
+        }
+        if (renewalWindow) {
+            return renewalWindow.canApply === true;
+        }
+        return true;
     };
 
    
@@ -616,12 +686,15 @@ const ViewApplicationForm = () => {
                         );
                     } 
                     
-                    if (params.row.status === 'LICENSE_ISSUED'&& isRenewalAvailable()) {
+                    const renewalOpen = isRenewalAvailable() && (
+                        params.row.status === 'LICENSE_ISSUED' || renewalWindow?.window === 'EXTENDED'
+                    );
+                    if (renewalOpen) {
                         actionButtons.push (
-                            <Tooltip title="Edit">
+                            <Tooltip title="Renewal">
                                 <GridActionsCellItem 
                                     icon={<EditIcon color="info" />} 
-                                    label="Edit" 
+                                    label="Renewal" 
                                     onClick={() => handleEditApplicationForm()} 
                                 />
                             </Tooltip>
@@ -728,7 +801,7 @@ const ViewApplicationForm = () => {
                 },
             },
         ],
-        [allApplicationFormList]
+        [allApplicationFormList, licenseDetails, renewalWindow, clock]
     );
     
 

@@ -151,7 +151,7 @@ const AddApplicationForm = () => {
 
     const handleBack = () => {
         if (activeStep === 0) {
-            navigate("/applicant/applicationform", { replace: true });
+            navigate(homePath || "/licensee/licenseedashboard", { replace: true });
         } else {
             setActiveStep(prevActiveStep => prevActiveStep - 1);
         }

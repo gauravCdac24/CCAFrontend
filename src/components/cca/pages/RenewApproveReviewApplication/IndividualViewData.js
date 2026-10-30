@@ -15,6 +15,7 @@ import LoaderProgress from '../../../global/common/LoaderProgress';
 import dateFormatter from '../../../global/util/DateFormatter';
 import { useParams } from 'react-router-dom';
 import { decrypt } from '../../../global/util/EncryptDecrypt';
+import { isRenewalReviewRemark, useLicenseIssueDate } from '../../../global/util/renewalReviewRemarks';
 
 const errorMsg = {
 
@@ -39,6 +40,7 @@ const ViewCessationApplication = ()=> {
 
   const {id} = useParams();
    const userName = decrypt(id);
+  const licenseIssueDate = useLicenseIssueDate(userName);
   console.log(userName);
   const routeRootPath = useSelector((state) => state.jwtAuthentication.rolePath);
 
@@ -87,6 +89,10 @@ const ViewCessationApplication = ()=> {
     reviewFields
     :[]
   });
+
+  const renewalReviews = (basicDetailesValues?.reviewApplications || []).filter((review) =>
+    isRenewalReviewRemark(review, licenseIssueDate)
+  );
 
 
 
@@ -632,32 +638,50 @@ const handleDownload = async (appDocId, documentTitle) => {
    // navigate(`${routeRootPath}/espreviewapp`, { replace: true })
   }
 
+  const buildCcaApprovalPayload = (isRejected) => {
+    const applicantUserName = userName || checkedRows.userName;
+    if (!applicantUserName) {
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Applicant user name is missing. Please reopen the application and try again.",
+        confirmText: "Ok",
+      });
+      return null;
+    }
+
+    return {
+      userName: applicantUserName,
+      reviewerUserName: reviewerUserName || checkedRows.reviewerUserName || "",
+      isRejected,
+      remarks: checkedRows.remarks || "",
+    };
+  };
+
   const handleRejectedSubmit = (e) => {
     e.preventDefault();
     showAlert({
       messageTitle: "Confirm",
-      messageContent: "Are you sure you want to submit?",
+      messageContent: "Are you sure you want to send this application to rejection?",
       confirmText: "Yes",
       closeText: "No",
       maxWidth: "sm",
       onConfirm: () => handleConfrimSubmit(),
     });
   };
-  
-  
-  
-  
-  
+
   const handleConfrimSubmit = () => {
-    
-    ApplicationForm.addAllRejectedAData(checkedRows)
+    const payload = buildCcaApprovalPayload(true);
+    if (!payload) {
+      return;
+    }
+
+    ApplicationForm.addAllAprovedJson(payload)
     .then((response) => {
-      //console.log(response.data)
         showAlert({
             messageTitle: 'Success',
             messageContent: response.data,
             confirmText: 'Ok',
-            onConfirm: () => window.location.href = '/cca/rejectedreviewapplication',
+            onConfirm: () => window.location.href = '/cca/renewapprovedapplication',
         });
         
     })
@@ -678,27 +702,27 @@ const handleDownload = async (appDocId, documentTitle) => {
   
     showAlert({
       messageTitle: "Confirm",
-      messageContent: "Are you sure you want to submit?",
+      messageContent: "Are you sure you want to approve this application for audit?",
       confirmText: "Yes",
       closeText: "No",
       maxWidth: "sm",
       onConfirm: () => handleSubmit(),
     });
   };
-  
-  
-  
-  
-  
+
   const handleSubmit = () => {
-    
-    ApplicationForm.addAllAproved(checkedRows)
+    const payload = buildCcaApprovalPayload(false);
+    if (!payload) {
+      return;
+    }
+
+    ApplicationForm.addAllAprovedJson(payload)
     .then((response) => {
         showAlert({
             messageTitle: 'Success',
             messageContent: response.data,
             confirmText: 'Ok',
-            onConfirm: () => window.location.href = '/cca/approvedreviewapplication',
+            onConfirm: () => window.location.href = '/cca/renewapprovedapplication',
         });
         
     })
@@ -762,9 +786,9 @@ const downloads = async (momFile) => {
 
 
   {
-     basicDetailesValues?.reviewApplications && Array.isArray(basicDetailesValues?.reviewApplications) && basicDetailesValues?.reviewApplications.length > 0 ? (<>
+     renewalReviews.length > 0 ? (<>
     {
-      basicDetailesValues?.reviewApplications.map((element, index)=>(
+      renewalReviews.map((element, index)=>(
       
    
 
@@ -788,7 +812,7 @@ const downloads = async (momFile) => {
 
               >
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                  Reviewd on {dateFormatter(element.created)}
+                  Reviewed on {dateFormatter(element.created)}
                 </Typography>
                 <IconButton
 
@@ -2405,6 +2429,17 @@ const downloads = async (momFile) => {
                onClick={handleApprovedSubmit}
               >
                 Approval
+              </Button>
+            </Grid>
+            <Grid item>
+              <Button
+                type="button"
+                variant="contained"
+                sx={{ minWidth: '160px', height: '40px', color: '#FFFFFF', backgroundColor: 'black', whiteSpace: 'nowrap' }}
+                aria-label="Reject"
+                onClick={handleRejectedSubmit}
+              >
+                Send To Rejection
               </Button>
             </Grid>
             </Grid>

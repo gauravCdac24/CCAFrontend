@@ -135,8 +135,14 @@ useEffect(()=>{
                   {applicationObj?.ekycModes && applicationObj?.ekycModes.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell sx={{ border: 0.5, borderColor: 'grey.500', padding: 1 }}>{index+1}</TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500', padding: 1 }}>{item.ekycModeTitle}</TableCell>
-                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500', padding: 1 }}>{(item.fileName && item.isApprovalRequired == true)?<Link href="#" onClick={()=>downloadDocument(item.ekycModeId, "eKYCApproval")}>Download</Link>  
+                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500', padding: 1 }}>
+                        {item.ekycModeTitle}
+                        {item.serviceProviderName && <Typography variant="body2">Service provider: {item.serviceProviderName}</Typography>}
+                        {item.integrationDetails && <Typography variant="body2">Integration: {item.integrationDetails}</Typography>}
+                        {item.integrationDate && <Typography variant="body2">Date: {item.integrationDate}</Typography>}
+                        {item.entityName && <Typography variant="body2">{item.entityName}</Typography>}
+                      </TableCell>
+                      <TableCell sx={{ border: 0.5, borderColor: 'grey.500', padding: 1 }}>{(item.ekycModeTitle || '').toLowerCase().includes('offline') ? "Not required" : (item.fileName && item.isApprovalRequired == true)?<Link href="#" onClick={()=>downloadDocument(item.ekycModeId, "eKYCApproval")}>Download</Link>  
                                                                                                                                                 : ((item.fileName == null || item.fileName == '') && item.isApprovalRequired===true) ? "Not Uploaded": "Not required"}</TableCell>
                     </TableRow>
                   ))}

@@ -1,4 +1,4 @@
-import { Box, Button, FormHelperText, Grid, IconButton, InputLabel, Link, styled, Tooltip, Typography } from "@mui/material";
+import { Box, Button, FormHelperText, Grid, IconButton, InputLabel, Link, styled, TextField, Tooltip, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import LoaderProgress from "../../../global/common/LoaderProgress";
 import ESPApplicationService from "../../../../service/ESPApplicationService/ESPApplicationService";
@@ -33,10 +33,23 @@ const errorMsg = {
     eKYCApproval: {
         blank: "Please upload required eKYC Approval.",
         size: "The file size must not exceed 5MB. Please upload a smaller file.",
-        format: "Only Pdf file is allowed."
+        format: "Only Pdf file is allowed.",
+        length: "Entered details must not exceed 255 characters."
     },
 
 }
+
+const ekycModeKind = (title = '') => {
+    const normalized = title.toLowerCase();
+    if (normalized.includes('offline')) return 'aadhaarOffline';
+    if (normalized.includes('online')) return 'aadhaarOnline';
+    if (normalized.includes('organis') || normalized.includes('organiz')) return 'organisational';
+    if (normalized.includes('bank')) return 'banking';
+    if (normalized.includes('pan')) return 'pan';
+    return 'default';
+};
+
+const blankDetail = (value) => !value || !value.trim();
 
 
 const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
@@ -81,86 +94,61 @@ const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
       }
 
 
-    const getSecondStepData = () => {
+    const approvalDocFromMode = (mode, index, saved) => {
+        const source = saved || mode;
+        return {
+            id: decrypt(mode.ekycMode),
+            file: null,
+            fileName: (source.fileName || '').trim(),
+            fileKey: Date.now() + index + 1,
+            fid: (source.fileName || '').trim() ? (source.ekycModeId || mode.ekycModeId || '') : '',
+            serviceProviderName: source.serviceProviderName || '',
+            integrationDetails: source.integrationDetails || '',
+            integrationDate: source.integrationDate || '',
+            entityName: source.entityName || '',
+        };
+    };
 
-        setIsLoading(true);
-        ESPApplicationService.getSecondStepData()
-        .then((response)=>{
-
-            setCoverLetterDoc({
-                fid: response.data.esignDocument.eSignDocId,
-                file: null,
-                fileName: response.data.esignDocument.fileName.trim(),
-                fileKey: Date.now(),
-                signedId: response.data?.esignDocument?.esignDocument || ''
-            })
-
-            
-            const ekycApprovalsObj = [];
-
-            response.data.eKYCMode.forEach((element, index) => {
-
-                const obj = {
-                    id: decrypt(element.ekycMode),
-                    file: null,
-                    fileName: element.fileName.trim(),
-                    fileKey: Date.now()+index+1,
-                    fid: element.ekycModeId
-                }
-
-                ekycApprovalsObj.push(obj);
-
-            })
-
-            setEKYCApprovalDoc(ekycApprovalsObj);
-
-        })
-        .catch((err)=>{
-
-        })
-        .finally(()=>{
-            setIsLoading(false);
-        }) 
-
-    }
-
-    const getSelectedEKYCMode = () =>{
-        
+    const loadStepTwo = () => {
         setIsLoading(true);
 
-        const updatedEkycSelected = [];
+        Promise.all([
+            ESPApplicationService.getSelectedEKYCMode(),
+            ESPApplicationService.getSecondStepData().catch(() => ({ data: {} })),
+        ])
+        .then(([selectedResponse, savedResponse]) => {
+            const savedModes = savedResponse.data?.eKYCMode || [];
+            const savedById = {};
+            savedModes.forEach((element) => {
+                savedById[decrypt(element.ekycMode)] = element;
+            });
 
-        ESPApplicationService.getSelectedEKYCMode()
-        .then(response=>{
+            const docs = [];
+            const modes = (selectedResponse.data || []).map((item, index) => {
+                const modeId = decrypt(item.ekycMode);
+                docs.push(approvalDocFromMode(item, index, savedById[modeId]));
+                return { ...item, ekycMode: modeId };
+            });
 
-            const result = response.data.map((item, index)=>{
-                item['ekycMode'] = decrypt(item.ekycMode);
+            setEKYCApprovalDoc(docs);
+            setSelectedEKYCModes(modes);
 
-                const emptyFileObj = {
-                    id: item.ekycMode,
+            const cover = savedResponse.data?.esignDocument;
+            if (cover?.fileName || cover?.eSignDocId) {
+                setCoverLetterDoc({
+                    fid: cover.eSignDocId,
                     file: null,
-                    fileName: '',
-                    fileKey: Date.now()+index+1,
-                    fid: '' 
-                }
-
-                updatedEkycSelected.push(emptyFileObj);
-
-                return item;
-            })
-
-            setEKYCApprovalDoc(updatedEkycSelected);
-            setSelectedEKYCModes(result);
-            
+                    fileName: (cover.fileName || '').trim(),
+                    fileKey: Date.now(),
+                    signedId: cover.esignDocument || ''
+                });
+            }
         })
-        .catch((err)=>{
-
-        })
-        .finally(()=>{
+        .catch(() => {})
+        .finally(() => {
             setIsLoading(false);
-        })
-
-    }
+        });
+    };
 
     const handleCoverFileChange = (e) => {
         const file = e.target.files?.[0]; 
@@ -175,6 +163,17 @@ const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
 
         
 
+    };
+
+    const handleDetailChange = (index, field, value) => {
+        setEKYCApprovalDoc((prevDocs) => {
+            const updatedDocs = [...prevDocs];
+            updatedDocs[index] = {
+                ...updatedDocs[index],
+                [field]: value,
+            };
+            return updatedDocs;
+        });
     };
 
     const handleEKYCApprovalDoc = (e, index) => {
@@ -246,7 +245,50 @@ const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
 
     };
 
-    const validateApprovalFile = (errors, index) => {
+    const validateModeDetails = (errors, index, kind) => {
+        const doc = eKYCApprovalDoc[index];
+        if (!doc) {
+            return;
+        }
+
+        if (kind === 'aadhaarOnline' && blankDetail(doc.serviceProviderName)) {
+            errors.eKYCApproval[index].serviceProviderName = "Please enter Aadhaar Authorised Verification Service Provider Name.";
+        }
+        if (kind === 'pan' && blankDetail(doc.serviceProviderName)) {
+            errors.eKYCApproval[index].serviceProviderName = "Please enter PAN Authorised Verification Service Provider Name.";
+        }
+        if (kind === 'banking') {
+            if (blankDetail(doc.integrationDetails)) {
+                errors.eKYCApproval[index].integrationDetails = "Please enter Bank eKYC Integration.";
+            }
+            if (blankDetail(doc.integrationDate)) {
+                errors.eKYCApproval[index].integrationDate = "Please select the date.";
+            }
+            if (blankDetail(doc.entityName)) {
+                errors.eKYCApproval[index].entityName = "Please enter Bank Name.";
+            }
+        }
+        if (kind === 'organisational') {
+            if (blankDetail(doc.integrationDetails)) {
+                errors.eKYCApproval[index].integrationDetails = "Please enter Organisational eKYC Integration.";
+            }
+            if (blankDetail(doc.integrationDate)) {
+                errors.eKYCApproval[index].integrationDate = "Please select the date.";
+            }
+            if (blankDetail(doc.entityName)) {
+                errors.eKYCApproval[index].entityName = "Please enter Organisation Name.";
+            }
+        }
+        if ([doc.serviceProviderName, doc.integrationDetails, doc.entityName].some((value) => value && value.trim().length > 255)) {
+            errors.eKYCApproval[index].length = errorMsg.eKYCApproval.length;
+        }
+    };
+
+    const validateApprovalFile = (errors, index, kind) => {
+
+        if (kind === 'aadhaarOffline') {
+            return;
+        }
 
         if (eKYCApprovalDoc[index].file) {
 
@@ -284,7 +326,9 @@ const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
             if (!errors.eKYCApproval[index]) {
                 errors.eKYCApproval[index] = {};
             }
-            validateApprovalFile(errors, index);
+            const kind = ekycModeKind(selectedEKYCModes[index]?.ekycModeTitle);
+            validateApprovalFile(errors, index, kind);
+            validateModeDetails(errors, index, kind);
         })
 
         validateFile(errors);
@@ -420,8 +464,7 @@ const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
 
     useEffect(()=>{
 
-        getSelectedEKYCMode();
-        getSecondStepData();
+        loadStepTwo();
         getReviewData();
     },[])
 
@@ -510,37 +553,111 @@ const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
                     <Grid item xs={12} sm>
                     {selectedEKYCModes.length > 0 && (
                          <InputLabel shrink={false} htmlFor={"ekycApprovals"} sx={{mb:1}}>
-                                <Typography variant='body1'><b>2. Upload eKYC Approval</b> (Only PDF and Max allowed size is 5MB)</Typography>
+                                <Typography variant='body1'><b>2. eKYC Approval Details</b> (Document upload: only PDF, max 5MB)</Typography>
                         </InputLabel>
                     )}
 
 
                 {
-                    selectedEKYCModes.map((element, index)=>(
-                        <Grid container key={index} spacing={2} direction="row" sx={{mt:1, ml: 0.1}}>
+                    selectedEKYCModes.map((element, index)=>{
+                        const kind = ekycModeKind(element.ekycModeTitle);
+                        const doc = eKYCApprovalDoc[index];
+                        if (!doc) {
+                            return null;
+                        }
+                        const fieldError = formErrors?.eKYCApproval?.[index] || {};
+                        const fieldsDisabled = !reviewData?.ekycMode;
 
-                            <Grid item xs={1} sx={{mt: 1}}>
-                                2.{index + 1}
-                            </Grid>
+                        const textField = (field, label) => (
+                            <Box sx={{ mt: 1.5 }} key={field}>
+                                <InputLabel shrink={false} htmlFor={`${field}-${index}`}>
+                                    <Typography variant='body2'><b>{label}*</b></Typography>
+                                </InputLabel>
+                                <TextField
+                                    id={`${field}-${index}`}
+                                    size="small"
+                                    fullWidth
+                                    value={doc[field] || ''}
+                                    onChange={(e) => handleDetailChange(index, field, e.target.value)}
+                                    disabled={fieldsDisabled}
+                                    inputProps={{ maxLength: 255 }}
+                                    error={Boolean(fieldError[field])}
+                                    helperText={fieldError[field] || ''}
+                                />
+                            </Box>
+                        );
 
-                            <Grid item xs sx={{mt: 1}}>
-                                {element.ekycModeTitle}
-                            </Grid>
+                        return (
+                        <Box key={index} sx={{ mt: 2, p: 1.5, border: '1px solid #e0e0e0', borderRadius: '6px' }}>
+                            <Typography variant='body1'><b>2.{index + 1} {element.ekycModeTitle}</b></Typography>
 
-                            <Grid item xs={6}>
-                               
+                            {kind === 'aadhaarOnline' && textField('serviceProviderName', 'Aadhaar Authorised Verification Service Provider Name')}
+                            {kind === 'pan' && textField('serviceProviderName', 'PAN Authorised Verification Service Provider Name')}
 
+                            {kind === 'banking' && (
+                                <>
+                                    {textField('integrationDetails', 'Bank eKYC Integration')}
+                                    <Box sx={{ mt: 1.5, maxWidth: 280 }}>
+                                        <InputLabel shrink={false} htmlFor={`integrationDate-${index}`}>
+                                            <Typography variant='body2'><b>Date*</b></Typography>
+                                        </InputLabel>
+                                        <TextField
+                                            id={`integrationDate-${index}`}
+                                            type="date"
+                                            size="small"
+                                            fullWidth
+                                            value={doc.integrationDate || ''}
+                                            onChange={(e) => handleDetailChange(index, 'integrationDate', e.target.value)}
+                                            disabled={fieldsDisabled}
+                                            InputLabelProps={{ shrink: true }}
+                                            error={Boolean(fieldError.integrationDate)}
+                                            helperText={fieldError.integrationDate || ''}
+                                        />
+                                    </Box>
+                                </>
+                            )}
+
+                            {kind === 'organisational' && (
+                                <>
+                                    {textField('integrationDetails', 'Organisational eKYC Integration')}
+                                    <Box sx={{ mt: 1.5, maxWidth: 280 }}>
+                                        <InputLabel shrink={false} htmlFor={`integrationDate-${index}`}>
+                                            <Typography variant='body2'><b>Date*</b></Typography>
+                                        </InputLabel>
+                                        <TextField
+                                            id={`integrationDate-${index}`}
+                                            type="date"
+                                            size="small"
+                                            fullWidth
+                                            value={doc.integrationDate || ''}
+                                            onChange={(e) => handleDetailChange(index, 'integrationDate', e.target.value)}
+                                            disabled={fieldsDisabled}
+                                            InputLabelProps={{ shrink: true }}
+                                            error={Boolean(fieldError.integrationDate)}
+                                            helperText={fieldError.integrationDate || ''}
+                                        />
+                                    </Box>
+                                </>
+                            )}
+
+                            {kind === 'aadhaarOffline' && (
+                                <Typography variant='body2' sx={{ mt: 1 }}>Document upload is not required.</Typography>
+                            )}
+
+                            {kind !== 'aadhaarOffline' && (
+                            <Grid container spacing={1} direction="row" sx={{ mt: 1.5 }} alignItems="center">
+                            <Grid item xs={12} sm={8}>
                             <Grid container direction="row" sx={{border: '1px solid #cfcfcf', borderRadius: '5px'}}>
                                         <Grid item xs>
                                             <Button
                                             component="label"
                                             variant="contained"
                                             startIcon={<CloudUploadIcon />}
-                                            disabled={!reviewData?.ekycMode}
+                                            disabled={fieldsDisabled}
                                         >
                                             Upload file
                                             <VisuallyHiddenInput
-                                                key={eKYCApprovalDoc[index].fileKey}
+                                                key={doc.fileKey}
                                                 type="file"
                                                 name="file"
                                                 onChange={(e)=>handleEKYCApprovalDoc(e, index)}
@@ -549,8 +666,8 @@ const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
                                         
                                         </Grid>
                                         <Grid item xs sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-                                        {eKYCApprovalDoc[index].fileName && (
-                                            <Tooltip title={eKYCApprovalDoc[index].fileName} placement="top">
+                                        {doc.fileName && (
+                                            <Tooltip title={doc.fileName} placement="top">
                                                 <Typography variant='body2' sx={{
                                                     display: 'inline-block',
                                                     whiteSpace: 'nowrap',
@@ -559,28 +676,28 @@ const ESPApplicationStepTwo = ({handleNext, handleBack}) => {
                                                     verticalAlign: 'middle',
                                                     textAlign: 'center'
                                                 }}>
-                                                    {eKYCApprovalDoc[index].fileName} {eKYCApprovalDoc[index].file && (<>({Math.ceil(parseInt(eKYCApprovalDoc[index].file.size)/1024)} KB) </>)}
+                                                    {doc.fileName} {doc.file && (<>({Math.ceil(parseInt(doc.file.size)/1024)} KB) </>)}
                                                 </Typography>
                                             </Tooltip>
                                         )}    
                                         </Grid>
-
-                                        
-                                        
                                     </Grid>
-                                    
-                                    {formErrors?.eKYCApproval && formErrors?.eKYCApproval[index]?.error && (
-                                        <FormHelperText error>{formErrors?.eKYCApproval[index]?.error}</FormHelperText>
+                                    {fieldError.error && (
+                                        <FormHelperText error>{fieldError.error}</FormHelperText>
                                     )}
+                            </Grid>
+                            </Grid>
+                            )}
 
+                            {kind === 'banking' && textField('entityName', 'Bank Name')}
+                            {kind === 'organisational' && textField('entityName', 'Organisation Name')}
 
-                            </Grid>    
-
-                            {eKYCApprovalDoc[index].fid && (<Grid item xs={1} sx={{mt: 1}}>
-                                            <Link href="#" onClick={()=>downloadDocument(eKYCApprovalDoc[index].fid, "eKYCApproval")}>Download</Link>
-                                        </Grid>)}
-                        </Grid>
-                    ))
+                            {fieldError.length && (
+                                <FormHelperText error>{fieldError.length}</FormHelperText>
+                            )}
+                        </Box>
+                        );
+                    })
                 }
 
                

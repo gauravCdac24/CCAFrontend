@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, TextField, Typography, InputLabel, Box, Button, Tooltip, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, FormHelperText, Link } from '@mui/material';
+import { Grid, TextField, Typography, InputLabel, Box, Button, Tooltip, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, FormHelperText } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import IconButton from '@mui/material/IconButton';
 import dayjs from 'dayjs';
@@ -30,8 +30,35 @@ const errorMessages = {
     file: 'please select the file.',
 };
 
+const STANDARD_DOCUMENT_TITLES = [
+    "Balance Sheet",
+    "MCA Incorporation Certificate",
+    "MoA",
+    "AoA",
+    "Registered Trademark/Logo Certificate",
+    "Company Profile",
+    "Undertaking document for Role 19",
+    "Undertaking document for Payment of Auditor",
+    "Undertaking document for Bank Guarantee(BG)",
+    "Oraganization Chart",
+    "Role Matrix",
+    "Expense Details",
+];
+
+const isStandardDocumentTitle = (title) =>
+    STANDARD_DOCUMENT_TITLES.some((name) => name.toLowerCase() === String(title || '').toLowerCase());
+
+const emptyStandardFile = (title = '') => ({
+    file: null,
+    fileName: '',
+    DocumentName: title,
+    appDocId: '',
+});
+
+const emptyStandardFiles = () => STANDARD_DOCUMENT_TITLES.map((title) => emptyStandardFile(title));
+
 const CPSDocumentDetails = ({handleNext,handleBack}) => {
-    const [abc] = useState( ["Balance Sheet","MCA Incorporation Certificate", "MoA", "AoA", "Registered Trademark/Logo Certificate","Company Profile","Undertaking document for Role 19","Undertaking document for Payment of Auditor","undertaking document for Bank Guarantee(BG)","Oraganization Chart","Role Matrix","Expense Details"]);
+    const [abc] = useState(STANDARD_DOCUMENT_TITLES);
     const allowedFileTypes = ['application/pdf'];
     const [fileNames, setFileNames] = useState(Array(abc.length).fill(''));
     const [fileErrors, setFileErrors] = useState(Array(abc.length).fill(''));
@@ -41,7 +68,7 @@ const CPSDocumentDetails = ({handleNext,handleBack}) => {
     console.log(appTypeMasterId);
 
     const [basicDetailsFormValues, setBasicDetailsFormValues] = useState({
-        additionalsFile: [{ file: null, fileName: '',DocumentName:'',appDocId:'', }],
+        additionalsFile: emptyStandardFiles(),
         file:null,
         additionalFile: [
             {
@@ -292,34 +319,6 @@ const isFieldEnabled = (fieldName) => {
         }
     };
    
- const handleDownloadClick = async (id, file_name) => {
-            try {
-                // Fetch the file from the server
-                const response = await ApplicationForm.downloadSixStepFile(id);
-    
-                // Create a blob from the response data
-                const blob = new Blob([response.data], { type: response.headers['content-type'] });
-    
-                // Create a link element
-                const link = document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-    
-                // Extract the filename from the Content-Disposition header
-                const contentDisposition = response.headers['content-disposition'];
-    
-                console.log(JSON.stringify(contentDisposition))
-    
-                const filename = file_name;
-    
-                link.setAttribute('download', filename);
-                document.body.appendChild(link);
-                link.click();
-                link.parentNode.removeChild(link);
-            } catch (error) {
-                console.error('Error downloading file:', error);
-            }
-        };
- 
     const [fileName, setFileName] = useState('');
 
     const [fileNam, setFileNam] = useState('');
@@ -390,9 +389,16 @@ const isFieldEnabled = (fieldName) => {
             // If no error, update the file name to the corresponding abc item name
             if (!errorMessage) {
                 setBasicDetailsFormValues(prev => {
-                    const updatedAdditionalFile = [...prev.additionalsFile];
-                    updatedAdditionalFile[index] = { file: file,fileName:file.name, DocumentName: abc[index] }; // Store abc item as fileName
-    
+                    const updatedAdditionalFile = emptyStandardFiles().map((slot, slotIndex) => (
+                        prev.additionalsFile?.[slotIndex] || slot
+                    ));
+                    updatedAdditionalFile[index] = {
+                        ...(updatedAdditionalFile[index] || emptyStandardFile(abc[index])),
+                        file,
+                        fileName: file.name,
+                        DocumentName: abc[index],
+                    };
+
                     return {
                         ...prev,
                         additionalsFile: updatedAdditionalFile,
@@ -450,8 +456,8 @@ const isFieldEnabled = (fieldName) => {
                     const cpsDocument = documents.find(doc => doc.documentTitle === "CPSDocument");
     
                     // Filter and map documents with titles 'abc', 'ac1', 'item1', 'item2'
-                    const specificDocs = documents.filter(doc => 
-                        ["Balance Sheet","MCA Incorporation Certificate", "MoA", "AoA", "Registered Trademark/Logo Certificate","Company Profile","Undertaking document for Role 19","Undertaking document for Payment of Auditor","undertaking document for Bank Guarantee(BG)","Oraganization Chart","Role Matrix","Expense Details"].includes(doc.documentTitle)
+                    const specificDocs = documents.filter(doc =>
+                        isStandardDocumentTitle(doc.documentTitle)
                     ).map(doc => ({
                         appDocId:doc.appDocId,
                         DocumentName: doc.documentTitle,
@@ -462,7 +468,7 @@ const isFieldEnabled = (fieldName) => {
                     // Filter and map remaining documents (those not CPSDocument or specificDocs)
                     const otherDocuments = documents.filter(doc => 
                         doc.documentTitle !== "CPSDocument" &&
-                        !["Balance Sheet","MCA Incorporation Certificate", "MoA", "AoA", "Registered Trademark/Logo Certificate","Company Profile","Undertaking document for Role 19","Undertaking document for Payment of Auditor","undertaking document for Bank Guarantee(BG)","Oraganization Chart","Role Matrix","Expense Details"].includes(doc.documentTitle)
+                        !isStandardDocumentTitle(doc.documentTitle)
                     ).map(doc => ({
                         appDocId:doc.appDocId,
                         documentTitleName: doc.documentTitle,
@@ -470,13 +476,23 @@ const isFieldEnabled = (fieldName) => {
                         file: null
                     }));
     
+                    const additionalsFile = emptyStandardFiles();
+                    specificDocs.forEach((doc) => {
+                        const titleIndex = STANDARD_DOCUMENT_TITLES.findIndex(
+                            (name) => name.toLowerCase() === String(doc.DocumentName || '').toLowerCase()
+                        );
+                        if (titleIndex >= 0) {
+                            additionalsFile[titleIndex] = doc;
+                        }
+                    });
+
                     // Update the state accordingly
                     setBasicDetailsFormValues((prevValues) => ({
                         ...prevValues,
                         file: cpsDocument ? cpsDocument.fileName : prevValues.file, // Set CPSDocument fileName in 'file'
                         appDocId:cpsDocument?.appDocId,
                         intentId:cpsDocument?.intentAppId,
-                        additionalsFile: specificDocs.length > 0 ? specificDocs : prevValues.additionalsFile, // Set abc, ac1, item1, item2
+                        additionalsFile,
                         additionalFile: otherDocuments.length > 0 ? otherDocuments : prevValues.additionalFile, // Set remaining documents
                         userName: userName 
                     }));
@@ -493,10 +509,15 @@ const isFieldEnabled = (fieldName) => {
                     }
     
                     // Set file names for specificDocs (abc, ac1, item1, item2)
-                    setFileNames(prevNames => {
-                        const updatedFileNames = [...prevNames];
-                        specificDocs.forEach((doc, index) => {
-                            updatedFileNames[index] = doc.fileName; // Use specificDocs file names
+                    setFileNames(() => {
+                        const updatedFileNames = Array(STANDARD_DOCUMENT_TITLES.length).fill('');
+                        specificDocs.forEach((doc) => {
+                            const titleIndex = STANDARD_DOCUMENT_TITLES.findIndex(
+                                (name) => name.toLowerCase() === String(doc.DocumentName || '').toLowerCase()
+                            );
+                            if (titleIndex >= 0) {
+                                updatedFileNames[titleIndex] = doc.fileName;
+                            }
                         });
                         return updatedFileNames;
                     });
@@ -574,7 +595,10 @@ const isFieldEnabled = (fieldName) => {
             formData.append('userName', basicDetailsFormValues.userName);
     
             // Append each file and its metadata from the 'additionalFile' array
-            basicDetailsFormValues.additionalFile.forEach((fileObject, index) => {
+            (basicDetailsFormValues.additionalFile || []).forEach((fileObject, index) => {
+                if (!fileObject) {
+                    return;
+                }
                 if (fileObject.file) {
                     formData.append(`additionalFile[${index}].file`, fileObject.file); // Append the file
                 }
@@ -582,15 +606,19 @@ const isFieldEnabled = (fieldName) => {
                 formData.append(`additionalFile[${index}].documentTitleName`, fileObject.documentTitleName); // Append the document title
                 formData.append(`appDocId[${index}].appDocId`, fileObject.appDocId);
             });
-    
-            // Append each file and its metadata from the 'additionalsFile' array
-            basicDetailsFormValues.additionalsFile.forEach((fileObject, index) => {
-                if (fileObject.file) {
-                    formData.append(`additionalsFile[${index}].file`, fileObject.file); // Append the file
+
+            // Append uploaded standard documents as a dense list. The renewal API
+            // reads additionalsFile[0], [1], ... and stops at the first missing file.
+            let standardFileIndex = 0;
+            (basicDetailsFormValues.additionalsFile || []).forEach((fileObject) => {
+                if (!fileObject || !fileObject.file) {
+                    return;
                 }
-                formData.append(`additionalsFile[${index}].fileName`, fileObject.fileName); // Append the file name
-                formData.append(`additionalsFile[${index}].DocumentName`, fileObject.DocumentName); // Append the document name
-                formData.append(`appDocId[${index}].appDocId`, fileObject.appDocId);
+                formData.append(`additionalsFile[${standardFileIndex}].file`, fileObject.file);
+                formData.append(`additionalsFile[${standardFileIndex}].fileName`, fileObject.fileName || '');
+                formData.append(`additionalsFile[${standardFileIndex}].DocumentName`, fileObject.DocumentName || '');
+                formData.append(`appDocId[${standardFileIndex}].appDocId`, fileObject.appDocId || '');
+                standardFileIndex += 1;
             });
     
             console.log(JSON.stringify(formData))
@@ -715,20 +743,16 @@ const isFieldEnabled = (fieldName) => {
             </Grid>
             <Grid container spacing={2}>
     {abc.map((item, index) => (
-        <Grid container item xs={12} spacing={2} key={index}>
-            <Grid item xs={12} sm={3}>
-                <InputLabel shrink={false} htmlFor={`pdffile-${index}`}>
-                    <Typography variant='body1' sx={{ mt: 5 }}>
-                        {index + 1}. {item} Document
-                    </Typography>
-                </InputLabel>
+        <Grid container item xs={12} spacing={1} key={index} sx={{ mb: 1 }}>
+            <Grid item xs={12}>
+                <Typography variant='body1' sx={{ whiteSpace: 'normal', overflow: 'visible', wordBreak: 'break-word' }}>
+                    {index + 1}. {item} Document
+                </Typography>
+                <Typography variant='body1' sx={{ mt: 0.5, whiteSpace: 'normal', overflow: 'visible', wordBreak: 'break-word' }}>
+                    Upload {item} Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span>
+                </Typography>
             </Grid>
-            <Grid item xs={12} sm={7}>
-                <InputLabel shrink={false} htmlFor={`pdffile-${index}`}>
-                    <Typography variant='body1'>
-                        Upload {item} Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span>
-                    </Typography>
-                </InputLabel>
+            <Grid item xs={12} sm={8}>
 
                 {/* Upload and Download Section */}
                 <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
@@ -776,19 +800,6 @@ const isFieldEnabled = (fieldName) => {
                     </Typography>
                 )}
             </Grid>
-
-            {basicDetailsFormValues?.additionalsFile[index]?.appDocId && (
-                        <Grid item>
-                            <Link 
-                                href="#" 
-                                variant="body2"
-                                onClick={() => handleDownloadClick(basicDetailsFormValues?.additionalsFile[index]?.appDocId, `${item}Document`)}
-                                sx={{ ml: 2 }}
-                            >
-                                Download
-                            </Link>
-                        </Grid>
-                    )}
 
         </Grid>
     ))}

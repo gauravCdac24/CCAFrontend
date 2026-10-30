@@ -126,7 +126,11 @@ const SaveStepTwo = (coverLetterObj, approvalObj)=>{
             if(element?.file){
                 formData.append(`eKYCApprovalDoc[${index}].file`, element.file)
             }
-            formData.append(`eKYCApprovalDoc[${index}].fileName`, element.fileName)
+            formData.append(`eKYCApprovalDoc[${index}].fileName`, element.fileName || '')
+            formData.append(`eKYCApprovalDoc[${index}].serviceProviderName`, element.serviceProviderName || '')
+            formData.append(`eKYCApprovalDoc[${index}].integrationDetails`, element.integrationDetails || '')
+            formData.append(`eKYCApprovalDoc[${index}].integrationDate`, element.integrationDate || '')
+            formData.append(`eKYCApprovalDoc[${index}].entityName`, element.entityName || '')
         });
     }
 
@@ -323,12 +327,13 @@ const recommandForeSignGoLive = (obj) => {
     return API.post(ESIGN_APPLICATION_SERVICE_BASE_URL + RECOMMEND_FOR_ESIGN_GO_LIVE, obj1);
 }
 
-const approveForeSignGoLive = (id) => {
+const approveForeSignGoLive = (id, remarks) => {
     const username = auth().username;
     return API.get(ESIGN_APPLICATION_SERVICE_BASE_URL + APPROVE_ESIGN_GO_LIVE,{
         params:{
             id: encrypt(id),
-            pid: encrypt(username)
+            pid: encrypt(username),
+            rid: encrypt(remarks)
         },
     })
 }

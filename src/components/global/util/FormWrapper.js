@@ -8,11 +8,11 @@ const FormWrapper = ({children, headingText}) => {
                     <Paper elevation={1} sx={{borderRadius: "10px", mt: 2, minWidth: {xs: '90%', sm: '450px'}, backgroundColor: 'formcolor.main', color: 'formcolor.text' }}>
 
 
-                        { headingText && (<Grid container sx={{display: 'flex', justifyContent: 'left', alignItems: 'center', m: 2,  }}>
+                        { headingText && (<Grid container sx={{display: 'flex', justifyContent: 'left', alignItems: 'center', flexWrap: 'nowrap', m: 2,  }}>
                                 <Grid item>
                                     <GradientBox />
                                 </Grid>
-                                <Grid item >
+                                <Grid item sx={{ minWidth: 0, flex: 1, pr: 2 }}>
                                     <Typography  sx={{fontWeight: '900'}}>{headingText}</Typography>
                                 </Grid>
                             </Grid>)}

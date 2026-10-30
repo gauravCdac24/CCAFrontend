@@ -21,6 +21,11 @@ import {
     setAnnualAuditScheduleId,
     clearAnnualAuditScheduleId,
 } from '../../../global/util/annualAuditSchedule';
+import {
+    setRenewalIntentAppId,
+    clearRenewalIntentAppId,
+} from '../../../global/util/renewalIntentApp';
+import RenewApplicationForm from '../../../../service/RenewLicenseService/ApplicationForm';
 
 // Error Messages
 const errorMsg = {
@@ -37,6 +42,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
     const userName = useSelector((state) => state.jwtAuthentication.username);
     const location = useLocation();
     const isAnnualAuditFlow = location.pathname.includes('/agencyselection/');
+    const isRenewalFlow = location.pathname.includes('/renewallicense/');
     const { id } = useParams();
     const routeId = decrypt(id);
     const routeParts = routeId ? routeId.split(',') : [];
@@ -60,6 +66,8 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
     const [isLoading, setLoading] = useState(false);
     const [allAuditAgencyList, setAllAuditAgencyList] = useState([]);
     const [agencyAlreadySelected, setAgencyAlreadySelected] = useState(false);
+    const [annexureReady, setAnnexureReady] = useState(!isRenewalFlow);
+    const [annexureError, setAnnexureError] = useState('');
     const readOnly = location.state?.readOnly === true;
 
     // Reset form values
@@ -172,6 +180,45 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
         };
     }, [auditScheduleId, isAnnualAuditFlow]);
 
+    useEffect(() => {
+        if (!isRenewalFlow) {
+            clearRenewalIntentAppId();
+            setAnnexureReady(true);
+            setAnnexureError('');
+            return undefined;
+        }
+
+        let cancelled = false;
+        setAnnexureReady(false);
+        setAnnexureError('');
+        clearRenewalIntentAppId();
+
+        RenewApplicationForm.getApplicationDetailsFormByUsername(userName)
+            .then((response) => {
+                const renewalIntentAppId = response?.data?.intentApp?.intentAppId;
+                if (cancelled) {
+                    return;
+                }
+                if (!renewalIntentAppId) {
+                    setAnnexureError('Unable to load the renewal application for Annexure A2.');
+                    return;
+                }
+                setRenewalIntentAppId(renewalIntentAppId);
+                setAnnexureReady(true);
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    clearRenewalIntentAppId();
+                    setAnnexureError('Unable to load the renewal application for Annexure A2.');
+                }
+            });
+
+        return () => {
+            cancelled = true;
+            clearRenewalIntentAppId();
+        };
+    }, [isRenewalFlow, userName]);
+
     // Validate form inputs
     const validateForm = () => {
         const errors = {};
@@ -247,7 +294,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
                     : AuditService.addNewAuditAgencySlection(audiAgencyFormValues);
                 const successRedirect = isAnnualAuditFlow
                     ? '/licensee/agencyselection'
-                    : '/applicant/applicationform';
+                    : '/licensee/renewallicense';
 
                 submitRequest
                     .then((response) =>
@@ -280,7 +327,7 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 
     return (
         <>
-            <LoaderProgress open={isLoading} />
+            <LoaderProgress open={isLoading || (isRenewalFlow && !annexureReady && !annexureError)} />
             <FormWrapper headingText="Select Audit Agency Name">
             <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleSubmit}>
             <Grid container spacing={2} direction="column" sx={{ 
@@ -380,7 +427,11 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
 <Box mb={2}> {/* This adds margin bottom */}
   <AuditControls />
 </Box>
-<AnnexureA2Main />
+{annexureError ? (
+  <Typography color="error" sx={{ mt: 2 }}>{annexureError}</Typography>
+) : (
+  annexureReady && <AnnexureA2Main />
+)}
   
 
     <Grid container sx={{mt: 2, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>

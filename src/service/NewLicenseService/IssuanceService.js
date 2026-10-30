@@ -24,6 +24,9 @@ const uploadRequiredDocuments = (obj)=>{
     if(obj.csr !== null)
         form.append('csr', obj.csr);
     form.append('agreement', obj.agreement);
+    if (obj.crossCertificationArrangement) {
+        form.append('crossCertificationArrangement', obj.crossCertificationArrangement);
+    }
 
 
     return API.post(NEW_LICENSE_APPLICATION_BASE_URL + UPLOAD_REQUIRED_DOCUMENTS_FOR_LICENSE_ISSUANCE, form, config); 

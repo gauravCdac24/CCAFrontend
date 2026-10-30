@@ -23,6 +23,9 @@ const uploadRequiredDocuments = (obj)=>{
     form.append('bankGuarantee', obj.bankGuarantee);
     form.append('csr', obj.csr);
     form.append('agreement', obj.agreement);
+    if (obj.crossCertificationArrangement) {
+        form.append('crossCertificationArrangement', obj.crossCertificationArrangement);
+    }
 
 
     return API.post(NEW_LICENSE_APPLICATION_BASE_URL + UPLOAD_REQUIRED_DOCUMENTS_FOR_LICENSE_ISSUANCE, form, config); 

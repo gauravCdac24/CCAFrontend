@@ -14,6 +14,7 @@ const Declarization = ({ handlePreview, handleNext, handleBack, data }) => {
   const [isLoading, setLoading] = useState(false);
   const [allSubServiceList, setAllSubServiceList] = useState([]);
   const userName = useSelector((state)=>state.jwtAuthentication.username);
+  const homePath = useSelector((state)=>state.jwtAuthentication.homePath);
   const appTypeMasterId= useSelector((state)=>state.licenseApplication.applicationType);
   console.log(userName);
   console.log(appTypeMasterId);
@@ -93,7 +94,7 @@ console.log(allUndertakingList)
                     messageTitle: 'Success',
                     messageContent: 'Application Form  successful Submitted',
                     confirmText: 'OK',
-                    onConfirm: () => { navigate("/applicant/applicationform") },
+                    onConfirm: () => { navigate(homePath || "/licensee/licenseedashboard", { replace: true }); },
                     enableHeaderCloseBtn: true,
                     disableOutsideKeyDown: true
                 });

@@ -45,6 +45,7 @@ const FirmViewData = () => {
     userName:userName,
     reviewerUserName:reviewerUserName,
     isRejected:false,
+    isApproved:false,
     reviewDate:'',
     file1:''
   });
@@ -93,7 +94,7 @@ const handleFileChange1 = (e) => {
 };
 
 
-  const initialKeys = ['userName', 'reviewerUserName', 'isRejected','reviewDate','file1','remarks'];
+  const initialKeys = ['userName', 'reviewerUserName', 'isRejected', 'isApproved', 'reviewDate','file1','remarks'];
 const hasExtraKeys = Object.keys(checkedRows).some(key => !initialKeys.includes(key));
 
 
@@ -855,6 +856,7 @@ console.log("dgghgf=-->",checkedRows)
       const formData=new FormData();
 
       checkedRows.isRejected = false;
+      checkedRows.isApproved = true;
       Object.entries(checkedRows).forEach(([key, value]) => {
         if (key === 'file1') {
           formData.append(key, value);
@@ -865,14 +867,14 @@ console.log("dgghgf=-->",checkedRows)
 
       console.log("yruurui==-=->",formData)
       console.log("yruurui checkedRows==-=->",checkedRows)
-      ApplicationForm.addAllAproved(formData)
+      ApplicationReview.addFirmApplicationReview(formData)
       .then((response) => {
         //console.log(response.data)
           showAlert({
               messageTitle: 'Success',
               messageContent: response.data,
               confirmText: 'Ok',
-              onConfirm: () => window.location.href = '/applicationreviewcommittee/newapplication',
+              onConfirm: () => window.location.href = '/applicationreviewcommittee/renewapplication',
           });
           
       })
@@ -908,7 +910,8 @@ console.log("dgghgf=-->",checkedRows)
     const handleSubmit = () => {
       
       const formData=new FormData();
-      if(getButtonText()==='Recommend for Rejection'){
+      checkedRows.isApproved = false;
+      if(2<=  basicDetailesValues?.reviewApplications.length){
         checkedRows.isRejected = true;
       }
   
@@ -925,7 +928,7 @@ console.log("dgghgf=-->",checkedRows)
               messageTitle: 'Success',
               messageContent: response.data,
               confirmText: 'Ok',
-              onConfirm: () => window.location.href = '/applicationreviewcommittee/newapplication',
+              onConfirm: () => window.location.href = '/applicationreviewcommittee/renewapplication',
           });
           
       })
@@ -1007,32 +1010,7 @@ console.log("dgghgf=-->",checkedRows)
 
     const getButtonText = () => {
       const applications = basicDetailesValues?.reviewApplications || [];
-      
-      console.log('Applications:', JSON.stringify(applications, null, 2)); // Debug data
-      
-      if (!applications.length) {
-        console.log('Empty applications, returning "Review the Application"');
-        return 'Review the Application';
-      }
-    
-      const hasActive = applications.some(app => app?.status === 'Active');
-      const allInactive = applications.every(app => app?.status === 'Inactive');
-      const count = applications.length;
-    
-      console.log('Has Active:', hasActive);
-      console.log('All Inactive:', allInactive);
-      console.log('Count:', count);
-    
-      if (dateFormatter(applications.created) >= dateFormatter(decrypt(licenseDetails))) {
-        console.log('Condition met: hasActive && count >= 2, returning "Recommend for Rejection"');
-        return 'Recommend for Rejection';
-      }
-      if (allInactive || applications.some(app => app?.status === 'Inactive')) {
-        console.log('Condition met: allInactive || some Inactive, returning "Review the Application"');
-        return 'Review the Application';
-      }
-      console.log('Default case, returning "Review the Application"');
-      return 'Review the Application';
+      return applications.length >= 2 ? 'Recommand for Rejection' : 'Review the Application';
     };
 
 

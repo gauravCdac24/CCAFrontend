@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { GridActionsCellItem } from '@mui/x-data-grid';
 import { Box, Grid, Switch, Tooltip, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import showAlert from '../../../global/common/MessageBox/AlertService';
 import dateFormatter from '../../../global/util/DateFormatter';
 import CustomTable from '../../../global/util/CustomTable';
@@ -14,6 +13,7 @@ import ApplicationType from '../../../../service/AdminService/ApplicationType';
 import IntentService from '../../../../service/AdminService/IntentService';
 import { setApplicationDetails } from '../../../../store/LicenseApplication/Reducer';
 import ApplicationReviewCommittee from '../../../../service/NewLicenseService/ApplicationReviewCommittee';
+import { normalizeApplicationStatus } from '../../../global/util/licenseAcquisitionWorkflow';
 import IndividualViewData from './IndividualViewData';
 import FirmViewData from './FirmViewData';
 import GovernmentViewData from './GovernmentViewData';
@@ -468,58 +468,40 @@ console.log("applicationCounts=======>",JSON.stringify(applicationCounts))
             minWidth: 100,
             sortable: false,
             renderCell: (params) => {
-                // Check if the application is under review
-                if (params.row.applicationCurrentStatus === 'underReview') {
-                    // Get the intentId for the current row
-                    const intentId = params.row.intentAppId; // Ensure this matches your data structure
-                    const currentCount = applicationCounts[intentId] || 0; // Get count or default to 0
-        
-                    // Debugging logs
-                    console.log("intentId==>", intentId);
-                    console.log('currentCount==>', currentCount);
-                    console.log('applicationReview==>', applicationReview);
-        
-                    // Check if the current count matches the required application review count
+                const status = normalizeApplicationStatus(params.row.applicationCurrentStatus);
+                const openApproval = () =>
+                    handleDownload(params.row.applicationType, params.row.applicantUserName);
+
+                if (status === normalizeApplicationStatus('Approved From Review')) {
+                    return (
+                        <Tooltip title="Approve for audit">
+                            <GridActionsCellItem
+                                icon={<EditIcon color="info" />}
+                                label="Approve for audit"
+                                onClick={openApproval}
+                            />
+                        </Tooltip>
+                    );
+                }
+
+                if (status === normalizeApplicationStatus('underReview')) {
+                    const intentId = params.row.intentAppId;
+                    const currentCount = applicationCounts[intentId] || 0;
                     const isCountMatching = applicationReview >= currentCount;
-        
-                    // Check if the intentId exists in applicationCounts
-                    const isIntentIdExists = Object.keys(applicationCounts).includes(intentId.toString());
-        
-                    // If counts are equal and intentId exists, show the CheckCircleIcon
+                    const isIntentIdExists = Object.keys(applicationCounts).includes(String(intentId));
+
                     if (isCountMatching && isIntentIdExists) {
                         return (
                             <Tooltip title="Approval for Rejection by CCA">
                                 <span>
-                                    <CheckCircleIcon color="primary" /> {/* Check icon indicating success */}
+                                    <CheckCircleIcon color="primary" />
                                 </span>
                             </Tooltip>
                         );
-                    } else {
-                        // If counts are not equal, show the VisibilityIcon
-                        return (
-                            <Tooltip title="View">
-                                <GridActionsCellItem 
-                                    icon={<VisibilityIcon color="success" />} 
-                                    label="View" 
-                                    onClick={() => handleDownload(params.row.applicationType, params.row.applicantUserName)} 
-                                />
-                            </Tooltip>
-                        );
                     }
-                } else if (params.row.applicationCurrentStatus === 'Approved From Review') {
-                    return (
-                        <Tooltip title="Edit">
-                            <GridActionsCellItem 
-                                icon={<EditIcon color="info" />} 
-                                label="Edit" 
-                                onClick={() => handleDownload(params.row.applicationType, params.row.applicantUserName)} 
-                            />
-                        </Tooltip>
-                        
-                    );
-                } else {
-                    return null; // Return null for other statuses if not needed
                 }
+
+                return null;
             },
         }
         

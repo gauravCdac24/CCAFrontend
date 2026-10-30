@@ -15,6 +15,7 @@ import LoaderProgress from '../../../global/common/LoaderProgress';
 import dateFormatter from '../../../global/util/DateFormatter';
 import { useParams } from 'react-router-dom';
 import { decrypt } from '../../../global/util/EncryptDecrypt';
+import { isRenewalReviewRemark, useLicenseIssueDate } from '../../../global/util/renewalReviewRemarks';
 import GovernmentAgencyForm from '../../../../service/NewLicenseService/GovernmentAgencyForm';
 
 const errorMsg = {
@@ -40,6 +41,7 @@ const GovernmentViewData = ()=> {
 
   const {id} = useParams();
    const userName = decrypt(id);
+  const licenseIssueDate = useLicenseIssueDate(userName);
   console.log(userName);
   const routeRootPath = useSelector((state) => state.jwtAuthentication.rolePath);
 
@@ -116,6 +118,10 @@ const GovernmentViewData = ()=> {
 
 
   const [basicDetailesValues, setBasicDetailesValues] = useState({});
+
+  const renewalReviews = (basicDetailesValues?.reviewApplications || []).filter((review) =>
+    isRenewalReviewRemark(review, licenseIssueDate)
+  );
 
 
 
@@ -1247,9 +1253,9 @@ const handleDownload = async (appDocId, documentTitle) => {
   <CustomTabPanel value={tabValue} index={1}>
 
   {
-     basicDetailesValues?.reviewApplications && Array.isArray(basicDetailesValues?.reviewApplications) && basicDetailesValues?.reviewApplications.length > 0 ? (<>
+     renewalReviews.length > 0 ? (<>
     {
-      basicDetailesValues?.reviewApplications.map((element, index)=>(
+      renewalReviews.map((element, index)=>(
       
    
 
@@ -1273,7 +1279,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 
               >
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                  Reviewd on {dateFormatter(Date.now())}
+                  Reviewed on {dateFormatter(element.created)}
                 </Typography>
                 <IconButton
 

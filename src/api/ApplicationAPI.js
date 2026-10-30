@@ -5,6 +5,7 @@ import { setCredentials, clearCredentials } from "../store/Auth/Reducer";
 import showAlert from "../components/global/common/MessageBox/AlertService";
 import { encrypt } from "../components/global/util/EncryptDecrypt";
 import { getAnnualAuditScheduleId } from "../components/global/util/annualAuditSchedule";
+import { getRenewalIntentAppId } from "../components/global/util/renewalIntentApp";
 
 const API = axios.create({
   // Local: hit gateway directly (CRA proxy was returning "Invalid CORS request" on POST).
@@ -24,6 +25,11 @@ API.interceptors.request.use(
     const auditScheduleId = getAnnualAuditScheduleId();
     if (auditScheduleId) {
       config.headers["X-Annual-Audit-Schedule-Id"] = encrypt(String(auditScheduleId));
+    }
+
+    const renewalIntentAppId = getRenewalIntentAppId();
+    if (renewalIntentAppId) {
+      config.headers["X-Renewal-Intent-App-Id"] = encrypt(String(renewalIntentAppId));
     }
 
     return config;

@@ -12,6 +12,7 @@ import showAlert from '../../../global/common/MessageBox/AlertService';
 import { useNavigate, useParams } from 'react-router-dom';
 import CustomTabPanel from '../../../global/util/CustomTabPanel';
 import { decrypt } from '../../../global/util/EncryptDecrypt';
+import { isRenewalReviewRemark, useLicenseIssueDate } from '../../../global/util/renewalReviewRemarks';
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LoaderProgress from '../../../global/common/LoaderProgress';
@@ -20,6 +21,7 @@ import dateFormatter from '../../../global/util/DateFormatter';
 const FirmViewData = () => {
   const { id } = useParams();
   const userName = decrypt(id);
+  const licenseIssueDate = useLicenseIssueDate(userName);
   console.log(userName);
   const routeRootPath = useSelector((state) => state.jwtAuthentication.rolePath);
 
@@ -60,6 +62,10 @@ const FirmViewData = () => {
     reviewFields
       : []
   });
+
+  const renewalReviews = (basicDetailesValues?.reviewApplications || []).filter((review) =>
+    isRenewalReviewRemark(review, licenseIssueDate)
+  );
 
 
 
@@ -756,11 +762,30 @@ const FirmViewData = () => {
   //         });
   // };
 
+  const buildCcaApprovalPayload = (isRejected) => {
+    const applicantUserName = userName || checkedRows.userName;
+    if (!applicantUserName) {
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Applicant user name is missing. Please reopen the application and try again.",
+        confirmText: "Ok",
+      });
+      return null;
+    }
+
+    return {
+      userName: applicantUserName,
+      reviewerUserName: reviewerUserName || checkedRows.reviewerUserName || "",
+      isRejected,
+      remarks: checkedRows.remarks || "",
+    };
+  };
+
   const handleRejectedSubmit = (e) => {
     e.preventDefault();
     showAlert({
       messageTitle: "Confirm",
-      messageContent: "Are you sure you want to submit?",
+      messageContent: "Are you sure you want to approve this application for audit?",
       confirmText: "Yes",
       closeText: "No",
       maxWidth: "sm",
@@ -773,25 +798,19 @@ const FirmViewData = () => {
 
 
   const handleConfrimSubmit = () => {
+    const payload = buildCcaApprovalPayload(false);
+    if (!payload) {
+      return;
+    }
 
-    const formData=new FormData();
-
-    Object.entries(checkedRows).forEach(([key, value]) => {
-      if (key === 'file1') {
-        formData.append(key, value);
-      } else {
-        formData.append(key, String(value));
-      }
-    });
-
-    ApplicationForm.addAllAproved(formData)
+    ApplicationForm.addAllAprovedJson(payload)
       .then((response) => {
         //console.log(response.data)
         showAlert({
           messageTitle: 'Success',
           messageContent: response.data,
           confirmText: 'Ok',
-          onConfirm: () => window.location.href = '/cca/approvedreviewapplication',
+          onConfirm: () => window.location.href = '/cca/renewapprovedapplication',
         });
 
       })
@@ -812,7 +831,7 @@ const FirmViewData = () => {
 
     showAlert({
       messageTitle: "Confirm",
-      messageContent: "Are you sure you want to submit?",
+      messageContent: "Are you sure you want to send this application to rejection?",
       confirmText: "Yes",
       closeText: "No",
       maxWidth: "sm",
@@ -852,17 +871,18 @@ const FirmViewData = () => {
 
 
   const handleSubmit = () => {
-
-    if (2 <= basicDetailesValues?.reviewApplications.length) {
-      checkedRows.isreject = true;
+    const payload = buildCcaApprovalPayload(true);
+    if (!payload) {
+      return;
     }
-    ApplicationReview.addFirmApplicationReview(checkedRows)
+
+    ApplicationForm.addAllAprovedJson(payload)
       .then((response) => {
         showAlert({
           messageTitle: 'Success',
           messageContent: response.data,
           confirmText: 'Ok',
-          onConfirm: () => window.location.href = '/applicationreviewcommittee/newapplication',
+          onConfirm: () => window.location.href = '/cca/renewapprovedapplication',
         });
 
       })
@@ -957,9 +977,9 @@ const FirmViewData = () => {
 
       <CustomTabPanel value={tabValue} index={0}>
         {
-          basicDetailesValues?.reviewApplications && Array.isArray(basicDetailesValues?.reviewApplications) && basicDetailesValues?.reviewApplications.length > 0 ? (<>
+          renewalReviews.length > 0 ? (<>
             {
-              basicDetailesValues?.reviewApplications
+              renewalReviews
                 .filter(element => element.status === "Active")
                 .map((element, index) => (
                   <Box component="form" noValidate sx={{ mt: 2, p: 2 }} autoComplete>
@@ -2121,17 +2141,17 @@ const FirmViewData = () => {
                           Approval
                         </Button>
                       </Grid>
-                      {/* <Grid item>
-              <Button
-                type="button"
-                variant="contained"
-                sx={{ maxWidth: '120px', height: '40px', color: '#FFFFFF', backgroundColor: 'black' }}
-                aria-label="Reset"
-               onClick={handleApprovedSubmit}
-              >
-               {2<=  basicDetailesValues?.reviewApplications.length? 'Recommand for Rejection' : 'Rejected'}
-              </Button>
-            </Grid> */}
+                      <Grid item>
+                        <Button
+                          type="button"
+                          variant="contained"
+                          sx={{ minWidth: '160px', height: '40px', color: '#FFFFFF', backgroundColor: 'black', whiteSpace: 'nowrap' }}
+                          aria-label="Reject"
+                          onClick={handleApprovedSubmit}
+                        >
+                          Send To Rejection
+                        </Button>
+                      </Grid>
                     </Grid>
                   </Box>
                 ))
@@ -2145,10 +2165,10 @@ const FirmViewData = () => {
       <CustomTabPanel value={tabValue} index={1}>
 
         {
-          basicDetailesValues?.reviewApplications && Array.isArray(basicDetailesValues?.reviewApplications) && basicDetailesValues?.reviewApplications.length > 0 ? (<>
+          renewalReviews.length > 0 ? (<>
             {
-              basicDetailesValues?.reviewApplications
-              .filter(element => element?.ccaRemarks) // Only elements with non-null ccaRemarks
+              renewalReviews
+              .filter(element => element?.ccaRemarks)
               .map((element, index) => (
 
                 <Box sx={{ mb: 1, pb: 2, color: 'primary.text' }} key={index}>
@@ -2171,7 +2191,7 @@ const FirmViewData = () => {
 
                   >
                     <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                      Reviewd on {dateFormatter(element.created)}
+                      Reviewed on {dateFormatter(element.created)}
                     </Typography>
                     <IconButton
 

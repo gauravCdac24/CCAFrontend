@@ -161,6 +161,7 @@ const ReviewNCReports = lazy(()=>import('../components/ReviewCommitteePage/Revie
 
 const NewApplicationRecommended = lazy(()=>import('../components/cca/pages/RecommendedApplication/NewApplication'));
 const RenewalApplicationRecommended = lazy(()=>import('../components/cca/pages/RecommendedApplication/RenewalApplication'));
+const RenewalApplicationExtension = lazy(()=>import('../components/cca/pages/RenewalApplicationExtension/RenewalApplicationExtension'));
 const IssueNewLicense = lazy(()=>import('../components/cca/pages/IssueLicense/NewApplication'));
 const FillLicenseDetails = lazy(()=>import('../components/admin/pages/IssueLicense/FillLicenseDetails'));
 const AuditorLicense = lazy(()=>import('../components/cca/pages/AuditOfLicense/ViewApplicationForm'));
@@ -987,6 +988,12 @@ const PrivateRoutesConfig = {
             path: 'recommendedrenewalapp',
             element:(
                 <PrivateRoute component={RenewalApplicationRecommended} />
+            )
+        },
+        {
+            path: 'renewal-application-extension',
+            element:(
+                <PrivateRoute component={RenewalApplicationExtension} />
             )
         },
         {
