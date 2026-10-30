@@ -58,6 +58,8 @@ const uploadBankGuaranteeProof = (obj)=>{
     form.append('issueDate', obj.issueDate);
     form.append('expiryDate', obj.expiryDate);
     form.append('transactionNumber', obj.transactionNumber);
+    form.append('issuingBankName', obj.issuingBankName); // <-- Added
+    form.append('bankGuaranteeIssueDate', obj.bankGuaranteeIssueDate); // <-- Added
 
 
     return API.post(LICENSE_ISSUANCE_SERVICE_BASE_URL + UPLOAD_BANK_GUARANTEE_PROOF, form, config); 
