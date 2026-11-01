@@ -16,22 +16,71 @@ import {
     Tooltip,
     IconButton,
 } from '@mui/material';
-import react, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import react, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import Captcha from '../../global/util/Captcha';
 import LoaderProgress from '../../global/common/LoaderProgress';
 import showAlert from '../../global/common/MessageBox/AlertService';
-import { useNavigate, useParams } from 'react-router-dom';
 import AuditAgency from '../../../service/AdminService/AuditAgency';
 import AuditorCertificateTypeService from '../../../service/AdminService/AuditorCertificateTypeService';
-import AuditService from '../../../service/AuditService/AuditService';
-
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import styled from '@emotion/styled';
-import API from '../../../api/ApplicationAPI';
-import { decrypt } from '../../global/util/EncryptDecrypt';
 import AnnualAuditService from '../../../service/AnnualAuditService/AnnualAuditService';
 import useAnnualAuditRoute from '../../global/util/useAnnualAuditRoute';
 import FormWrapper from '../../global/util/FormWrapper';
+
+const EMPTY_AUDITOR_ROW = { auditorName: '', certificateType: '', file: null, date: '' };
+const FALLBACK_CERTIFICATE_TYPES = ['ISO 27001', 'CISA'];
+
+const normalizeCert = (value) => (value || '').trim().toLowerCase();
+
+const isBothCert = (value) => {
+    const v = normalizeCert(value);
+    return (
+        v === 'both' ||
+        (v.includes('iso') && (v.includes('cisa') || v.includes('ciso')))
+    );
+};
+
+const isIsoCert = (value) => {
+    const v = normalizeCert(value);
+    return v.includes('iso') && !isBothCert(value);
+};
+
+const isOtherCert = (value) => {
+    const v = normalizeCert(value);
+    if (!v || isBothCert(value) || isIsoCert(value)) return false;
+    return (
+        v.includes('cisa') ||
+        v.includes('ciso') ||
+        v.includes('disa') ||
+        v.includes('cissp')
+    );
+};
+
+const isSameCertFamily = (a, b) => {
+    if (!a || !b) return false;
+    if (isIsoCert(a) && isIsoCert(b)) return true;
+    if (isOtherCert(a) && isOtherCert(b)) return true;
+    return normalizeCert(a) === normalizeCert(b);
+};
+
+const getAuditorDisplayName = (auditor) =>
+    `${auditor?.firstName || ''} ${auditor?.lastName || ''}`.trim();
+
+const getAuditorCertProfile = (auditor) => auditor?.certificateType || '';
+
+const auditorHoldsCert = (auditor, selectedCert) => {
+    if (!selectedCert) return true;
+    const profile = getAuditorCertProfile(auditor);
+    if (!profile) return true;
+    if (isBothCert(profile)) {
+        return isIsoCert(selectedCert) || isOtherCert(selectedCert);
+    }
+    if (isIsoCert(selectedCert)) return isIsoCert(profile);
+    if (isOtherCert(selectedCert)) return isOtherCert(profile);
+    return normalizeCert(profile) === normalizeCert(selectedCert);
+};
 
 const VisuallyHiddenInput = styled('input')({
     position: 'absolute',
@@ -44,9 +93,6 @@ const VisuallyHiddenInput = styled('input')({
     border: '0',
 });
 
-
-
-// Error Messages
 const errorMsg = {
     AuditAgencyName: {
         blank: 'Please select Audit Agency Name.',
@@ -56,340 +102,549 @@ const errorMsg = {
     },
 };
 
+const getSubmitErrorMessage = (err) => {
+    const data = err?.response?.data;
+    if (typeof data === 'string' && data.trim()) {
+        return data;
+    }
+    if (data?.message) {
+        return data.message;
+    }
+    return 'Request failed. Please try again later.';
+};
+
 const AuditorDetails = (() => {
     const { userName: ApplicantUserName } = useAnnualAuditRoute();
-    const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({ auditAgencyName: '',applicantUserName:ApplicantUserName, intentAppId: '', undertakingFile: null, auditors: [], auditorDesscription: [{ auditorName: '', certificateType: '', file: null }], auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }] });
+    const loggedInUsername = useSelector((state) => state.jwtAuthentication.username);
+    const rolePath = useSelector((state) => state.jwtAuthentication.rolePath) || '/auditagency';
+    const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({
+        auditAgencyName: '',
+        applicantUserName: ApplicantUserName,
+        intentAppId: '',
+        undertakingFile: null,
+        auditors: [],
+        auditorDesscription: [{ ...EMPTY_AUDITOR_ROW }, { ...EMPTY_AUDITOR_ROW }],
+        auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }],
+    });
     const [formErrors, setFormErrors] = useState({});
     const [captchaText, setCaptchaText] = useState('');
     const [captchaInput, setCaptchaInput] = useState('');
     const [isLoading, setLoading] = useState(false);
     const [allAuditAgencyList, setAllAuditAgencyList] = useState([]);
     const [allAuditAgencySelectionList, setAllAuditAgencySelectionList] = useState([]);
-   
-    // Reset form values
+    const [certificateTypes, setCertificateTypes] = useState(FALLBACK_CERTIFICATE_TYPES);
+    const [fileInputKey, setFileInputKey] = useState(Date.now());
+    const [fileName, setFileName] = useState('');
+
     const handleReset = () => {
-        setAudiAgencyFormValues((prev) => prev.map((formValue) => ({
-            ...formValue,
-            auditAgencyName: '', // Reset only the specific fields
-            intentAppId: '',
-            file: null,
-            // Check if auditorDescription exists and then reset its fields
-            auditorDescription: formValue.auditorDescription?.map((description) => ({
-                ...description,
-                auditorName: '', // Reset auditor name
-                certificateType: '', // Reset certificate type
-                file: null // Reset the file
-            })) || [], // If auditorDescription is undefined, initialize it as an empty array
-            // Check if auditScope exists and then reset its fields
-            auditScope: formValue.auditScope?.map((scope) => ({
-                ...scope,
-                auditTitle: '', // Reset audit title
-                description: '', // Reset description
-                startDate: '', // Reset start date
-                endDate: '' // Reset end date
-            })) || [], // If auditScope is undefined, initialize it as an empty array
-        })));
+        setAudiAgencyFormValues((prev) => ({
+            ...prev,
+            undertakingFile: null,
+            auditorDesscription: [{ ...EMPTY_AUDITOR_ROW }, { ...EMPTY_AUDITOR_ROW }],
+            auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }],
+        }));
+        setFileName('');
+        setFileInputKey(Date.now());
         setCaptchaInput('');
         setFormErrors({});
     };
 
+    const handleSelectChange = (index, field, value) => {
+        setAudiAgencyFormValues((prev) => {
+            const updatedRows = (prev.auditorDesscription || []).map((row, i) =>
+                i === index ? { ...row } : row
+            );
+            const row = { ...updatedRows[index], [field]: value };
+            const auditors = prev.auditors || [];
 
+            if (field === 'auditorName') {
+                const auditor = auditors.find(
+                    (item) => getAuditorDisplayName(item) === value
+                );
+                if (
+                    row.certificateType &&
+                    auditor &&
+                    !auditorHoldsCert(auditor, row.certificateType)
+                ) {
+                    row.certificateType = '';
+                }
+            }
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        const selectedAgency = allAuditAgencyList.find(
-            (agency) => agency.auditAgencyId === value
+            if (field === 'certificateType') {
+                const auditor = auditors.find(
+                    (item) => getAuditorDisplayName(item) === (row.auditorName || '').trim()
+                );
+                if (row.auditorName && auditor && !auditorHoldsCert(auditor, value)) {
+                    row.auditorName = '';
+                }
+            }
+
+            updatedRows[index] = row;
+            return { ...prev, auditorDesscription: updatedRows };
+        });
+    };
+
+    const handleFileChange = (index, event) => {
+        const file = event.target.files?.[0] || null;
+        setAudiAgencyFormValues((prev) => {
+            const updatedRows = (prev.auditorDesscription || []).map((row, i) =>
+                i === index ? { ...row, file } : row
+            );
+            return { ...prev, auditorDesscription: updatedRows };
+        });
+    };
+
+    const getAvailableAuditorsForRow = (rowIndex) => {
+        const rows = audiAgencyFormValues.auditorDesscription || [];
+        const allAuditors = audiAgencyFormValues.auditors || [];
+        const currentRow = rows[rowIndex] || {};
+        const currentName = (currentRow.auditorName || '').trim();
+
+        const usedAuditorNames = new Set(
+            rows
+                .map((row, i) =>
+                    i !== rowIndex && row.auditorName ? row.auditorName.trim() : null
+                )
+                .filter(Boolean)
         );
 
-        console.log("Selected Agency:", selectedAgency); // Debugging selected agency
-        console.log("Before Update:", audiAgencyFormValues); // Debugging state before update
+        const usedCertTypes = rows
+            .map((row, i) => (i !== rowIndex ? row.certificateType : null))
+            .filter(Boolean);
 
-        setAudiAgencyFormValues((prev) => ({
-            ...prev,
-            [name]: value,
-            name: selectedAgency?.auditAgencyName || '',
-            mobileNo: selectedAgency?.mobileNo || '',
-            emailId: selectedAgency?.emailId || '',
-        }));
+        return allAuditors.filter((auditor) => {
+            const name = getAuditorDisplayName(auditor);
+            if (!name) return false;
 
-        console.log("After Update:", audiAgencyFormValues); // Debugging state after update
+            if (currentName && name === currentName) return true;
+            if (usedAuditorNames.has(name)) return false;
+
+            const profile = getAuditorCertProfile(auditor);
+            for (const usedCert of usedCertTypes) {
+                if (isIsoCert(usedCert) && isIsoCert(profile)) return false;
+                if (isOtherCert(usedCert) && isOtherCert(profile)) return false;
+            }
+
+            if (
+                currentRow.certificateType &&
+                !auditorHoldsCert(auditor, currentRow.certificateType)
+            ) {
+                return false;
+            }
+
+            return true;
+        });
     };
 
-    // Options for dropdowns
-    const auditorNames = ['John Doe', 'Jane Smith', 'Alice Johnson'];
-    const certificateTypes = ['ISO 9001', 'ISO 27001', 'ISO 14001'];
+    const getAvailableCertificateTypesForRow = (rowIndex) => {
+        const rows = audiAgencyFormValues.auditorDesscription || [];
+        const currentRow = rows[rowIndex] || {};
+        const usedCertTypes = rows
+            .map((row, i) => (i !== rowIndex ? row.certificateType : null))
+            .filter(Boolean);
 
-    // Handle dropdown changes
-    const handleSelectChange = (index, field, value) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditorDesscription[index][field] = value;  // Access the first object and update the auditorDesscription array
-        setAudiAgencyFormValues(updatedRows);
+        let types = (certificateTypes || []).filter((type) => !isBothCert(type));
+
+        types = types.filter((type) => {
+            if (
+                currentRow.certificateType &&
+                normalizeCert(type) === normalizeCert(currentRow.certificateType)
+            ) {
+                return true;
+            }
+            return !usedCertTypes.some((used) => isSameCertFamily(used, type));
+        });
+
+        if (currentRow.auditorName) {
+            const auditor = (audiAgencyFormValues.auditors || []).find(
+                (item) =>
+                    getAuditorDisplayName(item) === currentRow.auditorName.trim()
+            );
+            if (auditor) {
+                types = types.filter((type) => auditorHoldsCert(auditor, type));
+            }
+        }
+
+        return types;
     };
-
-    // Handle file upload
-    const handleFileChange = (index, event) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditorDesscription[index].file = event.target.files[0];  // Update file in auditorDesscription
-        setAudiAgencyFormValues(updatedRows);
-    };
-
-    const [selectedIndex, setSelectedIndex] = useState(null); // Track the selected row index
-
-    const [fileInputKey, setFileInputKey] = useState(Date.now());
-    const [fileName, setFileName] = useState('');
 
     const handleFilesChange = (e) => {
         const file = e.target.files[0];
-
-        // Check if a file was selected
-        if (file) {
-            // Check if the file is a PDF
-            if (file.type !== 'application/pdf') {
-                alert('Only PDF files are allowed!');
-                return; // Exit the function if the file is not a PDF
-            }
-
-            // Check if the file size exceeds 5MB (5 * 1024 * 1024 bytes = 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                alert('File size exceeds 5 MB!');
-                return; // Exit the function if the file size exceeds 5 MB
-            }
-
-            // If file is valid, update state for `undertakingFile` while keeping other values intact
-            setAudiAgencyFormValues((prevValues) => ({
-                ...prevValues,
-                undertakingFile: file, // Update only the `undertakingFile` key
-            }));
-
-            // Set the file name for display purposes
-            setFileName(file.name);
+        if (!file) {
+            return;
         }
+        if (file.type !== 'application/pdf') {
+            alert('Only PDF files are allowed!');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size exceeds 5 MB!');
+            return;
+        }
+        setAudiAgencyFormValues((prevValues) => ({
+            ...prevValues,
+            undertakingFile: file,
+        }));
+        setFileName(file.name);
     };
 
-
-
-
-    // Add a new row
     const handleAddRow = () => {
-        setAudiAgencyFormValues((prevState) => {
-            const updatedRows = { ...prevState };
-            updatedRows.auditorDesscription.push({
-                auditorName: '',
-                certificateType: '',
-                file: null,
-                date: '', // Add default value for date
-            });
-            return updatedRows;
-        });
+        setAudiAgencyFormValues((prevState) => ({
+            ...prevState,
+            auditorDesscription: [
+                ...(prevState.auditorDesscription || []),
+                { ...EMPTY_AUDITOR_ROW },
+            ],
+        }));
     };
 
     const handleAddAuditScopeRow = () => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditScope.push({
-            auditTitle: '',
-            description: '',
-            startDate: '',
-            endDate: '',
-        });
-        setAudiAgencyFormValues(updatedRows);
+        setAudiAgencyFormValues((prev) => ({
+            ...prev,
+            auditScope: [
+                ...(prev.auditScope || []),
+                { auditTitle: '', description: '', startDate: '', endDate: '' },
+            ],
+        }));
     };
+
     const handleDeleteRow = (index) => {
         setAudiAgencyFormValues((prevState) => {
-            const updatedRows = { ...prevState };
-            updatedRows.auditorDesscription = updatedRows.auditorDesscription.filter((_, i) => i !== index);  // Remove the row
-            return updatedRows;
+            const remaining = (prevState.auditorDesscription || []).filter(
+                (_, i) => i !== index
+            );
+            return {
+                ...prevState,
+                auditorDesscription:
+                    remaining.length >= 2
+                        ? remaining
+                        : [...remaining, { ...EMPTY_AUDITOR_ROW }].slice(0, 2),
+            };
         });
     };
 
     const handleDeleteAuditScopeRow = (index) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditScope.splice(index, 1);
-        setAudiAgencyFormValues(updatedRows);
-    };
-
-    const handleDateChange = (index, date) => {
-        setAudiAgencyFormValues((prev) =>
-            prev.map((item, idx) =>
-                idx === index ? { ...item, date } : item
-            )
-        );
+        setAudiAgencyFormValues((prev) => ({
+            ...prev,
+            auditScope: (prev.auditScope || []).filter((_, i) => i !== index),
+        }));
     };
 
     const handleStartDateChange = (index, value) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditScope[index].startDate = value;
-        setAudiAgencyFormValues(updatedRows);
-    };
-    const handleEndDateChange = (index, value) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditScope[index].endDate = value;
-        setAudiAgencyFormValues(updatedRows);
+        setAudiAgencyFormValues((prev) => {
+            const auditScope = (prev.auditScope || []).map((row, i) =>
+                i === index ? { ...row, startDate: value } : row
+            );
+            return { ...prev, auditScope };
+        });
     };
 
+    const handleEndDateChange = (index, value) => {
+        setAudiAgencyFormValues((prev) => {
+            const auditScope = (prev.auditScope || []).map((row, i) =>
+                i === index ? { ...row, endDate: value } : row
+            );
+            return { ...prev, auditScope };
+        });
+    };
 
     const handleDescriptionChange = (index, value) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditScope[index].description = value;
-        setAudiAgencyFormValues(updatedRows);
+        setAudiAgencyFormValues((prev) => {
+            const auditScope = (prev.auditScope || []).map((row, i) =>
+                i === index ? { ...row, description: value } : row
+            );
+            return { ...prev, auditScope };
+        });
     };
 
     const handleAuditTitleChange = (index, value) => {
-        const updatedRows = { ...audiAgencyFormValues };
-        updatedRows.auditScope[index].auditTitle = value;
-        setAudiAgencyFormValues(updatedRows);
+        setAudiAgencyFormValues((prev) => {
+            const auditScope = (prev.auditScope || []).map((row, i) =>
+                i === index ? { ...row, auditTitle: value } : row
+            );
+            return { ...prev, auditScope };
+        });
     };
 
-    useEffect(() => {
-        getAllAuditAgency();
-    }, []);
-    
-    // Fetch all audit agencies
-    const getAllAuditAgency = () => {
-        setLoading(true);
-    
-        AuditAgency.getAllAuditAgencyList()
-            .then((response) => {
-                console.log('Audit Agencies:', response.data);
-                const agencyList = response.data || []; // Ensure it's not null/undefined
-                setAllAuditAgencyList(agencyList); // Update the agency list
-    
-                // Fetch audit selection list after setting the agency list
-                fetchAuditSelectionList(agencyList);
-            })
-            .catch((error) => {
-                console.error('Error fetching audit agencies:', error);
-                showAlert({
-                    messageTitle: 'Error',
-                    messageContent: 'Failed to fetch audit agencies.',
-                });
-            })
-            .finally(() => setLoading(false));
+    const getAllAuditAgency = async () => {
+        try {
+            setLoading(true);
+            const response = await AuditAgency.getAllAuditAgencyList();
+            setAllAuditAgencyList(response.data || []);
+        } catch (error) {
+            showAlert({
+                messageTitle: 'Error',
+                messageContent: 'Failed to fetch audit agencies.',
+            });
+        } finally {
+            setLoading(false);
+        }
     };
-    
-    // Fetch audit selection list and update the form
-    const fetchAuditSelectionList = (agencyList) => {
-        AnnualAuditService.getAllAuditSelectionList()
-            .then((response) => {
-                console.log('Audit Agencies Selection Response:', response.data);
-                const selectionList = response.data || [];
-                setAllAuditAgencySelectionList(selectionList);
-    
-                // Match selected agency based on `auditAgencyId`
-                const selectedAgency = agencyList.find((agency) =>
-                    selectionList.some((item) => item.auditAgencyId === agency.auditAgencyId)
+
+    const getAllAuditAgencySelection = async () => {
+        try {
+            setLoading(true);
+            const response = await AnnualAuditService.getAllAuditSelectionByUsername(loggedInUsername);
+            const auditAgencySelectionList = response.data || [];
+            setAllAuditAgencySelectionList(auditAgencySelectionList);
+
+            setAllAuditAgencyList((prevAgencyList) => {
+                const selectedAgencyIds = new Set(
+                    auditAgencySelectionList.map(({ auditAgencyId }) => String(auditAgencyId))
                 );
-    
-                console.log('Selected Agency:', selectedAgency);
-    
-                // Update form values safely
+                const selectedAgency = prevAgencyList.find((agency) =>
+                    selectedAgencyIds.has(String(agency.auditAgencyId))
+                );
+
                 setAudiAgencyFormValues((prev) => ({
                     ...prev,
-                    intentAppId: selectedAgency?.auditAgencyId || '',
+                    auditAgencyName: selectedAgency?.auditAgencyName || prev.auditAgencyName || 'N/A',
                     name: selectedAgency?.auditAgencyName || 'N/A',
                     mobileNo: selectedAgency?.phoneRecord || [],
                     emailId: selectedAgency?.emailId || [],
                     auditors: selectedAgency?.auditors || [],
+                    applicantUserName: ApplicantUserName || prev.applicantUserName || '',
+                    auditorDesscription:
+                        prev.auditorDesscription?.length >= 2
+                            ? prev.auditorDesscription
+                            : [{ ...EMPTY_AUDITOR_ROW }, { ...EMPTY_AUDITOR_ROW }],
                 }));
-            })
-            .catch((error) => {
-                console.error('Error fetching audit selection list:', error);
+
+                return prevAgencyList;
+            });
+        } catch (error) {
+            // Fallback for older data sets: unfiltered selection list
+            try {
+                const response = await AnnualAuditService.getAllAuditSelectionList();
+                const selectionList = response.data || [];
+                setAllAuditAgencySelectionList(selectionList);
+                setAllAuditAgencyList((prevAgencyList) => {
+                    const selectedAgency = prevAgencyList.find((agency) =>
+                        selectionList.some(
+                            (item) => String(item.auditAgencyId) === String(agency.auditAgencyId)
+                        )
+                    );
+                    setAudiAgencyFormValues((prev) => ({
+                        ...prev,
+                        auditAgencyName: selectedAgency?.auditAgencyName || prev.auditAgencyName || 'N/A',
+                        name: selectedAgency?.auditAgencyName || 'N/A',
+                        mobileNo: selectedAgency?.phoneRecord || [],
+                        emailId: selectedAgency?.emailId || [],
+                        auditors: selectedAgency?.auditors || [],
+                        applicantUserName: ApplicantUserName || prev.applicantUserName || '',
+                    }));
+                    return prevAgencyList;
+                });
+            } catch (fallbackError) {
                 showAlert({
                     messageTitle: 'Error',
-                    messageContent: 'Failed to fetch audit selection list.',
+                    messageContent: 'Failed to fetch audit agencies.',
                 });
-            });
+            }
+        } finally {
+            setLoading(false);
+        }
     };
-    
 
-    console.log('Audit Agencies cch:', audiAgencyFormValues);
+    const loadCertificateTypes = async () => {
+        try {
+            const response = await AuditorCertificateTypeService.getAllAuditorCertificateTypeList();
+            const list = Array.isArray(response?.data) ? response.data : [];
+            const activeTypes = list
+                .filter((item) => item?.status === 'Active' && item?.certificateName)
+                .map((item) => item.certificateName)
+                .filter((name) => !isBothCert(name));
+            if (activeTypes.length > 0) {
+                setCertificateTypes(activeTypes);
+            }
+        } catch (error) {
+            console.warn('Failed to load auditor certificate types, using fallback list.', error);
+        }
+    };
 
-    // Validate form inputs
+    useEffect(() => {
+        loadCertificateTypes();
+        getAllAuditAgency().then(() => getAllAuditAgencySelection());
+    }, []);
+
+    useEffect(() => {
+        if (ApplicantUserName) {
+            setAudiAgencyFormValues((prev) => ({
+                ...prev,
+                applicantUserName: ApplicantUserName,
+            }));
+        }
+    }, [ApplicantUserName]);
+
     const validateForm = () => {
         const errors = {};
 
-        if (!audiAgencyFormValues.auditAgencyName) {
+        if (!ApplicantUserName) {
+            errors.applicant =
+                'Invalid applicant reference. Please open this page from the annual audit list again.';
+        }
+
+        if (!audiAgencyFormValues.auditAgencyName && !audiAgencyFormValues.name) {
             errors.auditAgencyName = errorMsg.AuditAgencyName.blank;
+        }
+
+        if (!audiAgencyFormValues.undertakingFile) {
+            errors.file1 = 'Please upload undertaking file (PDF, max 5 MB).';
+        }
+
+        const auditorRows = audiAgencyFormValues.auditorDesscription || [];
+        const completedAuditorRows = auditorRows.filter(
+            (row) =>
+                row.auditorName?.trim() &&
+                row.certificateType?.trim() &&
+                row.file
+        );
+
+        if (completedAuditorRows.length < 2) {
+            errors.auditors = 'Minimum 2 Auditor Details are Required';
+        } else {
+            auditorRows.forEach((row, index) => {
+                const hasAnyValue =
+                    row.auditorName?.trim() ||
+                    row.certificateType?.trim() ||
+                    row.file ||
+                    row.date;
+                if (!hasAnyValue) return;
+
+                if (!row.auditorName?.trim()) {
+                    errors[`auditorName_${index}`] = `Auditor name is required for row ${index + 1}.`;
+                }
+                if (!row.certificateType?.trim()) {
+                    errors[`certificateType_${index}`] = `Certificate type is required for row ${index + 1}.`;
+                }
+                if (!row.file) {
+                    errors[`auditorFile_${index}`] = `Certificate file is required for row ${index + 1}.`;
+                }
+                if (!(row.certificateExpiry || row.date)) {
+                    errors[`certificateExpiry_${index}`] = `Certificate expiry is required for row ${index + 1}.`;
+                }
+            });
+        }
+
+        const scopeRows = audiAgencyFormValues.auditScope || [];
+        if (!scopeRows.length) {
+            errors.auditScope = 'Please add at least one audit schedule.';
+        } else {
+            scopeRows.forEach((row, index) => {
+                if (!row.auditTitle?.trim()) {
+                    errors[`auditTitle_${index}`] = `Audit title is required for row ${index + 1}.`;
+                }
+                if (!row.description?.trim()) {
+                    errors[`description_${index}`] = `Description is required for row ${index + 1}.`;
+                }
+                if (!row.startDate?.trim()) {
+                    errors[`startDate_${index}`] = `Start date is required for row ${index + 1}.`;
+                }
+                if (!row.endDate?.trim()) {
+                    errors[`endDate_${index}`] = `End date is required for row ${index + 1}.`;
+                }
+            });
         }
 
         if (!captchaInput) {
             errors.captcha = errorMsg.captchaError.blank;
+        } else if (captchaInput !== captchaText) {
+            errors.captcha = 'Captcha does not match.';
         }
 
         return errors;
     };
 
-    // Form Submission Handler
-
-
     const handleSubmit = (e) => {
-        e.preventDefault()
+        e.preventDefault();
+
+        const errors = validateForm();
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            showAlert({
+                messageTitle: 'Error',
+                messageContent: errors.auditors || Object.values(errors)[0],
+                confirmText: 'Ok',
+            });
+            return;
+        }
+
         showAlert({
             messageTitle: 'Confirm',
-            messageContent: 'Are you sure, you want to submit? You cannot Upload Undertaking & Auditors Details again. Please verify before the Upload Undertaking & Auditors Details.',
+            messageContent:
+                'Are you sure, you want to submit? You cannot Upload Undertaking & Auditors Details again. Please verify before the Upload Undertaking & Auditors Details.',
             confirmText: 'Yes',
             closeText: 'No',
             fullWidth: true,
             maxWidth: 'md',
-            onConfirm: () => handleConfrimSubmit()
-        })
-
-
+            onConfirm: () => handleConfrimSubmit(),
+        });
     };
 
-
     const handleConfrimSubmit = () => {
-        console.log("sfgydgc=====>", audiAgencyFormValues);
-    
         const formData = new FormData();
-    
-        // Append basic fields
-        formData.append('auditAgencyName', audiAgencyFormValues.auditAgencyName);
-        formData.append('intentAppId', audiAgencyFormValues.intentAppId);
-        formData.append('applicantUserName', audiAgencyFormValues.applicantUserName);
+
+        formData.append(
+            'auditAgencyName',
+            audiAgencyFormValues.auditAgencyName || audiAgencyFormValues.name || ''
+        );
+        formData.append('intentAppId', audiAgencyFormValues.intentAppId || '');
+        formData.append(
+            'applicantUserName',
+            audiAgencyFormValues.applicantUserName || ApplicantUserName
+        );
         if (audiAgencyFormValues.undertakingFile) {
             formData.append('undertakingFile', audiAgencyFormValues.undertakingFile);
         }
-    
-// Append auditorDescription array
-audiAgencyFormValues.auditorDesscription.forEach((item, index) => {
-    formData.append(`auditorDesscription[${index}].auditorName`, item.auditorName);
-    formData.append(`auditorDesscription[${index}].certificateType`, item.certificateType);
-    if (item.file) {
-        formData.append(`auditorDesscription[${index}].file`, item.file);
-    }
-});
 
-// Append auditScope array
-audiAgencyFormValues.auditScope.forEach((item, index) => {
-    formData.append(`auditScope[${index}].auditTitle`, item.auditTitle);
-    formData.append(`auditScope[${index}].description`, item.description);
-    formData.append(`auditScope[${index}].startDate`, item.startDate);
-    formData.append(`auditScope[${index}].endDate`, item.endDate);
-});
+        audiAgencyFormValues.auditorDesscription.forEach((item, index) => {
+            formData.append(`auditorDesscription[${index}].auditorName`, item.auditorName);
+            formData.append(
+                `auditorDesscription[${index}].certificateType`,
+                item.certificateType
+            );
+            const expiry = item.certificateExpiry || item.date || '';
+            if (expiry) {
+                formData.append(
+                    `auditorDesscription[${index}].certificateExpiry`,
+                    expiry
+                );
+            }
+            if (item.file) {
+                formData.append(`auditorDesscription[${index}].file`, item.file);
+            }
+        });
 
-        setLoading(true); // Show loading spinner if applicable
-    
+        audiAgencyFormValues.auditScope.forEach((item, index) => {
+            formData.append(`auditScope[${index}].auditTitle`, item.auditTitle);
+            formData.append(`auditScope[${index}].description`, item.description);
+            formData.append(`auditScope[${index}].startDate`, item.startDate);
+            formData.append(`auditScope[${index}].endDate`, item.endDate);
+        });
+
+        setLoading(true);
+
         AnnualAuditService.submitAuditForm(formData)
             .then((response) =>
                 showAlert({
                     messageTitle: 'Success',
                     messageContent: response.data,
                     confirmText: 'Ok',
-                    onConfirm: () => window.location.href = '/auditagency/uploadannualundertaking/annualauditreport',
+                    onConfirm: () => {
+                        // Table list route (not the detail route that requires :id)
+                        window.location.href = `${rolePath}/uploadannualundertaking`;
+                    },
                 })
             )
             .catch((err) => {
-                // Handle error response
-                const errorMessage = err.response?.data?.message || 'Request failed. Please try again later.';
                 showAlert({
                     messageTitle: 'Error',
-                    messageContent: errorMessage,
+                    messageContent: getSubmitErrorMessage(err),
                     confirmText: 'Ok',
                 });
             })
             .finally(() => setLoading(false));
     };
-    
 
     return (
         <>
@@ -398,7 +653,6 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                 <Box component="form" noValidate onSubmit={handleSubmit}>
                     <Grid container spacing={2} direction="column">
                         <Grid item xs={12}>
-                            {/* Render additional rows based on the selected agency */}
                             {audiAgencyFormValues?.name && (
                                 <>
                                     <Grid container spacing={2} sx={{ ml: 0.5 }}>
@@ -419,7 +673,7 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                                 {audiAgencyFormValues?.mobileNo?.length > 0
                                                     ? audiAgencyFormValues.mobileNo
                                                         .map((mobileObj) => mobileObj.mobile)
-                                                        .join(', ') // Join multiple numbers with a comma
+                                                        .join(', ')
                                                     : 'N/A'}
                                             </Typography>
                                         </Grid>
@@ -434,24 +688,23 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                                 {audiAgencyFormValues?.emailId?.length > 0
                                                     ? audiAgencyFormValues.emailId
                                                         .map((emailObj) => emailObj.email)
-                                                        .join(', ') // Join multiple emails with a comma
+                                                        .join(', ')
                                                     : 'N/A'}
                                             </Typography>
                                         </Grid>
                                     </Grid>
                                 </>
                             )}
-
                         </Grid>
                         <Grid item sm={6}>
                             <Typography variant="body1"><strong>1. Add Auditor Details:</strong></Typography>
                         </Grid>
                         <Grid item xs={12}>
                             <TableContainer>
-                                <Table >
+                                <Table>
                                     <TableHead>
                                         <TableRow sx={{ backgroundColor: "tablecolor.main", color: "tablecolor.text" }}>
-                                            <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }} >Auditor Name</TableCell>
+                                            <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>Auditor Name</TableCell>
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>Certificate Type</TableCell>
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>Certificate Expiry</TableCell>
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>File Upload</TableCell>
@@ -460,49 +713,44 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                     </TableHead>
                                     <TableBody>
                                         {Array.isArray(audiAgencyFormValues?.auditorDesscription) &&
-                                            audiAgencyFormValues?.auditorDesscription?.map((row, index) => (
+                                            (audiAgencyFormValues?.auditorDesscription || []).map((row, index) => (
                                                 <TableRow key={index}>
                                                     <TableCell sx={{ border: 0.5, borderColor: 'grey.100' }}>
                                                         <Select
-                                                            value={row.auditorName}
+                                                            value={row.auditorName || ''}
                                                             onChange={(event) =>
                                                                 handleSelectChange(index, 'auditorName', event.target.value)
                                                             }
                                                             displayEmpty
                                                             fullWidth
                                                             size="small"
+                                                            error={!!formErrors[`auditorName_${index}`]}
                                                         >
-                                                            <MenuItem value="" disabled>
-                                                                Select Auditor
-                                                            </MenuItem>
-                                                            {Array.isArray(audiAgencyFormValues?.auditors) &&
-                                                                audiAgencyFormValues?.auditors.map((auditor, auditorIndex) => (
-                                                                    <MenuItem key={auditorIndex} value={`${auditor.firstName} ${auditor.lastName || ''}`}>
-                                                                        {auditor.firstName || auditor.lastName
-                                                                            ? `${auditor.firstName} ${auditor.lastName || ''}`.trim()
-                                                                            : 'Unnamed Auditor'}
+                                                            <MenuItem value="" disabled>Select Auditor</MenuItem>
+                                                            {getAvailableAuditorsForRow(index).map((auditor, auditorIndex) => {
+                                                                const displayName = getAuditorDisplayName(auditor);
+                                                                return (
+                                                                    <MenuItem key={`${displayName}-${auditorIndex}`} value={displayName}>
+                                                                        {displayName || 'Unnamed Auditor'}
                                                                     </MenuItem>
-                                                                ))}
+                                                                );
+                                                            })}
                                                         </Select>
-
                                                     </TableCell>
                                                     <TableCell sx={{ border: 0.5, borderColor: 'grey.100' }}>
                                                         <Select
-                                                            value={row.certificateType}
+                                                            value={row.certificateType || ''}
                                                             onChange={(event) =>
                                                                 handleSelectChange(index, 'certificateType', event.target.value)
                                                             }
                                                             displayEmpty
                                                             fullWidth
                                                             size="small"
+                                                            error={!!formErrors[`certificateType_${index}`]}
                                                         >
-                                                            <MenuItem value="" disabled>
-                                                                Select Certificate Type
-                                                            </MenuItem>
-                                                            {certificateTypes.map((type) => (
-                                                                <MenuItem key={type} value={type}>
-                                                                    {type}
-                                                                </MenuItem>
+                                                            <MenuItem value="" disabled>Select Certificate Type</MenuItem>
+                                                            {getAvailableCertificateTypesForRow(index).map((type) => (
+                                                                <MenuItem key={type} value={type}>{type}</MenuItem>
                                                             ))}
                                                         </Select>
                                                     </TableCell>
@@ -513,14 +761,13 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                                             onChange={(event) =>
                                                                 handleSelectChange(index, 'date', event.target.value)
                                                             }
-                                                            InputLabelProps={{
-                                                                shrink: true,
-                                                            }}
+                                                            InputLabelProps={{ shrink: true }}
                                                             size="small"
                                                             inputProps={{
-                                                                min: new Date().toISOString().split('T')[0], // Disables past dates
+                                                                min: new Date().toISOString().split('T')[0],
                                                             }}
                                                             fullWidth
+                                                            error={!!formErrors[`certificateExpiry_${index}`]}
                                                         />
                                                     </TableCell>
                                                     <TableCell sx={{ border: 0.5, borderColor: 'grey.100' }}>
@@ -537,7 +784,6 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                                 </TableRow>
                                             ))}
                                     </TableBody>
-
                                 </Table>
                                 <Button
                                     variant="contained"
@@ -546,9 +792,7 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                 >
                                     Add Row
                                 </Button>
-
                             </TableContainer>
-
                         </Grid>
                         <Grid item sm={6}>
                             <Typography variant="body1"><strong>2. Add Audit Schedule:</strong></Typography>
@@ -577,11 +821,8 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                                             multiline
                                                             rows={3}
                                                             fullWidth
-                                                            InputProps={{
-                                                                style: {
-                                                                    padding: '10px',
-                                                                },
-                                                            }}
+                                                            error={!!formErrors[`auditTitle_${index}`]}
+                                                            InputProps={{ style: { padding: '10px' } }}
                                                         />
                                                     </TableCell>
                                                     <TableCell sx={{ border: 0.5, borderColor: 'grey.100' }}>
@@ -592,11 +833,8 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                                             multiline
                                                             rows={3}
                                                             fullWidth
-                                                            InputProps={{
-                                                                style: {
-                                                                    padding: '10px',
-                                                                },
-                                                            }}
+                                                            error={!!formErrors[`description_${index}`]}
+                                                            InputProps={{ style: { padding: '10px' } }}
                                                         />
                                                     </TableCell>
                                                     <TableCell sx={{ border: 0.5, borderColor: 'grey.100' }}>
@@ -604,14 +842,13 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                                             type="date"
                                                             value={row.startDate || ''}
                                                             onChange={(event) => handleStartDateChange(index, event.target.value)}
-                                                            InputLabelProps={{
-                                                                shrink: true,
-                                                            }}
+                                                            InputLabelProps={{ shrink: true }}
                                                             inputProps={{
-                                                                min: new Date().toISOString().split('T')[0], // Disables past dates
+                                                                min: new Date().toISOString().split('T')[0],
                                                             }}
-                                                            size='small'
+                                                            size="small"
                                                             fullWidth
+                                                            error={!!formErrors[`startDate_${index}`]}
                                                         />
                                                     </TableCell>
                                                     <TableCell sx={{ border: 0.5, borderColor: 'grey.100' }}>
@@ -619,14 +856,13 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                                             type="date"
                                                             value={row.endDate || ''}
                                                             onChange={(event) => handleEndDateChange(index, event.target.value)}
-                                                            InputLabelProps={{
-                                                                shrink: true,
-                                                            }}
+                                                            InputLabelProps={{ shrink: true }}
                                                             inputProps={{
-                                                                min: new Date().toISOString().split('T')[0], // Disables past dates
+                                                                min: new Date().toISOString().split('T')[0],
                                                             }}
-                                                            size='small'
+                                                            size="small"
                                                             fullWidth
+                                                            error={!!formErrors[`endDate_${index}`]}
                                                         />
                                                     </TableCell>
                                                     <TableCell sx={{ border: 0.5, borderColor: 'grey.100' }}>
@@ -652,7 +888,7 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                         </Grid>
                         <Grid item sm={11}>
                             <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
-                                <Grid item >
+                                <Grid item>
                                     <Button
                                         component="label"
                                         variant="contained"
@@ -666,19 +902,21 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                             onChange={handleFilesChange}
                                         />
                                     </Button>
-
                                 </Grid>
                                 <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                     {fileName && (
                                         <Tooltip title={fileName} placement="top">
-                                            <Typography variant='body2' sx={{
-                                                display: 'inline-block',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                verticalAlign: 'middle',
-                                                textAlign: 'center'
-                                            }}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    display: 'inline-block',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    verticalAlign: 'middle',
+                                                    textAlign: 'center',
+                                                }}
+                                            >
                                                 {fileName}
                                             </Typography>
                                         </Tooltip>
@@ -690,44 +928,54 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                     {formErrors.file1}
                                 </Typography>
                             )}
-
-
                         </Grid>
-
                     </Grid>
 
-                    <Grid container sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                    }}>
-
+                    <Grid
+                        container
+                        sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
+                    >
                         <Grid item>
-                            <Captcha setCaptcha={setCaptchaText}
+                            <Captcha
+                                setCaptcha={setCaptchaText}
                                 setCaptchaInput={setCaptchaInput}
                                 captchaInput={captchaInput}
                                 captchaError={!!formErrors.captcha}
-                                captchaErrorMsg={formErrors.captcha} />
-
+                                captchaErrorMsg={formErrors.captcha}
+                            />
                         </Grid>
                     </Grid>
 
-                    <Grid container direction="row" sx={{ mt: 4 }} spacing={2} justifyContent="center" alignItems="center">
-                        <Grid item  >
+                    <Grid
+                        container
+                        direction="row"
+                        sx={{ mt: 4 }}
+                        spacing={2}
+                        justifyContent="center"
+                        alignItems="center"
+                    >
+                        <Grid item>
                             <Button type="submit" fullWidth variant="contained" sx={{ maxWidth: '120px' }}>
                                 Submit
                             </Button>
                         </Grid>
-                        <Grid item  >
-                            <Button type="button" onClick={handleReset} color="reset" fullWidth variant="contained" sx={{ maxWidth: '120px', color: "#FFFFFF" }}>
+                        <Grid item>
+                            <Button
+                                type="button"
+                                onClick={handleReset}
+                                color="reset"
+                                fullWidth
+                                variant="contained"
+                                sx={{ maxWidth: '120px', color: '#FFFFFF' }}
+                            >
                                 Reset
                             </Button>
                         </Grid>
                     </Grid>
-
-
-
-
                 </Box>
             </FormWrapper>
         </>

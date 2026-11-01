@@ -24,7 +24,7 @@ const MinimalLayout = () =>{
     return(
         <>
         <Box sx={{ display: 'flex', flexDirection: 'column', 
-            backgroundImage: 'url("images/background.jpg")',
+            backgroundImage: 'url("/images/background.jpg")',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',

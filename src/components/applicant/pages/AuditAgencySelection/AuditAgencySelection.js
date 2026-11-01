@@ -221,7 +221,10 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
                     .then((response) =>
                         showAlert({
                             messageTitle: 'Success',
-                            messageContent: response.data,
+                            messageContent:
+                                typeof response.data === 'string' && response.data.trim()
+                                    ? response.data
+                                    : response.data?.message || 'Audit agency selected successfully.',
                             confirmText: 'Ok',
                             onConfirm: () => window.location.href = '/applicant/applicationform',
                         })
@@ -229,7 +232,10 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
                     .catch((err) =>
                         showAlert({
                             messageTitle: 'Error',
-                            messageContent: err.response?.data || 'Request failed. Please try again later.',
+                            messageContent:
+                                typeof err.response?.data === 'string' && err.response.data.trim()
+                                    ? err.response.data
+                                    : err.response?.data?.message || 'Request failed. Please try again later.',
                             confirmText: 'Ok',
                         })
                     )

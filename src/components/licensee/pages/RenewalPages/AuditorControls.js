@@ -23,6 +23,7 @@ import showAlert from "../../../global/common/MessageBox/AlertService";
 import LoaderProgress from "../../../global/common/LoaderProgress";
 import FormWrapper from "../../../global/util/FormWrapper";
 import { useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { decrypt } from "../../../global/util/EncryptDecrypt";
 import AuditService from "../../../../service/AuditService/AuditService";
 
@@ -30,6 +31,7 @@ import AuditService from "../../../../service/AuditService/AuditService";
 
 const AuditorControls = () => {
   const { id } = useParams();
+  const rolePath = useSelector((state) => state.jwtAuthentication.rolePath);
   const ApplicantUserName = decrypt(id);
   const [lastSubIndex, setLastSubIndex] = useState(null);
   //alert(ApplicantUserName);
@@ -258,7 +260,7 @@ const handleConfrimSubmit = () => {
           messageTitle: 'Success',
           messageContent: response.data,
           confirmText: 'Ok',
-          onConfirm: () => window.location.href = '/auditagency/uploadundertaking',
+          onConfirm: () => window.location.href = `${rolePath || '/licensee'}/renewallicense`,
       });
       
       // Reset the form values

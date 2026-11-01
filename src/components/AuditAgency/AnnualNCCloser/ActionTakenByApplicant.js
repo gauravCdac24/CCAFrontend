@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Typography,
   IconButton,
@@ -11,8 +12,6 @@ import {
   TableHead,
   TableRow,
   Button,
-  FormControlLabel,
-  Radio,
   Grid,
   TextField,
   Tooltip,
@@ -20,76 +19,320 @@ import {
 } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import { styled } from "@mui/material/styles";
 import AuditControlService from "../../../service/AdminService/AuditControlService";
 import showAlert from "../../global/common/MessageBox/AlertService";
 import LoaderProgress from "../../global/common/LoaderProgress";
 import FormWrapper from "../../global/util/FormWrapper";
-import { useParams } from "react-router-dom";
 import useAnnualAuditRoute from "../../global/util/useAnnualAuditRoute";
-import AuditService from "../../../service/AuditService/AuditService";
-
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { styled } from '@mui/material/styles';
 import { useSelector } from "react-redux";
 import AnnualAuditService from "../../../service/AnnualAuditService/AnnualAuditService";
 
-
-
-
-const VisuallyHiddenInput = styled('input')({
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  padding: '0',
-  margin: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0,0,0,0)',
-  border: '0',
+const VisuallyHiddenInput = styled("input")({
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  padding: "0",
+  margin: "-1px",
+  overflow: "hidden",
+  clip: "rect(0,0,0,0)",
+  border: "0",
 });
 
+const parseVisible = (value) => {
+  if (value === true || value === "TRUE" || value === "true" || value === "Yes" || value === "yes") {
+    return true;
+  }
+  if (value === false || value === "FALSE" || value === "false" || value === "No" || value === "no") {
+    return false;
+  }
+  return null;
+};
+
+const shouldHideSubCriteria = (subCriteria) => {
+  if (!subCriteria) {
+    return true;
+  }
+  const statusRaw = subCriteria.status;
+  if (statusRaw != null && String(statusRaw).trim() !== "") {
+    if (String(statusRaw).trim().toLowerCase() === "inactive") {
+      return true;
+    }
+  }
+  const visible = parseVisible(subCriteria.visible ?? subCriteria.isVisible);
+  return visible === false;
+};
+
+const sanitizeAuditControlTree = (criteriaList) => {
+  if (!Array.isArray(criteriaList)) {
+    return [];
+  }
+  return criteriaList
+    .map((criteria) => ({
+      ...criteria,
+      auditSubCriteria: (criteria.auditSubCriteria || []).filter(
+        (subCriteria) => !shouldHideSubCriteria(subCriteria)
+      ),
+    }))
+    .filter((criteria) => criteria.auditSubCriteria.length > 0);
+};
+
+const countControlsInSubCriteria = (subCriteria) => {
+  if (!subCriteria?.auditParameterPayload?.length) {
+    return 0;
+  }
+  return subCriteria.auditParameterPayload.reduce(
+    (total, parameter) => total + (parameter?.auditControlPayload?.length || 0),
+    0
+  );
+};
+
+const hasNcOrApplicantData = (matchedData, applicantAction) =>
+  Boolean(
+    (matchedData?.compliance && String(matchedData.compliance).trim()) ||
+      (matchedData?.document && String(matchedData.document).trim()) ||
+      (matchedData?.remarks && String(matchedData.remarks).trim()) ||
+      (applicantAction?.actionReport && String(applicantAction.actionReport).trim()) ||
+      (applicantAction?.remarks && String(applicantAction.remarks).trim())
+  );
+
+const buildCriteriaMap = (criteriaList) => {
+  const map = new Map();
+  if (!Array.isArray(criteriaList)) {
+    return map;
+  }
+  criteriaList.forEach((item) => {
+    if (!item?.auditControlId) {
+      return;
+    }
+    map.set(String(item.auditControlId), item);
+    const [parameterKey, controlIdPart] = String(item.auditControlId).split("-");
+    if (parameterKey) {
+      map.set(parameterKey, item);
+    }
+    if (controlIdPart) {
+      map.set(controlIdPart, item);
+    }
+    if (item.criteriaId != null) {
+      map.set(`criteria:${item.criteriaId}`, item);
+    }
+  });
+  return map;
+};
+
+const buildActionTakenByCriteriaId = (actionList) => {
+  const map = new Map();
+  if (!Array.isArray(actionList)) {
+    return map;
+  }
+  actionList.forEach((action) => {
+    const criteriaId =
+      action?.auditReportCriteriaEntity?.criteriaId ??
+      action?.auditReportCriteriaEntity?.criteria_id ??
+      action?.criteriaId;
+    if (criteriaId != null) {
+      map.set(String(criteriaId), action);
+    }
+  });
+  return map;
+};
+
+const subCriteriaHasReviewData = (
+  subCriteria,
+  criteriaIndex,
+  subIndex,
+  criteriaMap,
+  actionByCriteriaId
+) => {
+  let controlCounter = 0;
+  for (const parameter of subCriteria?.auditParameterPayload || []) {
+    for (const control of parameter?.auditControlPayload || []) {
+      controlCounter += 1;
+      const parameterKey = `3.${criteriaIndex + 1}.${subIndex + 1}.${controlCounter}`;
+      const controlRowId = `${parameterKey}-${control.auditControllId}`;
+      const matchedData =
+        criteriaMap.get(controlRowId) ||
+        criteriaMap.get(String(control.auditControllId)) ||
+        criteriaMap.get(parameterKey);
+      const criteriaId = matchedData?.criteriaId;
+      const applicantAction =
+        criteriaId != null ? actionByCriteriaId.get(String(criteriaId)) : null;
+      if (hasNcOrApplicantData(matchedData, applicantAction)) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const SubCriteriaControlsTable = ({
+  subCriteria,
+  criteriaIndex,
+  subIndex,
+  criteriaMap,
+  actionByCriteriaId,
+  onDownloadAuditorDoc,
+  onDownloadApplicantDoc,
+}) => {
+  if (countControlsInSubCriteria(subCriteria) === 0) {
+    return (
+      <Box
+        sx={{
+          ml: 2,
+          mt: 2,
+          mb: 2,
+          p: 2,
+          border: "1px dashed #cfcfcf",
+          borderRadius: 1,
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          No audit parameters or controls are configured for this section.
+        </Typography>
+      </Box>
+    );
+  }
+
+  let controlCounter = 0;
+
+  return (
+    <TableContainer sx={{ marginTop: "10px" }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow sx={{ backgroundColor: "tablecolor.main" }}>
+            <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Control No.</TableCell>
+            <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Control</TableCell>
+            <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Compliance</TableCell>
+            <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Auditor Document</TableCell>
+            <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Auditor Remarks</TableCell>
+            <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Applicant Document</TableCell>
+            <TableCell sx={{ border: 0.5, fontWeight: "bold" }}>Applicant Remarks</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {subCriteria.auditParameterPayload?.map((parameter, paramIndex) => (
+            <React.Fragment key={`parameter-${paramIndex}`}>
+              <TableRow>
+                <TableCell colSpan={7} sx={{ border: 0.5, fontWeight: "bold" }}>
+                  {parameter.auditParameter === "No Any Parameter Available"
+                    ? ""
+                    : parameter.auditParameter}
+                </TableCell>
+              </TableRow>
+              {parameter.auditControlPayload?.map((control, controlIndex) => {
+                controlCounter += 1;
+                const parameterKey = `3.${criteriaIndex + 1}.${subIndex + 1}.${controlCounter}`;
+                const controlRowId = `${parameterKey}-${control.auditControllId}`;
+                const matchedData =
+                  criteriaMap.get(controlRowId) ||
+                  criteriaMap.get(String(control.auditControllId)) ||
+                  criteriaMap.get(parameterKey);
+                const criteriaId = matchedData?.criteriaId;
+                const applicantAction =
+                  criteriaId != null ? actionByCriteriaId.get(String(criteriaId)) : null;
+
+                return (
+                  <TableRow key={`control-${control.auditControllId || controlIndex}`}>
+                    <TableCell sx={{ border: 0.5 }}>{parameterKey}</TableCell>
+                    <TableCell sx={{ border: 0.5 }}>
+                      <div dangerouslySetInnerHTML={{ __html: control.auditControl }} />
+                    </TableCell>
+                    <TableCell sx={{ border: 0.5 }}>{matchedData?.compliance || ""}</TableCell>
+                    <TableCell sx={{ border: 0.5 }}>
+                      {matchedData?.document ? (
+                        <Button
+                          variant="text"
+                          size="small"
+                          onClick={() => onDownloadAuditorDoc(matchedData.document)}
+                          sx={{ textTransform: "none" }}
+                        >
+                          {matchedData.document}
+                        </Button>
+                      ) : null}
+                    </TableCell>
+                    <TableCell sx={{ border: 0.5 }}>{matchedData?.remarks || ""}</TableCell>
+                    <TableCell sx={{ border: 0.5 }}>
+                      {applicantAction?.actionReport ? (
+                        <Button
+                          variant="text"
+                          size="small"
+                          onClick={() => onDownloadApplicantDoc(applicantAction.actionReport)}
+                          sx={{ textTransform: "none" }}
+                        >
+                          {applicantAction.actionReport}
+                        </Button>
+                      ) : null}
+                    </TableCell>
+                    <TableCell sx={{ border: 0.5 }}>{applicantAction?.remarks || ""}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+};
 
 const ActionTakenByApplicant = () => {
-  const { userName: ApplicantUserName } = useAnnualAuditRoute();
+  const { userName: applicantUserName } = useAnnualAuditRoute();
+  const loggedInUser = useSelector((state) => state.jwtAuthentication.username);
 
-  const userName = useSelector((state) => state.jwtAuthentication.username);
   const [open, setOpen] = useState([]);
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [allAuditControlList, setAllAuditControlList] = useState([]);
-  const [radioValue, setRadioValue] = useState({
-    compliance: "",
-    applicantUserName: ApplicantUserName,
-    creteriaId:'',
-    remarks:'',
-    file3:null,
-  });
-  const [fileInputKey3, setFileInputKey3] = useState(Date.now());
-  const [selectedFiles, setSelectedFiles] = useState([]); // Track files per row
+  const [openSubCriteria, setOpenSubCriteria] = useState({});
+  const [applicantCriteria, setApplicantCriteria] = useState([]);
+  const [actionTakenList, setActionTakenList] = useState([]);
+  const [closureRemarks, setClosureRemarks] = useState("");
+  const [closureFile, setClosureFile] = useState(null);
+  const [closureFileName, setClosureFileName] = useState("");
+  const [fileInputKey, setFileInputKey] = useState(Date.now());
+  const [errors, setErrors] = useState({});
+  const [fileError, setFileError] = useState("");
 
+  const criteriaMap = useMemo(() => buildCriteriaMap(applicantCriteria), [applicantCriteria]);
+  const actionByCriteriaId = useMemo(
+    () => buildActionTakenByCriteriaId(actionTakenList),
+    [actionTakenList]
+  );
+
+  const loadPageData = useCallback(async () => {
+    if (!applicantUserName) {
+      setLoadError("Invalid application reference. Please return to NC Reports and try again.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setLoadError("");
+    try {
+      const [controlResponse, criteriaResponse, actionResponse] = await Promise.all([
+        AuditControlService.data(applicantUserName),
+        AnnualAuditService.getByApplicantUserNames(applicantUserName).catch(() => ({ data: [] })),
+        AnnualAuditService.getByApplicantActionTaken(applicantUserName).catch(() => ({ data: [] })),
+      ]);
+      setAllAuditControlList(sanitizeAuditControlTree(controlResponse.data));
+      setApplicantCriteria(Array.isArray(criteriaResponse.data) ? criteriaResponse.data : []);
+      setActionTakenList(Array.isArray(actionResponse.data) ? actionResponse.data : []);
+    } catch (err) {
+      console.error("Failed to load NC review controls:", err);
+      setLoadError(
+        err.response?.data?.message ||
+          "Unable to load NC review details. Please refresh or try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [applicantUserName]);
 
   useEffect(() => {
-    getAllAuditControl();
-  }, []);
-
-  // Fetching audit control data
-  const getAllAuditControl = () => {
-    setLoading(true);
-    AuditControlService.data(ApplicantUserName)
-      .then((response) => {
-        setAllAuditControlList(response.data);
-      })
-      .catch((err) => {
-        showAlert({
-          messageTitle: 'Error',
-          messageContent: 'Error fetching audit control list. Please try again later.',
-          confirmText: 'OK',
-        });
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
- 
+    loadPageData();
+  }, [loadPageData]);
 
   const handleToggle = (index) => {
     setOpen((prev) => {
@@ -99,498 +342,345 @@ const ActionTakenByApplicant = () => {
     });
   };
 
-  const [complianceValues, setComplianceValues] = useState([]); // Array to track compliance for each row
-
-const handleRadioChange = (value, controlIndex) => {
-  setComplianceValues((prev) => {
-    const updatedCompliance = [...prev]; // Create a copy of the previous state
-    updatedCompliance[controlIndex] = value; // Set the compliance value for the specific row (controlIndex)
-
-    setRadioValue((prev) => ({
-      ...prev,
-      compliance: updatedCompliance,
+  const handleToggleSubCriteria = (criteriaIndex, subIndex) => {
+    const key = `${criteriaIndex}-${subIndex}`;
+    setOpenSubCriteria((prevState) => ({
+      ...prevState,
+      [key]: !prevState[key],
     }));
-
-    return updatedCompliance;
-  });
-};
-
-
-  const [errors, setErrors] = useState({});
-    const handleChanges = (e, fieldName) => {
-        const { value } = e.target;
-      
-        setRadioValue((prev) => ({
-          ...prev,
-          remarks: value,
-        }));
-        // Reset error for the current field
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          [fieldName]: "",
-        }));
-      
-        // Basic validation
-        if (value === "") {
-          setErrors((prevErrors) => ({
-            ...prevErrors,
-            [fieldName]: `${fieldName} cannot be empty`,
-          }));
-          return;
-        }
-    }
-
-  // Handle file change for each row
-  const handleFileChange = (event, controlIndex) => {
-    const selectedFile = event.target.files[0];
-    const updatedFiles = [...selectedFiles];
-    updatedFiles[controlIndex] = selectedFile; // Track file per row
-    setSelectedFiles(updatedFiles);
   };
 
-  console.log("gdhfj===>",radioValue , "uwyeio++++====>",selectedFiles)
+  const handleRemarksChange = (e) => {
+    const value = e.target.value;
+    setClosureRemarks(value);
+    setErrors((prev) => ({
+      ...prev,
+      remarks: value.trim() === "" ? "Please enter the remarks" : "",
+    }));
+  };
 
-// Function to reset the form data
-const resetFormData = () => {
-  setRadioValue({ compliance: [], applicantUserName: '' }); // Reset the radioValue state
-  setSelectedFiles([]); // Clear the selected files array
-  console.log("Form data has been reset.");
-};
-
-  const saveData = (id) => {
-    console.log(`Saving data for control ID: ${id}`);
-    
-    const formData = new FormData();
-    formData.append("controlId", id);
-    
-    const validCompliance = radioValue.compliance.filter(value => value !== "");
-
-// Append valid values to formData
-validCompliance.forEach((value) => {
-    formData.append('compliance', value);
-});
-    
-    formData.append("applicantUserName", radioValue.applicantUserName);
-    
-    selectedFiles.forEach((file) => {
-        formData.append(`file`, file);
-    });
-
-    const validFiles = fileName.filter(file => file !== "");
-
-    // Append valid files to formData
-    validFiles.forEach((file) => {
-        formData.append('selectedMultipartFile', file);
-    });
-    
-    // Log formData content
-    console.log("FormData content:");
-    for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      setClosureFile(null);
+      setClosureFileName("");
+      return;
     }
-
-    // Call the API
-    AnnualAuditService.AuditNCForm(formData)
-        .then((response) => {
-          //console.log(response.data)
-            showAlert({
-                messageTitle: 'Success',
-                messageContent: response.data,
-                confirmText: 'Ok',
-            });
-            
-            // Reset the form values
-            resetFormData();
-        })
-        .catch((err) => {
-            const errorMessage = err.response?.data?.message || 'Request failed. Please try again later.';
-            showAlert({
-                messageTitle: 'Error',
-                messageContent: errorMessage,
-                confirmText: 'Ok',
-            });
-        })
-        .finally(() => setLoading(false));
-};
-//temporary state
-const [applicantCriteria, setApplicantCriteria] = useState([]);
-const[fileName,setFileName]=useState([]);
-
-useEffect(() => {
-  getAllCriteria();
-}, []);
-
-
-
-const getAllCriteria = () => {
-  AnnualAuditService.getAllDatas()
-    .then((response) => {
-      const getAllData = response.data; // Assuming this is the array containing the required data
-
-      setApplicantCriteria(getAllData);
-
-      console.log("getAllData===>", getAllData);
-      console.log("allAuditControlList===>", allAuditControlList);
-
-
-      const emp = [];
-const fileNames=[];
-
-const criteriaId=[];
-
-      // Step 1: Iterate over allAuditControlList to filter based on auditControllId
-      allAuditControlList?.forEach((criteria) => {
-        // Step 2: Check if auditSubCriteria exists and is an array before iterating
-        if (criteria?.auditSubCriteria && Array.isArray(criteria?.auditSubCriteria)) {
-          criteria?.auditSubCriteria?.forEach((subCriteria) => {
-            // Step 3: Iterate over auditParameterPayload
-            if (subCriteria?.auditParameterPayload && Array.isArray(subCriteria?.auditParameterPayload)) {
-              subCriteria?.auditParameterPayload?.forEach((parameter) => {
-                // Step 4: Iterate over auditControlPayload to access auditControllId
-                if (parameter?.auditControlPayload && Array.isArray(parameter?.auditControlPayload)) {
-                  
-                  parameter?.auditControlPayload?.forEach((control) => {
-                    // Check if control.auditControllId matches getAllData.auditControlId
-                    const matchedControl = getAllData.find(
-                      (data) => data.auditControlId === parseInt(control.auditControllId, 10)
-                    );
-
-                    
-
-                    if (matchedControl) {
-                      // Update the radioValue state with the matched compliance value
-
-                      emp.push(matchedControl.compliance)
-                      fileNames.push(matchedControl.document)
-                      criteriaId.push(matchedControl.criteriaId)
-                      console.log("fileNames=====-==->"+JSON.stringify(fileNames))
-                      console.log("fileNames=====-==->"+JSON.stringify(emp))
-                      console.log("criteriaId=====-==->"+JSON.stringify(criteriaId))
-                    }else{
-                      const newObj='';
-                      emp.push(newObj)
-                      criteriaId.push(newObj)
-                      fileNames.push(newObj)
-                    }
-                  });
-
-                  
-                }
-              });
-            }
-          });
-        }
-      });
-
-
-      setComplianceValues(emp);
-      setRadioValue((prev) => ({
-        ...prev,
-        compliance: emp,
-        creteriaId:criteriaId,
-      }));
-      setFileName(fileNames)
-
-    })
-    .catch((error) => {
-      // Handle error if necessary
-      console.error("Error fetching data:", error);
-    });
-};
-
-
-const [fileName3, setFileName3] = useState('');
-
-const[fileError,setFileError]=useState(" ")
-const handleFileChange3 = (e) => {
-  const file = e.target.files[0];
-  
-  if (file) {
-    // Check if the file is a PDF
     if (file.type !== "application/pdf") {
       setFileError("Only PDF files are allowed.");
       return;
     }
-    
-    // Check if the file size exceeds 5 MB
-    const maxSizeInMB = 5;
-    if (file.size > maxSizeInMB * 1024 * 1024) {
-      setFileError(`File size should not exceed ${maxSizeInMB} MB.`);
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError("File size should not exceed 5 MB.");
       return;
     }
+    setFileError("");
+    setClosureFile(file);
+    setClosureFileName(file.name);
+  };
 
-    // If valid, update state
-    setRadioValue(prevValues => ({
-      ...prevValues,
-      file3: file
-    }));
-    setFileName3(file.name);
-  } else {
-    // Clear state if no file is selected
-    setRadioValue(prevValues => ({
-      ...prevValues,
-      file3: null
-    }));
-    setFileName3('');
-  }
-};
+  const resetFormData = () => {
+    setClosureRemarks("");
+    setClosureFile(null);
+    setClosureFileName("");
+    setFileInputKey(Date.now());
+    setErrors({});
+    setFileError("");
+  };
 
-
-
-
-const handleSubmit = (e) => {
-  e.preventDefault()
-
-  if (!radioValue.remarks || radioValue.remarks.trim() === "") {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      remarks: "Please enter the remarks",
-    }));
-    return;
-  }
-
-  if (!radioValue.file3) {
-    setFileError("Please select a file.");
-    return;
-  }
-
-  showAlert({
-      messageTitle: 'Confirm',
-      messageContent: 'Are you sure, you want to submit?',
-      confirmText: 'Yes',
-      closeText: 'No',
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    let hasError = false;
+    if (!closureRemarks || closureRemarks.trim() === "") {
+      setErrors((prev) => ({ ...prev, remarks: "Please enter the remarks" }));
+      hasError = true;
+    }
+    if (!closureFile) {
+      setFileError("Please select a file.");
+      hasError = true;
+    }
+    if (hasError) {
+      return;
+    }
+    showAlert({
+      messageTitle: "Confirm",
+      messageContent: "Are you sure you want to submit the NC Closure Report?",
+      confirmText: "Yes",
+      closeText: "No",
       fullWidth: true,
-      maxWidth: 'sm',
-      onConfirm: () => handleConfrimSubmit()
-  })
+      maxWidth: "sm",
+      onConfirm: () => handleConfirmSubmit(),
+    });
+  };
 
+  const handleConfirmSubmit = () => {
+    const formData = new FormData();
+    formData.append("userName", loggedInUser);
+    formData.append("remarks", closureRemarks);
+    formData.append("applicantUserName", applicantUserName);
+    formData.append("file", closureFile);
 
-};
-
-
-
-
-const handleConfrimSubmit = () => {
-  const applicantRemarks = new FormData();
-
-  applicantRemarks.append("userName", userName);
-  applicantRemarks.append("remarks", radioValue.remarks);
-  applicantRemarks.append("applicantUserName", radioValue.applicantUserName);
-  applicantRemarks.append("file", radioValue.file3);
-
-  setLoading(true);
-
-  AnnualAuditService.changeTheStatus(applicantRemarks)
-  .then((response) => {
-    //console.log(response.data)
-      showAlert({
-          messageTitle: 'Success',
-          messageContent: response.data,
-          confirmText: 'Ok',
-          onConfirm: () => { window.location.href = '/auditagency/ncreports'; },
-      });
-      
-      // Reset the form values
-      resetFormData();
-  })
-  .catch((err) => {
-      const errorMessage = err.response?.data?.message || 'Request failed. Please try again later.';
-      showAlert({
-          messageTitle: 'Error',
+    setLoading(true);
+    AnnualAuditService.changeTheStatus(formData)
+      .then((response) => {
+        showAlert({
+          messageTitle: "Success",
+          messageContent: response.data || "Submitted successfully.",
+          confirmText: "Ok",
+          onConfirm: () => {
+            window.location.href = "/auditagency/ncreports";
+          },
+        });
+        resetFormData();
+      })
+      .catch((err) => {
+        const errorMessage =
+          err.response?.data?.message ||
+          (typeof err.response?.data === "string" ? err.response.data : null) ||
+          "Request failed. Please try again later.";
+        showAlert({
+          messageTitle: "Error",
           messageContent: errorMessage,
-          confirmText: 'Ok',
-      });
-  })
-  .finally(() => setLoading(false));
+          confirmText: "Ok",
+        });
+      })
+      .finally(() => setLoading(false));
+  };
 
-}
-
-const downloadfile = async ( documentTitle) => {
-  try {
-      // Fetch the file from the server
-      const response = await AnnualAuditService.viewAuditNCReport(documentTitle);
-
-      // Create a blob from the response data
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-
-      // Create a link element
-      const link = document.createElement('a');
+  const downloadAuditorDoc = async (documentTitle) => {
+    if (!documentTitle) {
+      return;
+    }
+    try {
+      const response = await AnnualAuditService.viewDocumentName(documentTitle);
+      const blob = new Blob([response.data], { type: response.headers["content-type"] });
+      const link = document.createElement("a");
       link.href = window.URL.createObjectURL(blob);
-
-      // Extract the filename from the Content-Disposition header
-      const contentDisposition = response.headers['content-disposition'];
-
-      console.log(JSON.stringify(contentDisposition))
-
-      const filename = documentTitle;
-
-      link.setAttribute('download', filename);
+      link.setAttribute("download", documentTitle);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
-  } catch (error) {
-      console.error('Error downloading file:', error);
-  }
-};
+    } catch (error) {
+      console.error("Error downloading auditor document:", error);
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Unable to download auditor document.",
+        confirmText: "Ok",
+      });
+    }
+  };
 
-
-useEffect(() => {
-  getAllAuditNCReport();
-}, []);
-
-
-
-const [auditNCReport,setAuditNCReport]=useState({})
-const getAllAuditNCReport = () => {
-  setLoading(true);
-  AnnualAuditService.auditNCReport(ApplicantUserName)
-    .then((response) => {
-      setAuditNCReport(response.data);
-    })
-    .catch((err) => {
-      // showAlert({
-      //   messageTitle: 'Error',
-      //   messageContent: 'Error fetching audit control list. Please try again later.',
-      //   confirmText: 'OK',
-      // });
-    })
-    .finally(() => {
-      setLoading(false);
-    });
-};
-
-
-
+  const downloadApplicantDoc = async (documentTitle) => {
+    if (!documentTitle) {
+      return;
+    }
+    try {
+      const response = await AnnualAuditService.viewApplicantActionTaken(documentTitle);
+      const blob = new Blob([response.data], { type: response.headers["content-type"] });
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute("download", documentTitle);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading applicant document:", error);
+      showAlert({
+        messageTitle: "Error",
+        messageContent: "Unable to download applicant document.",
+        confirmText: "Ok",
+      });
+    }
+  };
 
   return (
-    <>
+    <FormWrapper headingText="Review NC Report">
       <LoaderProgress open={isLoading} />
-      <FormWrapper headingText="NC Closure Report">
-        <Box component="form" noValidate onSubmit={handleSubmit}>
-         
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="h6" style={{ marginTop: '10px' }}>Applicant Remarks</Typography>
-              <TextField
-                multiline
-                rows={4}
-                variant="outlined"
-                fullWidth
-                value={auditNCReport.remarks}
-                
-disabled
-                InputProps={{
-                  style: {
-                    padding: '10px',
-                  },
-                }}
-              />
-            </Grid>
-          </Grid>
-          <Grid container spacing={2} direction="row" alignItems="center">
-  <Grid item>
-    <Typography variant="h6" >
-      Applicant NC Document:
-    </Typography>
-  </Grid>
-  <Grid item>
-    <a
-      onClick={() => downloadfile(auditNCReport.ncs)}
-      style={{ textDecoration: 'none', color: 'blue',  }} // Optional styling
-    >
-      <span>{auditNCReport.ncs}</span>
-    </a>
-  </Grid>
-</Grid>
 
-      
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="h6" style={{ marginTop: '10px' }}>Remarks</Typography>
-              <TextField
-                multiline
-                rows={4}
-                variant="outlined"
-                fullWidth
-                onChange={(e) => handleChanges(e, 'remarks')}
+      {loadError ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {loadError}
+        </Alert>
+      ) : null}
 
-                InputProps={{
-                  style: {
-                    padding: '10px',
-                  },
-                }}
-                error={!!errors.remarks} // Shows red border if there's an error
-      helperText={errors.remarks || ''} // Displays the error message
-              />
-            </Grid>
+      {!loadError && !isLoading && allAuditControlList.length === 0 ? (
+        <Alert severity="info">No audit controls are available for this application.</Alert>
+      ) : null}
 
-            <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"netWorthDoc"}>
-                        <Typography variant='body1'>Attached NC Closure Document (Only PDF and Max allowed size 5 MB)*</Typography>
-                    </InputLabel>
+      <Box component="form" noValidate onSubmit={handleSubmit}>
+        {allAuditControlList.map((criteria, criteriaIndex) => {
+          const criteriaOpen = Boolean(open[criteriaIndex]);
+          return (
+            <Box key={`criteria-${criteria.auditCriteria}-${criteriaIndex}`} sx={{ mb: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Typography variant="h5" sx={{ color: "rgb(80, 0, 0)", flexGrow: 1 }}>
+                  {`3.${criteriaIndex + 1}. ${criteria.auditCriteria}`}
+                </Typography>
+                <IconButton
+                  onClick={() => handleToggle(criteriaIndex)}
+                  disableRipple
+                  sx={{ backgroundColor: "rgb(120, 0, 0)", color: "white" }}
+                >
+                  {criteriaOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
-                        <Grid item >
-                            <Button
-                                component="label"
-                                variant="contained"
-                                startIcon={<CloudUploadIcon />}
-                            >
-                                Upload file
-                                <VisuallyHiddenInput
-                                    key={fileInputKey3}
-                                    type="file"
-                                    name="file3"
-                                    onChange={handleFileChange3}
-                                />
-                            </Button>
+              {criteriaOpen ? (
+                <Collapse in={criteriaOpen} unmountOnExit>
+                  {criteria.auditSubCriteria?.map((subCriteria, subIndex) => {
+                    const subKey = `${criteriaIndex}-${subIndex}`;
+                    const subOpen = Boolean(openSubCriteria[subKey]);
+                    const hasReviewData = subCriteriaHasReviewData(
+                      subCriteria,
+                      criteriaIndex,
+                      subIndex,
+                      criteriaMap,
+                      actionByCriteriaId
+                    );
 
-                        </Grid>
-                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                            {fileName3 && (
-                                <Tooltip title={fileName3} placement="top">
-                                    <Typography variant='body2' sx={{
-                                        display: 'inline-block',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        verticalAlign: 'middle',
-                                        textAlign: 'center'
-                                    }}>
-                                        {fileName3}
-                                    </Typography>
-                                </Tooltip>
-                            )}
-                        </Grid>
-                    </Grid>
-                    {fileError && (
-  <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-    {fileError}
-  </Typography>
-)}
+                    return (
+                      <Box
+                        key={`subCriteria-${subCriteria.auditSubCriteriaId || subIndex}`}
+                        sx={{ ml: 2, mt: 1 }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ color: "rgb(80, 0, 0)", mb: 2, flexGrow: 1 }}
+                          >
+                            {`3.${criteriaIndex + 1}.${subIndex + 1}. ${subCriteria.auditSubCriteria}`}
+                          </Typography>
+                          <IconButton
+                            onClick={() => handleToggleSubCriteria(criteriaIndex, subIndex)}
+                            size="small"
+                            disableRipple
+                            title={
+                              hasReviewData
+                                ? "NC / applicant response available"
+                                : "No NC data for this section"
+                            }
+                            sx={{
+                              backgroundColor: hasReviewData ? "success.main" : "info.main",
+                              color: "white",
+                            }}
+                          >
+                            {subOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          </IconButton>
+                        </Box>
 
+                        {subOpen ? (
+                          <Collapse in={subOpen} unmountOnExit>
+                            <SubCriteriaControlsTable
+                              subCriteria={subCriteria}
+                              criteriaIndex={criteriaIndex}
+                              subIndex={subIndex}
+                              criteriaMap={criteriaMap}
+                              actionByCriteriaId={actionByCriteriaId}
+                              onDownloadAuditorDoc={downloadAuditorDoc}
+                              onDownloadApplicantDoc={downloadApplicantDoc}
+                            />
+                          </Collapse>
+                        ) : null}
+                      </Box>
+                    );
+                  })}
+                </Collapse>
+              ) : null}
+            </Box>
+          );
+        })}
 
+        {allAuditControlList.length > 0 ? (
+          <>
+            <Grid container spacing={2} sx={{ mt: 2 }}>
+              <Grid item xs={12}>
+                <Typography variant="h6">NC Closure Remarks</Typography>
+                <TextField
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  fullWidth
+                  value={closureRemarks}
+                  onChange={handleRemarksChange}
+                  error={!!errors.remarks}
+                  helperText={errors.remarks || ""}
+                  InputProps={{ style: { padding: "10px" } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <InputLabel shrink={false}>
+                  <Typography variant="body1">
+                    Attached NC Closure Document (Only PDF and Max allowed size 5 MB)*
+                  </Typography>
+                </InputLabel>
+                <Grid
+                  container
+                  direction="row"
+                  sx={{ border: "1px solid #cfcfcf", borderRadius: "5px" }}
+                >
+                  <Grid item>
+                    <Button component="label" variant="contained" startIcon={<CloudUploadIcon />}>
+                      Upload file
+                      <VisuallyHiddenInput
+                        key={fileInputKey}
+                        type="file"
+                        accept="application/pdf"
+                        onChange={handleFileChange}
+                      />
+                    </Button>
+                  </Grid>
+                  <Grid
+                    item
+                    xs
+                    sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+                  >
+                    {closureFileName ? (
+                      <Tooltip title={closureFileName} placement="top">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            display: "inline-block",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {closureFileName}
+                        </Typography>
+                      </Tooltip>
+                    ) : null}
+                  </Grid>
                 </Grid>
+                {fileError ? (
+                  <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                    {fileError}
+                  </Typography>
+                ) : null}
+              </Grid>
+            </Grid>
 
-          </Grid>
-
-          <Grid container direction="row" sx={{ mt: 4 }} spacing={2} justifyContent="center" alignItems="center">
-                        <Grid item  >
-                            <Button type="submit" fullWidth variant="contained" sx={{ maxWidth: '120px' }}>
-                                Submit
-                            </Button>
-                        </Grid>
-                        <Grid item  >
-                            <Button type="button"  color="reset" fullWidth variant="contained" sx={{ maxWidth: '120px', color: "#FFFFFF" }}>
-                                Reset
-                            </Button>
-                        </Grid>
-                    </Grid>
-
-
-        </Box>
-      </FormWrapper>
-    </>
+            <Grid container justifyContent="center" sx={{ mt: 4 }} spacing={2}>
+              <Grid item>
+                <Button type="submit" variant="contained" sx={{ maxWidth: "120px" }}>
+                  Submit
+                </Button>
+              </Grid>
+              <Grid item>
+                <Button
+                  type="button"
+                  color="reset"
+                  variant="contained"
+                  sx={{ maxWidth: "120px", color: "#FFFFFF" }}
+                  onClick={resetFormData}
+                >
+                  Reset
+                </Button>
+              </Grid>
+            </Grid>
+          </>
+        ) : null}
+      </Box>
+    </FormWrapper>
   );
 };
 

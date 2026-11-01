@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Checkbox,
   FormControlLabel,
@@ -11,9 +11,10 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useSelector } from "react-redux";
 import AuditService from "../../../../service/AuditService/AuditService";
+import AnnualAuditService from "../../../../service/AnnualAuditService/AnnualAuditService";
 import showAlert from "../../../global/common/MessageBox/AlertService";
 
-const AuditControls = () => {
+const AuditControls = ({ useAnnualAuditService = false, auditScheduleId = "" }) => {
   const userName = useSelector((state) => state.jwtAuthentication.username);
   const [checkedIds, setCheckedIds] = useState([]);
   const [allExpanded, setAllExpanded] = useState(false);
@@ -33,23 +34,52 @@ const AuditControls = () => {
     { id: 11, label: "CA website, Application software, CA software requirements" },
   ];
 
+  useEffect(() => {
+    if (!useAnnualAuditService || !userName) {
+      return;
+    }
+    AnnualAuditService.getAuditControls(userName, auditScheduleId)
+      .then((response) => {
+        const controls = Array.isArray(response?.data) ? response.data : [];
+        setCheckedIds(
+          controls
+            .filter((item) => item?.controlId != null)
+            .map((item) => ({
+              controlId: item.controlId,
+              userName,
+              auditScheduleId: auditScheduleId || item.auditScheduleId,
+            }))
+        );
+      })
+      .catch(() => {
+        // Keep empty selection if nothing is saved yet for this schedule.
+      });
+  }, [useAnnualAuditService, userName, auditScheduleId]);
+
   const toggleAll = () => setAllExpanded((prev) => !prev);
+
+  const buildControlPayload = (controlId) => ({
+    controlId,
+    userName,
+    ...(useAnnualAuditService && auditScheduleId
+      ? { auditScheduleId: Number(auditScheduleId) }
+      : {}),
+  });
 
   const handleCheckboxChange = (id) => {
     setCheckedIds((prev) => {
       const exists = prev.find((item) => item.controlId === id);
       return exists
         ? prev.filter((item) => item.controlId !== id)
-        : [...prev, { controlId: id, userName }];
+        : [...prev, buildControlPayload(id)];
     });
   };
 
-  // Here: master checked if any item checked
   const isAnySelected = checkedIds.length > 0;
 
   const handleSelectAllChange = (event) => {
     if (event.target.checked) {
-      const allItems = items.map((item) => ({ controlId: item.id, userName }));
+      const allItems = items.map((item) => buildControlPayload(item.id));
       setCheckedIds(allItems);
     } else {
       setCheckedIds([]);
@@ -68,21 +98,52 @@ const AuditControls = () => {
     });
   };
 
+  const resolveAlertMessage = (payload, fallback) => {
+    if (typeof payload === "string" && payload.trim()) return payload;
+    if (payload && typeof payload === "object") {
+      if (typeof payload.message === "string" && payload.message.trim()) {
+        return payload.message;
+      }
+      return fallback;
+    }
+    return fallback;
+  };
+
   const submitAuditData = () => {
+    if (useAnnualAuditService && !auditScheduleId) {
+      showAlert({
+        messageTitle: "Error",
+        messageContent:
+          "Annual audit schedule is missing. Open the schedule from the annual audit list and try again.",
+        confirmText: "Ok",
+      });
+      return;
+    }
+
     setLoading(true);
-    AuditService.addNewAuditControl(checkedIds)
+    const payload = checkedIds.map((item) => buildControlPayload(item.controlId));
+    const saveRequest = useAnnualAuditService
+      ? AnnualAuditService.addNewAuditControl(payload)
+      : AuditService.addNewAuditControl(payload);
+
+    saveRequest
       .then((response) =>
         showAlert({
           messageTitle: "Success",
-          messageContent: response.data,
+          messageContent: resolveAlertMessage(
+            response.data,
+            "Audit controls submitted successfully."
+          ),
           confirmText: "Ok",
         })
       )
       .catch((err) =>
         showAlert({
           messageTitle: "Error",
-          messageContent:
-            err.response?.data || "Request failed. Please try again later.",
+          messageContent: resolveAlertMessage(
+            err.response?.data,
+            "Request failed. Please try again later."
+          ),
           confirmText: "Ok",
         })
       )

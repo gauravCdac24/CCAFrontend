@@ -77,21 +77,37 @@ const AuditControls = ({ selectedAuditAgencyId }) => {
     });
   };
 
+  const resolveAlertMessage = (payload, fallback) => {
+    if (typeof payload === "string" && payload.trim()) return payload;
+    if (payload && typeof payload === "object") {
+      if (typeof payload.message === "string" && payload.message.trim()) {
+        return payload.message;
+      }
+      return fallback;
+    }
+    return fallback;
+  };
+
   const submitAuditData = () => {
     setLoading(true);
     AuditService.addNewAuditControl(checkedIds)
       .then((response) =>
         showAlert({
           messageTitle: "Success",
-          messageContent: response.data,
+          messageContent: resolveAlertMessage(
+            response.data,
+            "Audit controls submitted successfully."
+          ),
           confirmText: "Ok",
         })
       )
       .catch((err) =>
         showAlert({
           messageTitle: "Error",
-          messageContent:
-            err.response?.data || "Request failed. Please try again later.",
+          messageContent: resolveAlertMessage(
+            err.response?.data,
+            "Request failed. Please try again later."
+          ),
           confirmText: "Ok",
         })
       )

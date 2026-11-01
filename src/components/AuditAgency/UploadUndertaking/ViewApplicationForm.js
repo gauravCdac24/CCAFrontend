@@ -254,12 +254,13 @@ const ViewNewApplicationForm = () => {
                 </Tooltip>
               )}
 
-              {/* 4. Approve From CCA Actions */}
-              {applicationCurrentStatus === APP_STATUS.APPROVE_FROM_CCA && (
-                <Tooltip title="Auditor Guideline">
+              {isAnnexureReviewStatus(applicationCurrentStatus) &&
+                normalizeStatus(applicationCurrentStatus) ===
+                  normalizeStatus(APP_STATUS.APPROVE_FROM_CCA) && (
+                <Tooltip title="Fill NC Details">
                   <GridActionsCellItem
                     icon={<FileUploadIcon color="error" />}
-                    label="Guideline"
+                    label="Fill NC Details"
                     onClick={() => handleEncryptedNavigate(applicantUserName, "auditorcontrols")}
                   />
                 </Tooltip>

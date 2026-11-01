@@ -525,6 +525,29 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
             console.error('Error downloading file:', error);
         }
       };
+
+    const downloadfiles = async (documentTitle) => {
+        try {
+            if (!documentTitle) {
+                return;
+            }
+            const response = await AnnualAuditService.viewFiles(documentTitle);
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', documentTitle || 'AgencyUndertaking.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (error) {
+            console.error('Error downloading undertaking file:', error);
+            showAlert({
+                messageTitle: 'Error',
+                messageContent: 'Unable to download undertaking file. Please try again.',
+                confirmText: 'Ok',
+            });
+        }
+    };
     
       const handleApprovedSubmit = (e) => {
         e.preventDefault()
@@ -989,51 +1012,19 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                             </TableContainer>
                         </Grid>
                         <Grid item sm={6}>
-                            <Typography variant="body1"><strong>3. Upload Undertaking: (Only PDF and Max allowed size 5 MB)</strong></Typography>
-                        </Grid>
-                        <Grid item sm={11}>
-                            <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
-                                <Grid item >
-                                    <Button
-                                        component="label"
-                                        variant="contained"
-                                        startIcon={<CloudUploadIcon />}
-                                        disabled
+                            <Typography variant="body1">
+                                <strong>3. Undertaking File:</strong>{' '}
+                                {fileName ? (
+                                    <a
+                                        onClick={() => downloadfiles(fileName)}
+                                        style={{ textDecoration: 'none', color: 'blue', cursor: 'pointer' }}
                                     >
-                                        Upload file
-                                        <VisuallyHiddenInput
-                                            key={fileInputKey}
-                                            type="file"
-                                            name="undertakingFile"
-                                            onChange={handleFilesChange}
-                                        />
-                                    </Button>
-
-                                </Grid>
-                                <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                    {fileName && (
-                                        <Tooltip title={fileName} placement="top">
-                                            <Typography variant='body2' sx={{
-                                                display: 'inline-block',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                verticalAlign: 'middle',
-                                                textAlign: 'center'
-                                            }}>
-                                                {fileName}
-                                            </Typography>
-                                        </Tooltip>
-                                    )}
-                                </Grid>
-                            </Grid>
-                            {formErrors.file1 && (
-                                <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                                    {formErrors.file1}
-                                </Typography>
-                            )}
-
-
+                                        <span>{fileName}</span>
+                                    </a>
+                                ) : (
+                                    <span>N/A</span>
+                                )}
+                            </Typography>
                         </Grid>
 
                     </Grid>

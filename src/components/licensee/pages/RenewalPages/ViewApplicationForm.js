@@ -738,11 +738,12 @@ const ViewApplicationForm = () => {
                     } 
 
 
-                    //------Manish
-                    if(params.row.status === "RECOMMENDED_IN_PRINCIPLE_APPROVAL"){
+                    // After CCA grants in-principle approval, the licensee submits
+                    // Bank Guarantee, Agreement and CSR (SRS section 10).
+                    if(params.row.status === "IN_PRINCIPLE_APPROVAL_GRANTED"){
 
                         actionButtons.push (
-                            <Tooltip title="Upload Required Documents">
+                            <Tooltip title="Submission of Bank Guarantee, Agreement & CSR">
                                 <GridActionsCellItem 
                                     icon={<FileUploadIcon color="danger" />} 
                                     label="Upload" 

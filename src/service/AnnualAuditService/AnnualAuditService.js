@@ -7,6 +7,7 @@ const AUDIT_SERVICE = "/annual-audit-service";
     const ADD_AUDIT_AGENCY_SELECTION = "/audit-agency-selection";
 	const UPDATE_APPLICATION_TYPE = "/update-application-type";
 	const GET_ALL_AUDIT_SELECTION = "/get-all-audit-selection";
+	const GET_ALL_DETAILS_BY_USERNAME = "/get-all-details-by-userId";
 	const GET_ALL_ACTIVE_APPLICATION_TYPE = "/get-all-active-application-type";
 	const GET_ALL_INACTIVE_APPLICATION_TYPE= "/get-all-inactive-application-type";
 	const DELETE_APPLICATION_TYPE_BY_ID = "/delete-application-type-by-id";
@@ -18,10 +19,14 @@ const REJECTED_AUDIT_FORM="/rejectSubmit"
 const APPROVED_AUDIT_FORM="/approveSubmit"
 const AUDIT_NC_FORM="/auditor-nc-form"
 const GET_ALL_DATA="/get-all-criteria"
+const GET_ALL_APPLICANT_BY_USERNAME="/get-All-Audit-Report-Criteria-Details";
 const VIEW_DOCUMENT_NAME="/document-name"
 const CHANGE_STATUS_BY_APPLICANT_USERNAME="/remarks-applicant-UserName"
 const VIEW_REMARKS_AUDITORS="/get-all-remarks";
 const CHANGE_BY_APPLICANT_USERNAME="/applicant-remarks-by-applicant-UserName";
+const CHANGE_STATUS_OF_APPLICATION="/change-the-status-by-applicant-UserName";
+const GET_ALL_APPLICANT_ACTION_TAKEN="/get-All-Applicant-Action-Taken-details";
+const VIEW_APPLICANT_ACTION_TAKEN_FILES="/applicant-action-taken-document-name";
 const VIEW_AUDIT_NC_FILES="/applicant-document-name";
 const CHANGE_STATUS="/auditor-remarks-by-applicant-UserName";
 const GET_ALL_DATA_OF_NCS_REPORT="/get-all-data";
@@ -39,8 +44,11 @@ const GET_ANNUAL_AUDIT_SCHEDULES_FOR_AGENCY_SELECTION="/get-annual-audit-schedul
 const GET_ANNUAL_AUDIT_SCHEDULE_LIST="/get-annual-audit-schedule-list";
 const GET_AUDIT_AGENCY_SELECTION_BY_SCHEDULE="/get-audit-agency-selection-by-schedule";
 const GET_ANNUAL_AUDIT_WORKFLOW_ACTIONS="/get-annual-audit-workflow-actions";
+const SAVE_AUDIT_CONTROL="/save-audit-control";
+const GET_AUDIT_CONTROLS="/audit-controls";
 
    const VIEW_FILE="/downloadFile";
+   const VIEW_FILES="/downloadFiles";
    const DOWNLOAD_AUDITOR_REPORT="/download-auditor-report";
 
 	const sconfig={
@@ -99,6 +107,10 @@ const getAllAuditSelectionList = () =>{
     return API.get(AUDIT_SERVICE+GET_ALL_AUDIT_SELECTION);
 }
 
+const getAllAuditSelectionByUsername = (username) => {
+	return API.get(AUDIT_SERVICE + GET_ALL_DETAILS_BY_USERNAME + "/" + encrypt(username));
+}
+
 const getAuditorApplicationbyApplicatantUserName = (userName) =>{
 	return API.get(AUDIT_SERVICE+APPLICANT_USERNAME,{
 		params:{
@@ -133,6 +145,16 @@ const viewFile = (id) =>{
 	})
 }
 
+const viewFiles = (id) => {
+	return API.get(AUDIT_SERVICE + VIEW_FILES, {
+		params: {
+			id: encrypt(id),
+		},
+		responseType: 'blob',
+		...sconfig,
+	});
+}
+
 const viewDocumentName = (documentName) =>{
 	return API.get(AUDIT_SERVICE+VIEW_DOCUMENT_NAME,{
 		params:{
@@ -150,6 +172,14 @@ const getAllDatas = () =>{
 	)
 }
 
+const getByApplicantUserNames = (userName) => {
+	return API.get(AUDIT_SERVICE + GET_ALL_APPLICANT_BY_USERNAME, {
+		params: {
+			applicantUserName: userName,
+		},
+	});
+}
+
 const changeTheStatusByApplicantUserName = (obj) =>{
 	return API.post(AUDIT_SERVICE+CHANGE_STATUS_BY_APPLICANT_USERNAME,obj)
 }
@@ -163,7 +193,32 @@ const viewRemarks = (applicantUserName) =>{
 }
 
 const changeByApplicantUserName = (obj) =>{
-	return API.post(AUDIT_SERVICE+CHANGE_BY_APPLICANT_USERNAME,obj)
+	return API.post(AUDIT_SERVICE+CHANGE_BY_APPLICANT_USERNAME, obj, {
+		timeout: 120000,
+		headers: { 'Content-Type': 'multipart/form-data' },
+	})
+}
+
+const changeTheStatusOfApplication = (obj) => {
+	return API.post(AUDIT_SERVICE + CHANGE_STATUS_OF_APPLICATION, obj);
+}
+
+const getByApplicantActionTaken = (userName) => {
+	return API.get(AUDIT_SERVICE + GET_ALL_APPLICANT_ACTION_TAKEN, {
+		params: {
+			applicantUserName: userName,
+		},
+	});
+}
+
+const viewApplicantActionTaken = (id) => {
+	return API.get(AUDIT_SERVICE + VIEW_APPLICANT_ACTION_TAKEN_FILES, {
+		params: {
+			documentName: encrypt(id),
+		},
+		responseType: 'blob',
+		...sconfig,
+	});
 }
 
 const auditNCReport = (userName) =>{
@@ -283,24 +338,43 @@ const getAnnualAuditWorkflowActions = (userName, role = 'LICENSEE') => {
 	});
 }
 
+const addNewAuditControl = (obj) => {
+	return API.post(AUDIT_SERVICE + SAVE_AUDIT_CONTROL, obj);
+}
+
+const getAuditControls = (userName, auditScheduleId) => {
+	return API.get(AUDIT_SERVICE + GET_AUDIT_CONTROLS, {
+		params: {
+			userName,
+			...(auditScheduleId ? { auditScheduleId } : {}),
+		},
+	});
+}
+
 
 export default{
     addNewAuditAgencySlection,
 	getAllAuditSelectionList,
+	getAllAuditSelectionByUsername,
 	getAuditorApplicationbyApplicatantUserName,
 				updateApplicationType,
 				deleteApplicationType,
 				getApplicationTypeById,
 				submitAuditForm,
 				viewFile,
+				viewFiles,
 				approvedAuditForm,
 				rejectedAuditForm,
 				AuditNCForm,
 				getAllDatas,
+				getByApplicantUserNames,
 				viewDocumentName,
 				changeTheStatusByApplicantUserName,
 				viewRemarks,
 				changeByApplicantUserName,
+				changeTheStatusOfApplication,
+				getByApplicantActionTaken,
+				viewApplicantActionTaken,
 				auditNCReport,
 				viewAuditNCReport,
 				changeTheStatus,
@@ -318,5 +392,7 @@ export default{
 				getAnnualAuditScheduleList,
 				getAuditAgencySelectionBySchedule,
 				getAnnualAuditWorkflowActions,
+				addNewAuditControl,
+				getAuditControls,
 				
             };

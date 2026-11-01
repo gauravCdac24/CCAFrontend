@@ -4,7 +4,7 @@ const AnnualAudit = () => (
     <AnnualAuditScheduleListTable
         role="AUDIT_AGENCY"
         detailRouteSuffix="uploadannualundertaking/annualauditreport"
-        relevantActions={['SUBMIT_UNDERTAKING', 'SUBMIT_REPORT', 'VIEW']}
+        relevantActions={['SUBMIT_UNDERTAKING', 'VIEW']}
         showSerialNo
     />
 );

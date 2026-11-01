@@ -14,13 +14,19 @@ import dayjs from 'dayjs';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AnnualAuditService from '../../../../service/AnnualAuditService/AnnualAuditService';
 
+const toApiStartDate = (value) => {
+  if (!value || value === '-') {
+    return '';
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value).trim())) {
+    return String(value).trim();
+  }
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '';
+};
+
 const AnnualAuditStartDate = ({ userName: userNames, auditScheduleId = '', scheduleStartDate = '', auditStatus = '', readOnly = false }) => {
 
-
-
-
-
- 
   const [licenseDetails, setLicenseDetails] = useState({});
   const [isLoading, setLoading] = useState(false);
   const [cessationList, setCessationList] = useState({});
@@ -46,7 +52,7 @@ const AnnualAuditStartDate = ({ userName: userNames, auditScheduleId = '', sched
      const [formValues, setFormValues] = useState({
       auditScheduleId: auditScheduleId || "",
       licenseId: "",
-      startDate: scheduleStartDate || "",
+      startDate: toApiStartDate(scheduleStartDate),
       status: auditStatus || "",
       created: "",
       updated: "",
@@ -59,7 +65,7 @@ const AnnualAuditStartDate = ({ userName: userNames, auditScheduleId = '', sched
       setFormValues((prevValues) => ({
         ...prevValues,
         auditScheduleId: auditScheduleId || prevValues.auditScheduleId,
-        startDate: scheduleStartDate || prevValues.startDate,
+        startDate: toApiStartDate(scheduleStartDate) || prevValues.startDate,
         status: auditStatus || prevValues.status,
         userName: userNames || prevValues.userName,
       }));
@@ -81,9 +87,22 @@ const handleChange = (e) => {
 };
 
   const handleConfirmSubmit = () => {
+    const startDate = toApiStartDate(formValues.startDate);
+    if (!startDate) {
+      showAlert({
+        messageTitle: 'Error',
+        messageContent: 'Please select the annual audit start date.',
+        confirmText: 'Ok',
+      });
+      return;
+    }
+
     setLoading(true);
 
-    AnnualAuditService.submitLicenseeAuditForm(formValues)
+    AnnualAuditService.submitLicenseeAuditForm({
+      ...formValues,
+      startDate,
+    })
       .then((response) => {
         showAlert({
           messageTitle: 'Success',

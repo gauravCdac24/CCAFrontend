@@ -12,6 +12,10 @@ import {
   setAnnualAuditScheduleId,
   clearAnnualAuditScheduleId,
 } from '../../global/util/annualAuditSchedule';
+import {
+  setRenewalIntentAppId,
+  clearRenewalIntentAppId,
+} from '../../global/util/renewalIntentApp';
 
 const TOTAL_ANNEXURE_SECTIONS = 18;
 
@@ -230,14 +234,19 @@ const ViewAnnexure = () => {
   const [captchaText, setCaptchaText] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
   const [isLoading, setLoading] = useState(false);
+  const [annexureReady, setAnnexureReady] = useState(false);
 
   useEffect(() => {
     if (!applicantUserName) {
       clearAnnualAuditScheduleId();
+      clearRenewalIntentAppId();
+      setAnnexureReady(true);
       return undefined;
     }
 
     let cancelled = false;
+    setAnnexureReady(false);
+    clearRenewalIntentAppId();
     AnnexureService.getAnnexureMainByUsername(applicantUserName)
       .then((response) => {
         if (cancelled) {
@@ -246,19 +255,33 @@ const ViewAnnexure = () => {
         const scheduleId = response?.data?.auditScheduleId;
         if (scheduleId) {
           setAnnualAuditScheduleId(scheduleId);
+          clearRenewalIntentAppId();
         } else {
           clearAnnualAuditScheduleId();
+          const intentAppId = response?.data?.intentAppId;
+          if (intentAppId) {
+            setRenewalIntentAppId(intentAppId);
+          } else {
+            clearRenewalIntentAppId();
+          }
         }
       })
       .catch(() => {
         if (!cancelled) {
           clearAnnualAuditScheduleId();
+          clearRenewalIntentAppId();
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAnnexureReady(true);
         }
       });
 
     return () => {
       cancelled = true;
       clearAnnualAuditScheduleId();
+      clearRenewalIntentAppId();
     };
   }, [applicantUserName]);
 
@@ -400,7 +423,7 @@ const ViewAnnexure = () => {
       <LoaderProgress open={isLoading} />
       <FormWrapper headingText="View Annexure A2 Data">
         <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleSubmit}>
-          <AnnexureA2Main />
+          {annexureReady ? <AnnexureA2Main /> : null}
 
           <Box
             sx={{

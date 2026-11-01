@@ -37,8 +37,11 @@ const errorMsg = {
         blank: 'Expiry date must be 5 years from the issue date.',
     },
     serialNo: {
-        blank: 'License serial number could not be generated.',
+        blank: 'Please enter the license serial number.',
+        generatedBlank: 'License serial number could not be generated.',
         length: 'The length must be 24 characters.',
+        digits: 'License serial number must be 24 digits.',
+        dates: 'Serial number must use the selected issue year and expiry date (DDMMYY).',
     },
     captchaError: {
         blank: 'Please enter captcha.',
@@ -93,25 +96,35 @@ const IssueLicense = forwardRef(({ intentAppId, applicantName, applicantUsername
     const [loadError, setLoadError] = useState('');
 
     const applyDefaults = (data) => {
+        const kind = data?.applicationKind || '';
+        const isRenewal = kind === 'RENEWAL';
         const issueDate = data?.issueDate || '';
         const expiryDate = expiryFromIssue(issueDate) || data?.expiryDate || '';
-        const generated = buildLicenseSerial({
-            issueDate,
-            expiryDate,
-            caSerial: data?.caSerial,
-            keySequence: data?.keySequence,
-        });
-        const serialNo = generated
-            || (data?.applicationKind === 'RENEWAL' ? (data?.previousSerialNo || data?.serialNo || '') : (data?.serialNo || ''));
+        // Fresh: auto-generate. Renewal: admin enters serial (keep only a previously saved draft/open value).
+        let serialNo = '';
+        let resolvedExpiry = '';
+        if (isRenewal) {
+            serialNo = data?.serialNo || '';
+            resolvedExpiry = issueDate ? expiryDate : '';
+        } else {
+            const generated = buildLicenseSerial({
+                issueDate,
+                expiryDate,
+                caSerial: data?.caSerial,
+                keySequence: data?.keySequence,
+            });
+            serialNo = generated || data?.serialNo || '';
+            resolvedExpiry = generated ? expiryDate : '';
+        }
         const next = {
             intentAppId,
             applicantUsername,
             applicantName,
             issueDate,
-            expiryDate: generated ? expiryDate : '',
+            expiryDate: resolvedExpiry,
             serialNo,
             publicKey: data?.publicKey || '',
-            applicationKind: data?.applicationKind || '',
+            applicationKind: kind,
             previousSerialNo: data?.previousSerialNo || '',
             caSerial: data?.caSerial ?? null,
             keySequence: data?.keySequence ?? null,
@@ -167,10 +180,13 @@ const IssueLicense = forwardRef(({ intentAppId, applicantName, applicantUsername
         if (formErrors.serialNo) {
             return formErrors.serialNo;
         }
-        if (requiredDoc.applicationKind === 'RENEWAL' && requiredDoc.previousSerialNo) {
+        if (requiredDoc.applicationKind === 'RENEWAL') {
             const keys = Number(requiredDoc.rootCaKeyCount) || 0;
             const increment = Math.max(keys, 1);
-            return `Previous license serial: ${requiredDoc.previousSerialNo}. NNN increments by ${increment} for ${keys} root CA key${keys === 1 ? '' : 's'} on the application.`;
+            const previous = requiredDoc.previousSerialNo
+                ? ` Previous license serial: ${requiredDoc.previousSerialNo}.`
+                : '';
+            return `Enter the 24-digit license serial number.${previous} NNN typically increments by ${increment} for ${keys} root CA key${keys === 1 ? '' : 's'}.`;
         }
         return 'Generated automatically (24 characters).';
     };
@@ -195,16 +211,37 @@ const IssueLicense = forwardRef(({ intentAppId, applicantName, applicantUsername
             errors.expiryDate = errorMsg.expiryDate.blank;
         }
 
-        const expectedSerial = buildLicenseSerial({
-            issueDate: requiredDoc.issueDate,
-            expiryDate: expectedExpiry,
-            caSerial: requiredDoc.caSerial,
-            keySequence: requiredDoc.keySequence,
-        });
-        if (!expectedSerial) {
-            errors.serialNo = errorMsg.serialNo.blank;
-        } else if (expectedSerial.length !== 24 || requiredDoc.serialNo !== expectedSerial) {
-            errors.serialNo = errorMsg.serialNo.length;
+        const enteredSerial = (requiredDoc.serialNo || '').trim();
+        if (requiredDoc.applicationKind === 'RENEWAL') {
+            if (!enteredSerial) {
+                errors.serialNo = errorMsg.serialNo.blank;
+            } else if (!/^\d{24}$/.test(enteredSerial)) {
+                errors.serialNo = errorMsg.serialNo.digits;
+            } else if (requiredDoc.issueDate && expectedExpiry) {
+                const caSerial = Number(enteredSerial.substring(4, 8));
+                const keySequence = Number(enteredSerial.substring(14, 17));
+                const expectedFromDates = buildLicenseSerial({
+                    issueDate: requiredDoc.issueDate,
+                    expiryDate: expectedExpiry,
+                    caSerial,
+                    keySequence,
+                });
+                if (enteredSerial !== expectedFromDates) {
+                    errors.serialNo = errorMsg.serialNo.dates;
+                }
+            }
+        } else {
+            const expectedSerial = buildLicenseSerial({
+                issueDate: requiredDoc.issueDate,
+                expiryDate: expectedExpiry,
+                caSerial: requiredDoc.caSerial,
+                keySequence: requiredDoc.keySequence,
+            });
+            if (!expectedSerial) {
+                errors.serialNo = errorMsg.serialNo.generatedBlank;
+            } else if (expectedSerial.length !== 24 || enteredSerial !== expectedSerial) {
+                errors.serialNo = errorMsg.serialNo.length;
+            }
         }
 
         if (!captchaInput) {
@@ -277,18 +314,31 @@ const IssueLicense = forwardRef(({ intentAppId, applicantName, applicantUsername
         }
         const issueDate = dayjs(date).format('YYYY-MM-DD');
         const expiryDate = expiryFromIssue(issueDate);
-        const serialNo = buildLicenseSerial({
-            issueDate,
-            expiryDate,
-            caSerial: requiredDoc.caSerial,
-            keySequence: requiredDoc.keySequence,
+        setRequiredDoc((prev) => {
+            // Fresh keeps auto serial; renewal serial is admin-entered and is not overwritten.
+            const serialNo = prev.applicationKind === 'RENEWAL'
+                ? prev.serialNo
+                : buildLicenseSerial({
+                    issueDate,
+                    expiryDate,
+                    caSerial: prev.caSerial,
+                    keySequence: prev.keySequence,
+                });
+            return {
+                ...prev,
+                issueDate,
+                expiryDate,
+                serialNo,
+            };
         });
-        setRequiredDoc((prev) => ({
-            ...prev,
-            issueDate,
-            expiryDate,
-            serialNo,
-        }));
+    };
+
+    const handleSerialChange = (event) => {
+        if (requiredDoc.applicationKind !== 'RENEWAL') {
+            return;
+        }
+        const value = event.target.value.replace(/\D/g, '').slice(0, 24);
+        setRequiredDoc((prev) => ({ ...prev, serialNo: value }));
     };
 
     useImperativeHandle(ref, () => ({
@@ -338,15 +388,22 @@ const IssueLicense = forwardRef(({ intentAppId, applicantName, applicantUsername
                                 margin="dense"
                                 required
                                 fullWidth
-                                placeholder="License Serial Number"
+                                placeholder={requiredDoc.applicationKind === 'RENEWAL'
+                                    ? 'Enter 24-digit license serial number'
+                                    : 'License Serial Number'}
                                 name="serialNo"
                                 variant="outlined"
                                 error={!!formErrors.serialNo}
                                 helperText={serialHelper()}
                                 value={requiredDoc.serialNo}
                                 size="small"
-                                disabled
-                                inputProps={{ maxLength: 24, readOnly: true }}
+                                disabled={requiredDoc.applicationKind !== 'RENEWAL'}
+                                onChange={handleSerialChange}
+                                inputProps={{
+                                    maxLength: 24,
+                                    readOnly: requiredDoc.applicationKind !== 'RENEWAL',
+                                    inputMode: 'numeric',
+                                }}
                             />
                         </Grid>
 

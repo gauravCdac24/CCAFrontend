@@ -291,21 +291,23 @@ const ViewNewApplicationForm = () => {
     navigate("/applicant/applicationform/addapplicationform");
   };
 
-  const ActionTakenByApplicant = (cid) => {
-    //alert("ActionTakenByApplicant===>"+rolePath)
+  const openApplicantAction = (cid, subPath, errorTitle) => {
     if (cid) {
       const encryptedId = encodeURIComponent(encrypt(cid));
-      navigate(`${rolePath}/auditnclist/ncclosurereport/${encryptedId}`);
-    } else {
-      showAlert({
-        messageTitle: "NC Closure Report",
-        messageContent: "Error in NC Closure Report, try after some time.",
-        confirmText: "Ok",
-        enableHeaderCloseBtn: true,
-        disableOutsideKeyDown: true,
-      });
+      navigate(`${rolePath}/${subPath}/${encryptedId}`);
+      return;
     }
+    showAlert({
+      messageTitle: errorTitle,
+      messageContent: "Error opening the application, try after some time.",
+      confirmText: "Ok",
+      enableHeaderCloseBtn: true,
+      disableOutsideKeyDown: true,
+    });
   };
+
+  const isApproveFromCca = (status) =>
+    (status || "").trim().toLowerCase() === "approve from cca";
 
   const columns = [
     { field: "id", headerName: "Sl. No.", resizable: true, width: 80 },
@@ -341,6 +343,23 @@ const ViewNewApplicationForm = () => {
       sortable: false,
       renderCell: (params) => {
         const actionButtons = [];
+        if (isApproveFromCca(params.row.applicationCurrentStatus)) {
+          actionButtons.push(
+            <Tooltip title="Fill NC Details" key="fill-nc-details">
+              <GridActionsCellItem
+                icon={<FileUploadIcon color="error" />}
+                label="Fill NC Details"
+                onClick={() =>
+                  openApplicantAction(
+                    params.row.applicantUserName,
+                    "uploadundertaking/auditorcontrols",
+                    "NC Details"
+                  )
+                }
+              />
+            </Tooltip>
+          );
+        }
         if (
           params.row.applicationCurrentStatus === "NC Action taken By Applicant"
         ) {
@@ -350,7 +369,11 @@ const ViewNewApplicationForm = () => {
                 icon={<FileUploadIcon color="error" />}
                 label="Guideline"
                 onClick={() =>
-                  ActionTakenByApplicant(params.row.applicantUserName)
+                  openApplicantAction(
+                    params.row.applicantUserName,
+                    "auditnclist/ncclosurereport",
+                    "NC Closure Report"
+                  )
                 }
               />
             </Tooltip>
