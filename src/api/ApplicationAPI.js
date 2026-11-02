@@ -8,9 +8,7 @@ import { getAnnualAuditScheduleId } from "../components/global/util/annualAuditS
 import { getRenewalIntentAppId } from "../components/global/util/renewalIntentApp";
 
 const API = axios.create({
-  // Local: hit gateway directly (CRA proxy was returning "Invalid CORS request" on POST).
-  // Override with REACT_APP_API_BASE_URL when needed (e.g. production reverse-proxy "/api").
-  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api",
+  baseURL: "/api",
 });
 
 API.interceptors.request.use(

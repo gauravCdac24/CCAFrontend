@@ -46,6 +46,10 @@ const GET_AUDIT_AGENCY_SELECTION_BY_SCHEDULE="/get-audit-agency-selection-by-sch
 const GET_ANNUAL_AUDIT_WORKFLOW_ACTIONS="/get-annual-audit-workflow-actions";
 const SAVE_AUDIT_CONTROL="/save-audit-control";
 const GET_AUDIT_CONTROLS="/audit-controls";
+const GET_APPLICANT_ACTION_TAKEN_ANY_STATUS="/get-All-Applicant-Action-Taken-any-status";
+const VIEW_AUDITOR_CLOSURE_DOCUMENT="/auditor-closure-document-name";
+const AUDITOR_REJECT_NC="/auditor-reject-nc";
+const AUDITOR_APPROVE_NC="/auditor-accept-nc";
 
    const VIEW_FILE="/downloadFile";
    const VIEW_FILES="/downloadFiles";
@@ -329,6 +333,44 @@ const getAuditAgencySelectionBySchedule = (auditScheduleId) => {
 	});
 }
 
+const getReportCriteriaByApplicant = (userName) => {
+	return API.get(AUDIT_SERVICE + GET_ALL_APPLICANT_BY_USERNAME, {
+		params: {
+			applicantUserName: userName,
+		},
+	});
+}
+
+const getApplicantActionTaken = (userName) => {
+	return API.get(AUDIT_SERVICE + GET_APPLICANT_ACTION_TAKEN_ANY_STATUS, {
+		params: {
+			applicantUserName: userName,
+		},
+	});
+}
+
+const viewAuditorClosureDocument = (documentName) => {
+	return API.get(AUDIT_SERVICE + VIEW_AUDITOR_CLOSURE_DOCUMENT, {
+		params: {
+			documentName: encrypt(documentName),
+		},
+		responseType: 'blob',
+		...sconfig,
+	});
+}
+
+const approveApplicantNc = (obj) => {
+	return API.post(AUDIT_SERVICE + AUDITOR_APPROVE_NC, obj, {
+		headers: { 'Content-Type': 'multipart/form-data' },
+	});
+}
+
+const rejectApplicantNc = (obj) => {
+	return API.post(AUDIT_SERVICE + AUDITOR_REJECT_NC, obj, {
+		headers: { 'Content-Type': 'multipart/form-data' },
+	});
+}
+
 const getAnnualAuditWorkflowActions = (userName, role = 'LICENSEE') => {
 	return API.get(AUDIT_SERVICE + GET_ANNUAL_AUDIT_WORKFLOW_ACTIONS, {
 		params: {
@@ -394,5 +436,10 @@ export default{
 				getAnnualAuditWorkflowActions,
 				addNewAuditControl,
 				getAuditControls,
+				getReportCriteriaByApplicant,
+				getApplicantActionTaken,
+				viewAuditorClosureDocument,
+				approveApplicantNc,
+				rejectApplicantNc,
 				
             };

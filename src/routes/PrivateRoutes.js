@@ -83,6 +83,21 @@ const CPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/CPSDoc'))
 const EditCPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/EditCPSDoc'))
 const AddCPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/AddCPSDoc'))
 
+//Bank Guarantee Template
+const BankGuaranteeTemplate = lazy(()=>import('../components/admin/pages/BankGuaranteeTemplate/BankGuaranteeTemplate'))
+const AddBankGuaranteeTemplate = lazy(()=>import('../components/admin/pages/BankGuaranteeTemplate/AddBankGuaranteeTemplate'))
+const EditBankGuaranteeTemplate = lazy(()=>import('../components/admin/pages/BankGuaranteeTemplate/EditBankGuaranteeTemplate'))
+
+//Agreement Template
+const AgreementTemplate = lazy(()=>import('../components/admin/pages/AgreementTemplate/AgreementTemplate'))
+const AddAgreementTemplate = lazy(()=>import('../components/admin/pages/AgreementTemplate/AddAgreementTemplate'))
+const EditAgreementTemplate = lazy(()=>import('../components/admin/pages/AgreementTemplate/EditAgreementTemplate'))
+
+//Cross Certification Arrangement Template
+const CrossCertificationTemplate = lazy(()=>import('../components/admin/pages/CrossCertificationTemplate/CrossCertificationTemplate'))
+const AddCrossCertificationTemplate = lazy(()=>import('../components/admin/pages/CrossCertificationTemplate/AddCrossCertificationTemplate'))
+const EditCrossCertificationTemplate = lazy(()=>import('../components/admin/pages/CrossCertificationTemplate/EditCrossCertificationTemplate'))
+
 //Minimum Attempt
 const MinimumAttempt = lazy(()=>import('../components/admin/pages/MinimumAttempts/MinimumAttempts'))
 const AddMinimumAttempt = lazy(()=>import('../components/admin/pages/MinimumAttempts/AddMinimumAttempts'))
@@ -315,6 +330,7 @@ const AuditAgencyDetailsReport = lazy(()=>import('../components/dashboard/Dashbo
 const AnnualAudit = lazy(()=>import('../components/ccaofficer/pages/AnnualAudit/AnnualAudit'))
 
 const AuditSelection = lazy(()=>import('../components/licensee/pages/AgencySelectionByLicense/AgencySelection'))
+const LicenseeEsignAuditReport = lazy(()=>import('../components/licensee/pages/AgencySelectionByLicense/LicenseeEsignAuditReport'))
 const UploadAuditorAudit = lazy(()=>import('../components/AuditAgency/AnnualAudit/AnnualAudit'))
 const UploadAuditReport = lazy(()=>import('../components/AuditAgency/AnnualAudit/AuditorDetails'))
 
@@ -496,6 +512,66 @@ const PrivateRoutesConfig = {
             path: 'cps/editcps/:id',
             element:(
                 <PrivateRoute  component={EditCPSDoc} />
+            )
+        },
+
+        // Bank Guarantee Template
+        {
+            path: 'bankguaranteeproof',
+            element:(
+                <PrivateRoute  component={BankGuaranteeTemplate} />
+            )
+        },
+        {
+            path: 'bankguaranteeproof/addbankguaranteetemplate',
+            element:(
+                <PrivateRoute  component={AddBankGuaranteeTemplate} />
+            )
+        },
+        {
+            path: 'bankguaranteeproof/editbankguaranteetemplate/:id',
+            element:(
+                <PrivateRoute  component={EditBankGuaranteeTemplate} />
+            )
+        },
+
+        // Agreement Template
+        {
+            path: 'agreement',
+            element:(
+                <PrivateRoute  component={AgreementTemplate} />
+            )
+        },
+        {
+            path: 'agreement/addagreementtemplate',
+            element:(
+                <PrivateRoute  component={AddAgreementTemplate} />
+            )
+        },
+        {
+            path: 'agreement/editagreementtemplate/:id',
+            element:(
+                <PrivateRoute  component={EditAgreementTemplate} />
+            )
+        },
+
+        // Cross Certification Arrangement Template
+        {
+            path: 'crosscertificationarrangement',
+            element:(
+                <PrivateRoute  component={CrossCertificationTemplate} />
+            )
+        },
+        {
+            path: 'crosscertificationarrangement/addcrosscertificationtemplate',
+            element:(
+                <PrivateRoute  component={AddCrossCertificationTemplate} />
+            )
+        },
+        {
+            path: 'crosscertificationarrangement/editcrosscertificationtemplate/:id',
+            element:(
+                <PrivateRoute  component={EditCrossCertificationTemplate} />
             )
         },
 
@@ -1680,6 +1756,13 @@ const PrivateRoutesConfig = {
     path: 'agencyselection',
     element:(
         <PrivateRoute  component={AuditSelection} />
+    )
+},
+
+{
+    path: 'agencyselection/esignauditreport/:id',
+    element:(
+        <PrivateRoute component={LicenseeEsignAuditReport} />
     )
 },
 

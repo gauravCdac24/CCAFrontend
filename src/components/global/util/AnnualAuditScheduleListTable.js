@@ -18,6 +18,7 @@ const ACTION_CONFIG = {
     FILL_NC: { label: 'Fill NC', title: 'Conduct Audit / Fill NC Details', color: 'error' },
     SUBMIT_REPORT: { label: 'Submit Report', title: 'Submit Audit Report', color: 'success' },
     VERIFY_NC: { label: 'Review NC', title: 'Review NC Report filled by Licensee', color: 'error' },
+    ESIGN_REPORT: { label: 'eSign', title: 'eSign audit report', color: 'primary' },
     APPROVE_SCOPE: { label: 'Approve', title: 'Approve Audit Scope', color: 'primary' },
     REVIEW: { label: 'Review', title: 'Review Annual Audit', color: 'primary' },
     VIEW: { label: 'View', title: 'View', color: 'action' },

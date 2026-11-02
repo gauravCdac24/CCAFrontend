@@ -7,6 +7,9 @@ import FormWrapper from '../../../global/util/FormWrapper';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'; 
 import { styled } from '@mui/material/styles';
 import IssuanceService from '../../../../service/NewLicenseService/IssuanceService';
+import BankGuaranteeTemplateService from '../../../../service/AdminService/BankGuaranteeTemplateService';
+import AgreementTemplateService from '../../../../service/AdminService/AgreementTemplateService';
+import CrossCertificationTemplateService from '../../../../service/AdminService/CrossCertificationTemplateService';
 
 const VisuallyHiddenInput = styled('input')({
     position: 'absolute',
@@ -196,7 +199,49 @@ const UploadDocuments = forwardRef(({intentAppId, refreshList}, ref) => {
         setFormErrors({});
     }
 
-    const handleDownloadTemplate = (fileName) => {
+    const managedTemplates = {
+        'BankGuaranteeTemplate.pdf': {
+            service: BankGuaranteeTemplateService,
+            title: 'Download Bank Guarantee Template',
+            fallback: 'BankGuaranteeTemplate',
+        },
+        'AgreementTemplate.pdf': {
+            service: AgreementTemplateService,
+            title: 'Download Agreement Template',
+            fallback: 'AgreementTemplate',
+        },
+        'CrossCertificationArrangementTemplate.pdf': {
+            service: CrossCertificationTemplateService,
+            title: 'Download Cross Certification Arrangement',
+            fallback: 'CrossCertificationArrangementTemplate',
+        },
+    };
+
+    const handleDownloadTemplate = async (fileName) => {
+        const managed = managedTemplates[fileName];
+        if (managed) {
+            try {
+                const file = await managed.service.downloadActiveTemplate();
+                const blob = new Blob([file.data], { type: file.contentType || 'application/octet-stream' });
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.setAttribute('download', file.fileName || managed.fallback);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(link.href);
+            } catch (error) {
+                showAlert({
+                    messageTitle: managed.title,
+                    messageContent: error.isTemplateMissing
+                        ? error.message
+                        : 'Unable to download the template. Please try again later.',
+                    confirmText: 'Ok',
+                });
+            }
+            return;
+        }
+
         const fileUrl = `${process.env.PUBLIC_URL}/file/${fileName}`;
         const link = document.createElement('a');
         link.href = fileUrl;

@@ -15,7 +15,7 @@ const App = () =>{
   style-src 'self' 'nonce-${nonce}';
   img-src 'self' data:;
   font-src 'self' data:;
-  connect-src 'self' http://localhost:3000;
+  connect-src 'self' http://10.212.168.168:7778;
   `;
 
   return(

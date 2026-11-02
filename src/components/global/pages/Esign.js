@@ -196,9 +196,13 @@ import { Box, Paper} from '@mui/material';
 import showAlert from "../common/MessageBox/AlertService";
 import LoaderProgress from "../common/LoaderProgress";
 
-// Local/dev: skip CDAC and complete eSign against the local mock endpoint.
-// Set to false for production CDAC flow.
-const LOCAL_ESIGN_SKIP = true;
+const CDAC_ESIGN_URL = "https://esignservice.cdac.in/esign2.1/2.1/form/signdoc";
+
+// Local npm start completes eSign when Sign Document is clicked.
+// A production build posts the same form to the CDAC URL.
+const LOCAL_ESIGN_SKIP = process.env.REACT_APP_ESIGN_SKIP
+    ? process.env.REACT_APP_ESIGN_SKIP === "true"
+    : process.env.NODE_ENV !== "production";
 
 const alertMsg = `Aadhaar eSign is performed by a 3rd party digital signature provider, e-Hastakshar: C-DAC's On-line Digital Signing Service, in collaboration with UIDAI using the details associated with the Aadhaar number. Upon clicking "Proceed", you will be directed to the e-Hastakshar Aadhaar eSign website to complete the signing process. Do you want to continue?`;
 
@@ -339,17 +343,18 @@ const Esign = ({efile,
                 };
                 setEsignRequest(nextRequest);
 
-                if (LOCAL_ESIGN_SKIP) {
-                    // Skip CDAC callback entirely for local/dev Submit & eSign.
-                    return finishLocalEsignSkip(nextRequest.aspTxnID);
-                }
-
                 showAlert({
                     messageTitle: 'Sign via Aadhaar eSign',
                     messageContent: <Box sx={{textAlign: 'justify'}}>{alertMsg}</Box>,
                     confirmText: 'Sign Document',
                     closeText: 'Cancel',
-                    onConfirm: handleSignDocument,
+                    onConfirm: () => {
+                        if (LOCAL_ESIGN_SKIP) {
+                            finishLocalEsignSkip(nextRequest.aspTxnID);
+                            return;
+                        }
+                        handleSignDocument();
+                    },
                     fullWidth: true,
                     maxWidth: 'sm',
                     disableOutsideKeyDown: true,
@@ -384,7 +389,7 @@ const Esign = ({efile,
     }
 
     const gatewayEsignResponseUrl =
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api"}/esign-service/esignresponse`;
+        `${process.env.REACT_APP_API_BASE_URL || "/api"}/esign-service/esignresponse`;
 
     return (<>
         <LoaderProgress open={isLoading} />
@@ -392,7 +397,7 @@ const Esign = ({efile,
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Paper elevation={1} sx={{ pl: 2, pr: 2, pb: 1, m: 2, borderRadius: "10px", minWidth: {xs: '90%', sm: '450px', display: 'none'} }}>
                 {/* Production CDAC posts here only when LOCAL_ESIGN_SKIP is false */}
-                <form action={LOCAL_ESIGN_SKIP ? gatewayEsignResponseUrl : "https://esignservice.cdac.in/esign2.1/2.1/form/signdoc"} method="post" id="esignformid">
+                <form action={LOCAL_ESIGN_SKIP ? gatewayEsignResponseUrl : CDAC_ESIGN_URL} method="post" id="esignformid">
                     <input hidden type="text" id="eSignRequest" name="eSignRequest" value={eSignRequest.eSignRequest}/>
                     <input hidden type="text" id="aspTxnID" name={LOCAL_ESIGN_SKIP ? "espTxnID" : "aspTxnID"} value={eSignRequest.aspTxnID}/>
                     <input hidden type="text" id="Content-Type" name="Content-Type" value="application/xml"/>

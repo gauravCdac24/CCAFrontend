@@ -42,12 +42,13 @@ const getAllAuditControlList = () =>{
     return API.get(ADMIN_SERVICE+GET_ALL_AUDIT_CONTROL);
 }
 
-const data = (ApplicantUserName) =>{
+const data = (ApplicantUserName, options = {}) =>{
 	//const username = auth().username;
     return API.get(ADMIN_SERVICE+DATA,
 		{
 			params: {
-				userName: ApplicantUserName
+				userName: ApplicantUserName,
+				includeAllControls: options.includeAllControls ? true : undefined,
 				}
 		}
 	);
