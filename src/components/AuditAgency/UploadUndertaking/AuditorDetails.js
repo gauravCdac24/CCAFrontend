@@ -32,7 +32,7 @@ import styled from '@emotion/styled';
 import { decrypt } from '../../global/util/EncryptDecrypt';
 
 const EMPTY_AUDITOR_ROW = { auditorName: '', certificateType: '', file: null, date: '' };
-const FALLBACK_CERTIFICATE_TYPES = ['ISO 27001', 'CISA'];
+const FALLBACK_CERTIFICATE_TYPES = ['ISO ', 'CISA'];
 
 const normalizeCert = (value) => (value || '').trim().toLowerCase();
 
@@ -629,7 +629,6 @@ const AuditorDetails = (() => {
 
 
     const handleConfrimSubmit = () => {
-        console.log("sfgydgc=====>", audiAgencyFormValues);
     
         const formData = new FormData();
     
@@ -749,7 +748,7 @@ audiAgencyFormValues.auditScope.forEach((item, index) => {
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }} >Auditor Name</TableCell>
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>Certificate Type</TableCell>
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>Certificate Expiry</TableCell>
-                                            <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>File Upload</TableCell>
+                                            <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>File Upload (Only PDF and Max allowed size 5 MB)</TableCell>
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>Action</TableCell>
                                         </TableRow>
                                     </TableHead>

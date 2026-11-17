@@ -6,7 +6,7 @@ import ClientService from '../../../../service/NewLicenseService/ClientService';
 import showAlert from '../../../global/common/MessageBox/AlertService';
 import CustomTable from '../../../global/util/CustomTable';
 import IssueLicense from '../../../cca/pages/IssueLicense/IssueLicense';
-import { hasLicenseAction } from '../../../global/util/licenseAcquisitionWorkflow';
+import { hasLicenseAction, isAdminLicenseDetailsStatus } from '../../../global/util/licenseAcquisitionWorkflow';
 
 const formatApplicationStatus = (status) => {
     if (!status) {
@@ -26,9 +26,10 @@ const FillLicenseDetails = () => {
 
     const getApplicationDetails = async () => {
         try {
-            const applicationList = await ClientService.getNewAppWithBankGuaranteeProof();
+            const applicationList = await ClientService.getNewAppWithBankGuaranteeProof('ADMIN');
             const list = (applicationList.data || [])
-            .filter((obj) => hasLicenseAction(obj.allowedActions, 'ISSUE_LICENSE'))
+            .filter((obj) => hasLicenseAction(obj.allowedActions, 'ISSUE_LICENSE')
+                || isAdminLicenseDetailsStatus(obj.applicationCurrentStatus))
             .map((obj, index) => ({
                 ...obj,
                 id: index + 1,
@@ -53,7 +54,8 @@ const FillLicenseDetails = () => {
     };
 
     const openFillLicenseDetails = (row) => {
-        if (!hasLicenseAction(row.allowedActions, 'ISSUE_LICENSE')) {
+        if (!hasLicenseAction(row.allowedActions, 'ISSUE_LICENSE')
+            && !isAdminLicenseDetailsStatus(row.applicationCurrentStatus)) {
             showAlert({
                 messageTitle: 'Fill License Details',
                 messageContent: 'License details cannot be filled for this application.',

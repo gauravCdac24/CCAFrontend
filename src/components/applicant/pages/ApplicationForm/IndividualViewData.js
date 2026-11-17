@@ -5,6 +5,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import CityService from '../../../../service/AdminService/CityService';
 import CountryService from '../../../../service/AdminService/CountryService';
 import StateService from '../../../../service/AdminService/StateService';
+import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getLatestApplicationDoc, openApplicationDocument } from '../../../global/util/viewApplicationDocument';
 
 const IndividualViewData = ({userName}) => {
    
@@ -258,31 +260,21 @@ const [documents, setDocuments] = useState([]);
         }
     }, [userName]);
 
-const handleDownloads = async (appDocId, documentTitle) => {
+const handleDownloads = async (appDocId, documentTitle, event) => {
   try {
-      // Fetch the file from the server
-      const response = await ApplicationForm.viewFile(appDocId);
-
-      // Create a blob from the response data
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-
-      // Create a link element
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-
-      // Extract the filename from the Content-Disposition header
-      const contentDisposition = response.headers['content-disposition'];
-
-      console.log(JSON.stringify(contentDisposition))
-
-      const filename = documentTitle;
-
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      await openApplicationDocument(
+        (id) => ApplicationForm.viewFile(id),
+        appDocId,
+        documentTitle,
+        event
+      );
   } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('Error viewing file:', error);
+      showAlert({
+        messageTitle: 'Error',
+        messageContent: 'Unable to open the document. Please try again.',
+        confirmText: 'OK',
+      });
   }
 };
 
@@ -343,32 +335,46 @@ if (!basicDetailsFormValues || Object.keys(basicDetailsFormValues).length === 0)
 // };
 
 
-const handleDownload = async (appDocId, documentTitle) => {
+const handleDownload = async (appDocId, documentTitle, event) => {
   try {
-      // Fetch the file from the server
-      const response = await ApplicationForm.viewFile(appDocId);
-
-      // Create a blob from the response data
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-
-      // Create a link element
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-
-      // Extract the filename from the Content-Disposition header
-      const contentDisposition = response.headers['content-disposition'];
-
-      console.log(JSON.stringify(contentDisposition))
-
-      const filename = documentTitle;
-
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      await openApplicationDocument(
+        (id) => ApplicationForm.viewFile(id),
+        appDocId,
+        documentTitle,
+        event
+      );
   } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('Error viewing file:', error);
+      showAlert({
+        messageTitle: 'Error',
+        messageContent: 'Unable to open the document. Please try again.',
+        confirmText: 'OK',
+      });
   }
+};
+
+const renderSingleDocView = (docs, title) => {
+  const doc = getLatestApplicationDoc(docs, title);
+  if (!doc) {
+    return null;
+  }
+  return (
+    <Box
+      sx={{ display: 'flex', alignItems: 'center', ml: 1 }}
+      data-app-doc-id={doc.appDocId}
+      data-doc-title={doc.documentTitle || title}
+    >
+      <Link
+        component="button"
+        type="button"
+        data-print-hide
+        onClick={(e) => handleDownload(doc.appDocId, doc.documentTitle, e)}
+        sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline', border: 0, background: 'none', p: 0, font: 'inherit' }}
+      >
+        View
+      </Link>
+    </Box>
+  );
 };
 
 
@@ -945,25 +951,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Grid>
     <Grid item sm={6}>
       <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-        {basicDetailsFormValues3.applicationDocument
-          .filter(doc => doc.documentTitle === "passportDocument") // Filter for passportDocument
-          .map((doc, index) => (
-            <Box
-              key={index}
-              sx={{ display: 'flex', alignItems: 'center', ml: 1 }}
-              data-app-doc-id={doc.appDocId}
-              data-doc-title={doc.documentTitle || 'passportDocument'}
-            >
-              {/* View Icon */}
-              <Link
-                data-print-hide
-                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
-            >
-                View
-            </Link>
-            </Box>
-          ))}
+        {renderSingleDocView(basicDetailsFormValues3.applicationDocument, 'passportDocument')}
       </Box>
     </Grid>
   </Grid>
@@ -995,25 +983,7 @@ const handleDownload = async (appDocId, documentTitle) => {
         </Typography>
     </Grid>
     <Grid item sm={6}>
-        {basicDetailsFormValues3.applicationDocument
-          .filter(doc => doc.documentTitle === "panDocument") // Filter for panDocument
-          .map((doc, index) => (
-            <Box
-              key={index}
-              sx={{ display: 'flex', alignItems: 'center', ml: 1 }}
-              data-app-doc-id={doc.appDocId}
-              data-doc-title={doc.documentTitle || 'panDocument'}
-            >
-              {/* View Icon */}
-              <Link
-                data-print-hide
-                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
-            >
-                View
-            </Link>
-            </Box>
-          ))}
+        {renderSingleDocView(basicDetailsFormValues3.applicationDocument, 'panDocument')}
     </Grid>
   </Grid>
 
@@ -1110,24 +1080,7 @@ const handleDownload = async (appDocId, documentTitle) => {
       
     </Grid>
     <Grid item sm={6}>
-      {basicDetailsFormValues3.applicationDocument
-        .filter(doc => doc.documentTitle === "capitalDocument") // Filter for capitalDocument
-        .map((doc, index) => (
-          <Box
-            key={index}
-            sx={{ display: 'inline', marginLeft: '8px' }}
-            data-app-doc-id={doc.appDocId}
-            data-doc-title={doc.documentTitle || 'capitalDocument'}
-          >
-              <Link
-                data-print-hide
-                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
-            >
-                View
-            </Link>
-          </Box>
-        ))}
+      {renderSingleDocView(basicDetailsFormValues3.applicationDocument, 'capitalDocument')}
     </Grid>
   </Grid>
 
@@ -1275,9 +1228,11 @@ const handleDownload = async (appDocId, documentTitle) => {
           data-doc-title={cpsDocument.documentTitle || 'CPSDocument'}
         >
             <Link
+                component="button"
+                type="button"
                 data-print-hide
-                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
+                onClick={(e) => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle, e)}
+                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline', border: 0, background: 'none', p: 0, font: 'inherit' }}
             >
                 view
             </Link>
@@ -1321,8 +1276,10 @@ const handleDownload = async (appDocId, documentTitle) => {
               <Box sx={{ display: 'flex', ml: 4 }}>
                 {/* Conditionally render the "View" link if the document title is not "CPSDocument" */}
                 <Link
+                  component="button"
+                  type="button"
                   data-print-hide
-                  onClick={() => handleDownloads(cpsDocument.appDocId, cpsDocument.documentTitle)}
+                  onClick={(e) => handleDownloads(cpsDocument.appDocId, cpsDocument.documentTitle, e)}
                   sx={{
                     color: 'red',
                     cursor: 'pointer',
@@ -1330,6 +1287,10 @@ const handleDownload = async (appDocId, documentTitle) => {
                     marginRight: '12px',
                     display: 'flex',
                     alignItems: 'center',
+                    border: 0,
+                    background: 'none',
+                    p: 0,
+                    font: 'inherit',
                   }}
                 >
                   View

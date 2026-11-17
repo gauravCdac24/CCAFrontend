@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -24,14 +24,13 @@ import AuditControlService from "../../../service/AdminService/AuditControlServi
 import showAlert from "../../global/common/MessageBox/AlertService";
 import LoaderProgress from "../../global/common/LoaderProgress";
 import FormWrapper from "../../global/util/FormWrapper";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { decrypt, encrypt } from "../../global/util/EncryptDecrypt";
+import { decrypt } from "../../global/util/EncryptDecrypt";
 import AuditService from "../../../service/AuditService/AuditService";
-import Esign from "../../global/pages/Esign";
-import CallComponent from "../../global/common/CallComponent/CallComponent";
 import AnnexureA2Main from "../UploadUndertaking/AnnexureA2/AnnexureA2Main";
 import stringToDateFormat from "../../global/util/DateUtil";
+import AuditorsEsignDialog from "./AuditorsEsignDialog";
 
 const formatScheduleDate = (dateStr) => {
   if (!dateStr) {
@@ -43,6 +42,8 @@ const formatScheduleDate = (dateStr) => {
 
 const AuditorControls = () => {
   const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const ApplicantUserName = decrypt(id);
   const signerFullName = useSelector((state) => state.jwtAuthentication.name);
   const signerUserName = useSelector((state) => state.jwtAuthentication.username);
@@ -80,6 +81,11 @@ const AuditorControls = () => {
     () => sessionStorage.getItem(`nc-review-rejected:${ApplicantUserName}`) === "1"
   );
   const [selectedFiles, setSelectedFiles] = useState([]); // Track files per row
+  const [locallyApprovedIds, setLocallyApprovedIds] = useState(() => new Set());
+  const [rowAuditorRemarks, setRowAuditorRemarks] = useState({});
+  const [applicantCriteria, setApplicantCriteria] = useState([]);
+  const [fileName, setFileName] = useState([]);
+  const [applicantActionTaken, setApplicantActionTaken] = useState([]);
   let controlCounter = 0;
 
   const extractMasterControlId = (auditControlId) => {
@@ -93,6 +99,73 @@ const AuditorControls = () => {
     }
     return value;
   };
+
+  const findActionTakenForControl = (parameterKey, masterControlId) => {
+    const masterId = String(masterControlId ?? "").trim();
+    return (applicantActionTaken || []).find((item) => {
+      const auditControlId = item?.auditReportCriteriaEntity?.auditControlId;
+      if (!auditControlId) {
+        return false;
+      }
+      return (
+        extractMasterControlId(auditControlId) === masterId ||
+        auditControlId === `${parameterKey}-${masterId}` ||
+        auditControlId === parameterKey
+      );
+    });
+  };
+
+  // Only treat as approved when auditor actually saved review remarks.
+  // Blank/null auditorRemarks must keep Approve/Reject enabled.
+  const hasCompletedAuditorApproval = (action) => {
+    if (!action) {
+      return false;
+    }
+    if (String(action.status || "").trim().toLowerCase() === "inactive") {
+      return false;
+    }
+    return String(action.auditorRemarks || "").trim().length > 0;
+  };
+
+  const isControlApproved = (fullControlId, parameterKey, masterControlId) => {
+    if (locallyApprovedIds.has(fullControlId) || locallyApprovedIds.has(parameterKey)) {
+      return true;
+    }
+    return hasCompletedAuditorApproval(
+      findActionTakenForControl(parameterKey, masterControlId)
+    );
+  };
+
+  const reviewableControls = useMemo(() => {
+    const controls = [];
+    (allAuditControlList || []).forEach((criteria, criteriaIndex) => {
+      (criteria.auditSubCriteria || []).forEach((subCriteria, subIndex) => {
+        let counter = 0;
+        (subCriteria.auditParameterPayload || []).forEach((parameter) => {
+          (parameter.auditControlPayload || []).forEach((control) => {
+            counter += 1;
+            const parameterKey = `3.${criteriaIndex + 1}.${subIndex + 1}.${counter}`;
+            const masterId = String(control?.auditControllId ?? "").trim();
+            const fullControlId = `${parameterKey}-${masterId}`;
+            controls.push({ parameterKey, masterId, fullControlId });
+          });
+        });
+      });
+    });
+    return controls;
+  }, [allAuditControlList]);
+
+  const allNcPointsApproved = useMemo(() => {
+    if (!reviewableControls.length) {
+      return false;
+    }
+    return reviewableControls.every((control) =>
+      isControlApproved(control.fullControlId, control.parameterKey, control.masterId)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewableControls, applicantActionTaken, locallyApprovedIds]);
+
+  const submitEsignDisabled = ncReviewRejected || !allNcPointsApproved;
 
   // Auto-expand criteria/subcriteria that contain NC controls so auditor can
   // review applicant responses (Approve/Reject) without hunting nested collapses.
@@ -198,6 +271,27 @@ const AuditorControls = () => {
       const actionRows = Array.isArray(actionResponse?.data) ? actionResponse.data : [];
       setApplicantCriteria(criteriaRows);
       setApplicantActionTaken(actionRows);
+
+      const approvedFromServer = new Set();
+      const remarksFromServer = {};
+      actionRows.forEach((item) => {
+        const auditControlId = item?.auditReportCriteriaEntity?.auditControlId;
+        const savedRemarks = String(item?.auditorRemarks || "").trim();
+        const inactive = String(item?.status || "").trim().toLowerCase() === "inactive";
+        if (!auditControlId || !savedRemarks || inactive) {
+          return;
+        }
+        approvedFromServer.add(auditControlId);
+        const parameterKey = String(auditControlId).includes("-")
+          ? String(auditControlId).substring(0, String(auditControlId).lastIndexOf("-"))
+          : String(auditControlId);
+        if (parameterKey) {
+          approvedFromServer.add(parameterKey);
+          remarksFromServer[parameterKey] = savedRemarks;
+        }
+      });
+      setLocallyApprovedIds(approvedFromServer);
+      setRowAuditorRemarks((prev) => ({ ...prev, ...remarksFromServer }));
 
       let criteriaList = Array.isArray(ncResponse?.data) ? ncResponse.data : [];
 
@@ -404,9 +498,20 @@ const AuditorControls = () => {
 
   const rejectedData = (id) => {
     console.log(`Saving data for control ID: ${id}`);
+    const lastDash = id.lastIndexOf("-");
+    const parameterKey = lastDash > 0 ? id.substring(0, lastDash) : id;
+    const remarksToSave = String(rowAuditorRemarks?.[parameterKey] || "").trim();
+    if (!remarksToSave) {
+      showAlert({
+        messageTitle: "Validation Error",
+        messageContent: "Please enter Auditor Remarks before rejecting this control.",
+        confirmText: "Ok",
+      });
+      return;
+    }
     const formData = new FormData();
     formData.append("controlId", id);
-    formData.append("remarks", radioValue.remarks);
+    formData.append("remarks", remarksToSave);
     formData.append("applicantUserName", radioValue.applicantUserName);
 
     // Call the API
@@ -450,49 +555,131 @@ const AuditorControls = () => {
   };
 
 
-  const saveData = (id) => {
-    console.log(`Saving data for control ID: ${id}`);
-    const formData = new FormData();
-    formData.append("controlId", id);
-    formData.append("remarks", radioValue.remarks);
-    const parameterKey = id.lastIndexOf("-") > 0 ? id.substring(0, id.lastIndexOf("-")) : id;
-    const editedCompliance = radioValue?.compliance && typeof radioValue.compliance === "object"
-      ? radioValue.compliance[parameterKey]
-      : "";
-    let validCompliance = editedCompliance || complianceValues?.[parameterKey] || "";
+  const resolveComplianceForControl = (parameterKey, masterControlId) => {
+    const fromRadio =
+      radioValue?.compliance && typeof radioValue.compliance === "object"
+        ? radioValue.compliance[parameterKey]
+        : "";
+    const fromState =
+      complianceValues && typeof complianceValues === "object"
+        ? complianceValues[parameterKey]
+        : "";
+    const matchedCriteria = (applicantCriteria || []).find((item) => {
+      const auditControlId = item?.auditControlId;
+      if (!auditControlId) {
+        return false;
+      }
+      return (
+        extractMasterControlId(auditControlId) === String(masterControlId || "").trim() ||
+        auditControlId === `${parameterKey}-${masterControlId}` ||
+        String(auditControlId).split("-")[0] === parameterKey
+      );
+    });
+    let validCompliance = fromRadio || fromState || matchedCriteria?.compliance || "";
     if (validCompliance === "undefined" || validCompliance === "null") {
       validCompliance = "";
     }
+    return String(validCompliance).trim();
+  };
+
+  const saveData = (id) => {
+    console.log(`Saving data for control ID: ${id}`);
+    const lastDash = id.lastIndexOf("-");
+    const parameterKey = lastDash > 0 ? id.substring(0, lastDash) : id;
+    const masterControlId = lastDash > 0 ? id.substring(lastDash + 1) : "";
+    const validCompliance = resolveComplianceForControl(parameterKey, masterControlId);
+    const remarksToSave = String(rowAuditorRemarks?.[parameterKey] || "").trim();
+
+    if (!validCompliance) {
+      showAlert({
+        messageTitle: "Validation Error",
+        messageContent: "Please select Compliance (Yes / No / N/A) before approving this control.",
+        confirmText: "Ok",
+      });
+      return;
+    }
+    if (!remarksToSave) {
+      showAlert({
+        messageTitle: "Validation Error",
+        messageContent: "Please enter Auditor Remarks before approving this control.",
+        confirmText: "Ok",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("controlId", id);
+    formData.append("remarks", remarksToSave);
     formData.append("compliance", validCompliance);
     formData.append("applicantUserName", radioValue.applicantUserName);
 
-    // Call the API
+    setLoading(true);
     AuditService.getAuditorApprovedData(formData)
       .then((response) => {
-        //console.log(response.data)
-        showAlert({
-          messageTitle: 'Success',
-          messageContent: response.data,
-          confirmText: 'Ok',
+        setLocallyApprovedIds((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          next.add(parameterKey);
+          return next;
         });
-
+        setRowAuditorRemarks((prev) => ({
+          ...prev,
+          [parameterKey]: remarksToSave,
+        }));
+        setComplianceValues((prev) => ({
+          ...(typeof prev === "object" && !Array.isArray(prev) ? prev : {}),
+          [parameterKey]: validCompliance,
+        }));
+        setApplicantCriteria((prev) =>
+          (prev || []).map((item) => {
+            const auditControlId = item?.auditControlId;
+            const matches =
+              extractMasterControlId(auditControlId) === String(masterControlId).trim() ||
+              auditControlId === id ||
+              String(auditControlId || "").split("-")[0] === parameterKey;
+            return matches ? { ...item, compliance: validCompliance } : item;
+          })
+        );
+        setApplicantActionTaken((prev) =>
+          (prev || []).map((item) => {
+            const auditControlId = item?.auditReportCriteriaEntity?.auditControlId;
+            const matches =
+              extractMasterControlId(auditControlId) === String(masterControlId).trim() ||
+              auditControlId === id ||
+              String(auditControlId || "").split("-")[0] === parameterKey;
+            if (!matches) {
+              return item;
+            }
+            return {
+              ...item,
+              auditorRemarks: remarksToSave,
+              status:
+                item.status && String(item.status).toLowerCase() === "inactive"
+                  ? item.status
+                  : "Active",
+            };
+          })
+        );
+        showAlert({
+          messageTitle: "Success",
+          messageContent: response.data,
+          confirmText: "Ok",
+        });
+        getAllAuditControl();
       })
       .catch((err) => {
-        const errorMessage = err.response?.data?.message || 'Request failed. Please try again later.';
+        const errorMessage =
+          err.response?.data?.message ||
+          (typeof err.response?.data === "string" ? err.response.data : null) ||
+          "Request failed. Please try again later.";
         showAlert({
-          messageTitle: 'Error',
+          messageTitle: "Error",
           messageContent: errorMessage,
-          confirmText: 'Ok',
+          confirmText: "Ok",
         });
       })
       .finally(() => setLoading(false));
   };
-  // temporary state — populated by getAllAuditControl()
-  const [applicantCriteria, setApplicantCriteria] = useState([]);
-  const [fileName, setFileName] = useState([]);
-  const [applicantActionTaken, setApplicantActionTaken] = useState([]);
-
-
   const handleForwordToApplicant = (e) => {
 
     e.preventDefault()
@@ -596,6 +783,16 @@ const AuditorControls = () => {
     return;
   }
 
+  if (!allNcPointsApproved) {
+    showAlert({
+      messageTitle: "Validation Error",
+      messageContent:
+        "Please Approve all Detailed Audit Controls points before Submit & eSign.",
+      confirmText: "Ok",
+    });
+    return;
+  }
+
   if (!requireCoverReport()) {
     return;
   }
@@ -654,83 +851,59 @@ const AuditorControls = () => {
   };
 
 
+  const openAuditorsEsignPopup = () => {
+    showAlert({
+      messageTitle: "Auditors eSign",
+      messageContent: (
+        <AuditorsEsignDialog
+          applicantUserName={ApplicantUserName}
+          buildAuditReportFormData={buildAuditReportFormData}
+          onAllComplete={() => {
+            navigate("/auditagency/auditnclist", { replace: true });
+          }}
+        />
+      ),
+      confirmText: "Close",
+      enableHeaderCloseBtn: true,
+      disableOutsideKeyDown: true,
+      maxWidth: "md",
+      fullWidth: true,
+    });
+  };
+
   const handleConfrimSubmit = async () => {
     try {
       setLoading(true);
-
-
-      if (!coverLetterDoc.file) {
-        const response = await AuditService.downloadDocument(buildAuditReportFormData(false));
-
-
-        console.log("rowid", response)
-        const blob = new Blob([response.data], { type: response.headers['content-type'] });
-
-        const contentDisposition = response.headers['content-disposition'];
-
-        //alert(contentDisposition)
-
-        const rowid = contentDisposition.split('filename=')[1].replace(/"/g, '');
-
-        // alert(rowid)
-
-        const updatedCoverLetterDoc = { ...coverLetterDoc, file: blob, fid: rowid };
-        setCoverLetterDoc(updatedCoverLetterDoc);
-
-
-        initiateSigning(blob, rowid);
-      } else if (coverLetterDoc.file) {
-
-        initiateSigning(coverLetterDoc.file, coverLetterDoc.fid);
-      } else {
-
-        showAlert({
-          messageTitle: 'Error',
-          messageContent: "Document not available for signing.",
-          enableHeaderCloseBtn: false,
-          disableOutsideKeyDown: true,
-          confirmText: 'Ok',
-        });
+      if (!requireCoverReport()) {
+        return;
       }
+      openAuditorsEsignPopup();
     } catch (error) {
       console.error("Error during submission:", error);
       showAlert({
-        messageTitle: 'Error',
+        messageTitle: "Error",
         messageContent: "An unexpected error occurred. Please try again.",
         enableHeaderCloseBtn: false,
         disableOutsideKeyDown: true,
-        confirmText: 'Ok',
+        confirmText: "Ok",
       });
     } finally {
       setLoading(false);
     }
   };
 
-
-  const initiateSigning = (file, fid) => {
-    const fullName = (signerFullName || "").trim() || signerUserName;
-    const redirectUrl = `/auditagency/auditnclist?pendingEsign=${encodeURIComponent(
-      encrypt(ApplicantUserName)
-    )}`;
-    CallComponent({
-      component: (
-        <Esign
-          efile={file}
-          fullName="Gaurav Singh"
-          maxFileSize={5}
-          serviceName="/audit-service"
-          serviceUrl="/download-final-esigned-report"
-          documentPath="/CoverLetter"
-          orgFileId={fid}
-          redirectUrl={redirectUrl}
-        />
-      ),
-    });
-  };
-
   const handleRetryEsign = (e) => {
     handleSubmit(e);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("auditorsEsign") === "1") {
+      openAuditorsEsignPopup();
+      navigate(location.pathname, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
 
   const downloadfile = async (documentTitle) => {
@@ -797,29 +970,37 @@ const AuditorControls = () => {
 
     allAuditControlList.forEach((criteria, criteriaIndex) => {
       criteria.auditSubCriteria?.forEach((subCriteria, subIndex) => {
-        let controlCounter = 0; // Reset controlCounter for each subCriteria
+        let initControlCounter = 0;
 
-        subCriteria.auditParameterPayload?.map(
-          (parameter, paramIndex) => {
-            parameter.auditControlPayload?.map(
-              (control, controlIndex) => {
-                controlCounter++; // Increment for each control
+        subCriteria.auditParameterPayload?.forEach((parameter) => {
+          parameter.auditControlPayload?.forEach((control) => {
+            initControlCounter += 1;
+            const parameterKey = `3.${criteriaIndex + 1}.${subIndex + 1}.${initControlCounter}`;
+            const masterId = String(control?.auditControllId ?? "").trim();
+            const matchedData = (applicantCriteria || []).find((item) => {
+              const auditControlId = item?.auditControlId;
+              if (!auditControlId) {
+                return false;
+              }
+              return (
+                extractMasterControlId(auditControlId) === masterId ||
+                auditControlId === `${parameterKey}-${masterId}` ||
+                String(auditControlId).split("-")[0] === parameterKey
+              );
+            });
 
-                const parameterKey = `3.${criteriaIndex + 1}.${subIndex + 1}.${controlCounter}`;
-                //console.log(parameterKey)
-                const matchedData = applicantCriteria.find(
-                  (item) => item.auditControlId.split("-")[0] === parameterKey
-                );
-
-                if (matchedData) {
-                  initialComplianceValues[parameterKey] = matchedData?.compliance || "";
-                }
-              });
+            if (matchedData?.compliance) {
+              initialComplianceValues[parameterKey] = matchedData.compliance;
+            }
           });
+        });
       });
     });
 
-    setComplianceValues(initialComplianceValues);
+    setComplianceValues((prev) => ({
+      ...(typeof prev === "object" && !Array.isArray(prev) ? prev : {}),
+      ...initialComplianceValues,
+    }));
   }, [allAuditControlList, applicantCriteria]);
 
 
@@ -1102,7 +1283,24 @@ const AuditorControls = () => {
                                           );
                                         });
 
-                                        const complianceValue = complianceValues[parameterKey] ?? matchedData?.compliance ?? "";
+                                        const fullControlId = `${parameterKey}-${control.auditControllId}`;
+                                        const alreadyApproved = isControlApproved(
+                                          fullControlId,
+                                          parameterKey,
+                                          control.auditControllId
+                                        );
+                                        const savedReviewRemarks = String(
+                                          actionTakenData?.auditorRemarks ||
+                                            rowAuditorRemarks?.[parameterKey] ||
+                                            ""
+                                        ).trim();
+                                        const complianceValue =
+                                          complianceValues[parameterKey] ??
+                                          matchedData?.compliance ??
+                                          "";
+                                        const auditorRemarksValue = alreadyApproved
+                                          ? savedReviewRemarks
+                                          : rowAuditorRemarks?.[parameterKey] ?? "";
 
                                         return (
                                           <TableRow key={`control-${controlIndex}`}>
@@ -1129,11 +1327,6 @@ const AuditorControls = () => {
                                             <TableCell sx={{ border: 0.5 }}>
                                               {control.references}
                                             </TableCell>
-                                            {/* <TableCell sx={{ border: 0.5 }}>
-
-                                           {matchedData?.compliance} 
-                                             
-                                          </TableCell> */}
                                             <TableCell sx={{ border: 0.5 }}>
                                               <FormControlLabel
                                                 control={
@@ -1142,6 +1335,7 @@ const AuditorControls = () => {
                                                     onChange={() => handleRadioChange("Yes", parameterKey)}
                                                     value="Yes"
                                                     name={`compliance-${parameterKey}`}
+                                                    disabled={ncReviewRejected || alreadyApproved}
                                                   />
                                                 }
                                                 label="Yes"
@@ -1153,6 +1347,7 @@ const AuditorControls = () => {
                                                     onChange={() => handleRadioChange("No", parameterKey)}
                                                     value="No"
                                                     name={`compliance-${parameterKey}`}
+                                                    disabled={ncReviewRejected || alreadyApproved}
                                                   />
                                                 }
                                                 label="No"
@@ -1164,6 +1359,7 @@ const AuditorControls = () => {
                                                     onChange={() => handleRadioChange("N/A", parameterKey)}
                                                     value="N/A"
                                                     name={`compliance-${parameterKey}`}
+                                                    disabled={ncReviewRejected || alreadyApproved}
                                                   />
                                                 }
                                                 label="N/A"
@@ -1172,7 +1368,7 @@ const AuditorControls = () => {
                                             <TableCell sx={{ border: 0.5 }}>
                                               <a
                                                 onClick={() => downloadfile(matchedData?.document || '')}
-                                                style={{ textDecoration: 'none', color: 'blue' }} // Optional styling
+                                                style={{ textDecoration: 'none', color: 'blue' }}
                                               >
                                                 <span>{matchedData?.document || ''}</span>
                                               </a>
@@ -1181,18 +1377,13 @@ const AuditorControls = () => {
                                               {matchedData?.remarks}
                                             </TableCell>
 
-
                                             <TableCell sx={{ border: 0.5 }}>
-                                              {/* <input type="file" onChange={(event) => handleFileChange(event, parameterKey)} /> */}
-
-
                                               <a
                                                 onClick={() => downloadfiles(actionTakenData?.actionReport || '')}
                                                 style={{ textDecoration: 'none', color: 'blue' }}
                                               >
                                                 <span>{actionTakenData?.actionReport || ''}</span>
                                               </a>
-
                                             </TableCell>
 
                                             <TableCell sx={{ border: 0.5 }}>
@@ -1200,36 +1391,51 @@ const AuditorControls = () => {
                                             </TableCell>
 
                                             <TableCell sx={{ border: 0.5 }}>
-                                              <TextField
-                                                multiline
-                                                rows={10}
-                                                variant="outlined"
-                                                // value={matchedData?.remarks}
-                                                onChange={(e) => handleChanges(e, "remarks")}
-                                                fullWidth
-                                                InputProps={{
-                                                  style: { padding: "5px", width: "150px" },
-                                                }}
-                                              ></TextField>
+                                              {alreadyApproved ? (
+                                                <Typography
+                                                  variant="body2"
+                                                  sx={{ whiteSpace: "pre-wrap", minWidth: 140 }}
+                                                >
+                                                  {savedReviewRemarks || "—"}
+                                                </Typography>
+                                              ) : (
+                                                <TextField
+                                                  multiline
+                                                  rows={10}
+                                                  variant="outlined"
+                                                  value={auditorRemarksValue}
+                                                  onChange={(e) =>
+                                                    setRowAuditorRemarks((prev) => ({
+                                                      ...prev,
+                                                      [parameterKey]: e.target.value,
+                                                    }))
+                                                  }
+                                                  placeholder="Enter auditor review remarks"
+                                                  fullWidth
+                                                  disabled={ncReviewRejected}
+                                                  InputProps={{
+                                                    style: { padding: "5px", width: "150px" },
+                                                  }}
+                                                />
+                                              )}
                                             </TableCell>
-
 
                                             <TableCell sx={{ border: 0.5 }}>
                                               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                                                 <Button
                                                   variant="contained"
                                                   color="primary"
-                                                  disabled={ncReviewRejected}
-                                                  onClick={(e) => handleApproveData(e, `${parameterKey}-${control.auditControllId}`)}
+                                                  disabled={ncReviewRejected || alreadyApproved}
+                                                  onClick={(e) => handleApproveData(e, fullControlId)}
                                                 >
-                                                  Approve
+                                                  {alreadyApproved ? "Approved" : "Approve"}
                                                 </Button>
 
                                                 <Button
                                                   variant="contained"
                                                   color="secondary"
-                                                  disabled={ncReviewRejected}
-                                                  onClick={(e) => handleRejectData(e, `${parameterKey}-${control.auditControllId}`)}
+                                                  disabled={ncReviewRejected || alreadyApproved}
+                                                  onClick={(e) => handleRejectData(e, fullControlId)}
                                                 >
                                                   Rejected
                                                 </Button>
@@ -1556,7 +1762,7 @@ const AuditorControls = () => {
                   color="secondary"
                   sx={{ width: "auto", minWidth: "120px", px: 2 }}
                   onClick={handleSubmit}
-                  disabled={ncReviewRejected}
+                  disabled={submitEsignDisabled}
                 >
                   Submit &amp; eSign
                 </Button>
@@ -1568,12 +1774,21 @@ const AuditorControls = () => {
                     color="warning"
                     sx={{ width: "auto", minWidth: "120px", px: 2 }}
                     onClick={handleRetryEsign}
-                    disabled={ncReviewRejected}
+                    disabled={submitEsignDisabled}
                   >
                     Retry eSign
                   </Button>
                 )}
               </Box>
+              {!allNcPointsApproved && !ncReviewRejected && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1, textAlign: "center" }}
+                >
+                  Approve all Detailed Audit Controls points to enable Submit &amp; eSign.
+                </Typography>
+              )}
               <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
                 <Button
                   type="button"

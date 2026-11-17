@@ -22,7 +22,7 @@ import showAlert from '../../../global/common/MessageBox/AlertService';
 import Captcha from '../../../global/util/Captcha';
 import dayjs from 'dayjs';
 import validatePattern from '../../../global/util/ValidatePattern';
-import { decrypt } from '../../../global/util/EncryptDecrypt';
+import { decrypt, toLocationId } from '../../../global/util/EncryptDecrypt';
 
 const errorMsg = { 
 
@@ -220,14 +220,16 @@ const EditAuditAgency = () => {
             setLoading(true);
             AuditAgency.getAuditAgencyById(decrypt(id))
                 .then((response) => {
-                    const { country, state, city } = response.data;
+                    const countryId = toLocationId(response.data.country);
+                    const stateId = toLocationId(response.data.state);
+                    const cityId = toLocationId(response.data.city);
     
                     // Filter states based on the country
-                    const filteredStates = states.filter(st => st.countryId.countryId === parseInt(country));
+                    const filteredStates = states.filter(st => st.countryId.countryId === countryId && st.status === 'Active');
                     setFilteredStates(filteredStates);
     
                     // Filter cities based on the state
-                    const filteredCities = cities.filter(ct => ct.stateId.stateId === parseInt(state));
+                    const filteredCities = cities.filter(ct => ct.stateId.stateId === stateId);
                     setFilteredCities(filteredCities);
     
                     // Set form values
@@ -240,9 +242,9 @@ const EditAuditAgency = () => {
                         village: response.data.village || '',
                         postOffice: response.data.postOffice || '',
                         subDivision: response.data.subDivision || '',
-                        country: country || '',
-                        city: city || '',
-                        state: state || '',
+                        country: countryId,
+                        city: cityId,
+                        state: stateId,
                         pin: response.data.pin || '',
                         emailId: response.data.emailId.length > 0 ? response.data.emailId : [{ auditAgencyMobileId:'',emailType: '', email: '' }],
                         effectiveFrom: response.data.effectiveFrom || null,
@@ -343,7 +345,7 @@ const EditAuditAgency = () => {
 
         // Handle country change
         if (name === "country") {
-            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value));
+            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
             setFilteredStates(filteredStates);
             updatedValues.state = '';
             updatedValues.city = '';
@@ -1113,7 +1115,7 @@ const EditAuditAgency = () => {
                                     <MenuItem disabled value="">
                                         Select Country
                                     </MenuItem>
-                                    {countries.map(country => (
+                                    {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(auditAgencyRegFormValues.country)).map(country => (
                                         <MenuItem key={country.countryId} value={country.countryId}>
                                             {country.countryName}
                                         </MenuItem>

@@ -850,7 +850,7 @@ const handleBack = () => {
 
                    >
                       <Typography variant="h6" sx={{flexGrow: 1 }}>
-                        Reviewd on {dateFormatter(element.reviewESPApp.created)}
+                        Reviewed on {dateFormatter(element.reviewESPApp.created)}
                       </Typography>
                       <IconButton 
                         

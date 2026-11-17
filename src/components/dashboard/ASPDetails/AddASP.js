@@ -130,7 +130,7 @@ const AddASP = () => {
                                 setStateList(states.data);
                 
                                 const filteredStates = states.data.filter(
-                                    state => state.countryId.countryName === 'India'
+                                    state => state.countryId.countryName === 'India' && state.status === 'Active'
                                 );
                                 setFilteredState(filteredStates);
                 
@@ -189,7 +189,7 @@ const AddASP = () => {
         const { name, value } = e.target;
 
         if (name === "countryId") {
-            const filteredStates = stateList.filter(state => state.countryId.countryId === value);
+            const filteredStates = stateList.filter(state => state.countryId.countryId === value && state.status === 'Active');
             setFilteredState(filteredStates);
             formValues.stateId = ''
         }
@@ -568,7 +568,7 @@ const AddASP = () => {
                                     <MenuItem value="">
                                         Select Country
                                     </MenuItem>
-                                    {countryList.map(country => (
+                                    {countryList.filter((country) => country.status === 'Active' || String(country.countryId) === String(formValues.countryId)).map(country => (
                                         <MenuItem key={country.countryId} value={country.countryId}>
                                             {country.countryName}
                                         </MenuItem>

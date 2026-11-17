@@ -30,6 +30,10 @@ const getAllCountryList = () =>{
     return API.get(ADMIN_SERVICE+GET_ALL_COUNTRY);
 }
 
+const getAllActiveCountryList = () =>{
+    return API.get(ADMIN_SERVICE+GET_ALL_ACTIVE_COUNTRY);
+}
+
 const changeCountryStatus = (id) =>{
 	return API.get(ADMIN_SERVICE+CHANGE_COUNTRY_STATUS,{
 		params:{
@@ -59,6 +63,7 @@ const deleteCountry = (id) =>{
 export default{
                 addNewCountry,
                 getAllCountryList,
+                getAllActiveCountryList,
 				changeCountryStatus,
 				updateCountry,
 				deleteCountry,

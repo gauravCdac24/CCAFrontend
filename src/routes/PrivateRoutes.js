@@ -83,6 +83,11 @@ const CPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/CPSDoc'))
 const EditCPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/EditCPSDoc'))
 const AddCPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/AddCPSDoc'))
 
+//Audit Acceptance
+const AuditAcceptance = lazy(()=>import('../components/admin/pages/AuditAcceptance/AuditAcceptance'))
+const AddAuditAcceptance = lazy(()=>import('../components/admin/pages/AuditAcceptance/AddAuditAcceptance'))
+const EditAuditAcceptance = lazy(()=>import('../components/admin/pages/AuditAcceptance/EditAuditAcceptance'))
+
 //Bank Guarantee Template
 const BankGuaranteeTemplate = lazy(()=>import('../components/admin/pages/BankGuaranteeTemplate/BankGuaranteeTemplate'))
 const AddBankGuaranteeTemplate = lazy(()=>import('../components/admin/pages/BankGuaranteeTemplate/AddBankGuaranteeTemplate'))
@@ -512,6 +517,26 @@ const PrivateRoutesConfig = {
             path: 'cps/editcps/:id',
             element:(
                 <PrivateRoute  component={EditCPSDoc} />
+            )
+        },
+
+        // Audit Acceptance
+        {
+            path: 'auditacceptance',
+            element:(
+                <PrivateRoute  component={AuditAcceptance} />
+            )
+        },
+        {
+            path: 'auditacceptance/addauditacceptance',
+            element:(
+                <PrivateRoute  component={AddAuditAcceptance} />
+            )
+        },
+        {
+            path: 'auditacceptance/editauditacceptance/:id',
+            element:(
+                <PrivateRoute  component={EditAuditAcceptance} />
             )
         },
 

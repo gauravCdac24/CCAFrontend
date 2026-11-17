@@ -6,7 +6,7 @@ const GovernmentChecklistPage = ({ handleNext, handleBack }) => {
     'Upload a valid identity proof',
     'Fill in personal details accurately',
     'Upload a valid credit details',
-    'Fill in ISP dtails',
+    'Fill in ISP details',
     'Upload the Business Capital Proof',
     'Upload the CPS Document',
 

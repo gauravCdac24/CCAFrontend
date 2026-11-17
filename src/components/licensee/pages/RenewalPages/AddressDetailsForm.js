@@ -242,7 +242,7 @@ const isFieldEnabled = (fieldName) => {
     
             // Handle country change for residential
             if (fieldName === "country") {
-                const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value));
+                const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
                 setFilteredStates(filteredStates);
                 updatedValues.residential.state = '';
                 updatedValues.residential.city = '';
@@ -260,7 +260,7 @@ const isFieldEnabled = (fieldName) => {
     
             // Handle country change for official
             if (fieldName === "country") {
-                const filteredState = states.filter(state => state.countryId.countryId === parseInt(value));
+                const filteredState = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
                 setFilteredState(filteredState);
                 updatedValues.official.state = '';
                 updatedValues.official.city = '';
@@ -336,7 +336,7 @@ const isFieldEnabled = (fieldName) => {
                     // Filter states and cities based on residential and official countries/states
                     if (official.country && official.state) {
                         const filteredState = states.filter(
-                            (state) => state.countryId.countryId === parseInt(official.country)
+                            (state) => state.countryId.countryId === parseInt(official.country) && state.status === 'Active'
                         );
                         setFilteredState(filteredState);
     
@@ -348,7 +348,7 @@ const isFieldEnabled = (fieldName) => {
     
                     if (residential.country && residential.state) {
                         const filteredStates = states.filter(
-                            (state) => state.countryId.countryId === parseInt(residential.country)
+                            (state) => state.countryId.countryId === parseInt(residential.country) && state.status === 'Active'
                         );
                         setFilteredStates(filteredStates);
     
@@ -733,7 +733,7 @@ const isFieldEnabled = (fieldName) => {
                             <MenuItem disabled value="">
                                 Select Country
                             </MenuItem>
-                            {countries.map(country => (
+                            {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(communicationAddressFormValues.residential.country)).map(country => (
                                 <MenuItem key={country.countryId} value={country.countryId}>
                                     {country.countryName}
                                 </MenuItem>
@@ -1013,7 +1013,7 @@ const isFieldEnabled = (fieldName) => {
                             <MenuItem disabled value="">
                                 Select Country
                             </MenuItem>
-                            {countries.map(country => (
+                            {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(communicationAddressFormValues.official.country)).map(country => (
                                 <MenuItem key={country.countryId} value={country.countryId}>
                                     {country.countryName}
                                 </MenuItem>

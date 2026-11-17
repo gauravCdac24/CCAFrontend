@@ -27,33 +27,33 @@ const ViewAuditAgency = () => {
         setLoading(true);
         AuditAgency.getAllAuditAgencyList()
             .then((response) => {
-                let list = response.data.map((obj, index) => {
+                const list = response.data.map((obj, index) => {
                     obj['id'] = index + 1;
                     obj['created'] = dateFormatter(obj.created);
                     obj['updated'] = dateFormatter(obj.updated);
                     obj['fullAddress'] = `${obj.blockNo || ''}, ${obj.village || ''}, ${obj.postOffice || ''}, ${obj.subDivision || ''}`.trim();
-                   // obj['status'] = 'Inactive'; 
-
-                    // Fetch statuses and update the list
-                    AuditAgency.getAuditAgencyList()
-                        .then((statusResponse) => {
-                            console.log("abc=>", statusResponse);
-                            const encryptedAuditAgencyId = encrypt(obj.auditAgencyId);
-
-                            // Find the matching status using the encrypted ID
-                            const matchingStatus = statusResponse.data.find(item => item.userId === encryptedAuditAgencyId);
-
-                            if (matchingStatus) {
-                                console.log("abc=>", matchingStatus);
-                                obj['status'] = matchingStatus.status;
-                            }
-                        });
-
-
+                    obj['agencyStatus'] = obj.status;
                     return obj;
                 });
 
                 setAllAuditAgencyList(list);
+
+                AuditAgency.getAuditAgencyList()
+                    .then((statusResponse) => {
+                        const users = Array.isArray(statusResponse.data) ? statusResponse.data : [];
+                        const withAccounts = list.map((obj) => {
+                            const encryptedAuditAgencyId = encrypt(obj.auditAgencyId);
+                            const matchingStatus = users.find(item => item.userId === encryptedAuditAgencyId);
+                            if (matchingStatus && matchingStatus.status) {
+                                return { ...obj, accountStatus: matchingStatus.status, status: obj.agencyStatus === 'Active' ? matchingStatus.status : obj.agencyStatus };
+                            }
+                            return obj;
+                        });
+                        setAllAuditAgencyList(withAccounts);
+                    })
+                    .catch((err) => {
+                        console.error('Error fetching audit agency logins:', err);
+                    });
             })
             .catch((err) => {
                 console.error('Error fetching audit agencies:', err);
@@ -139,12 +139,12 @@ const ViewAuditAgency = () => {
         console.log("cid=-=-->",cid)
         const intent = allAuditAgencyList.find((obj) => obj.auditAgencyId === (cid));
         console.log(intent)
-        const status = intent.status;
+        const status = intent.agencyStatus || intent.status;
 
         console.log('status=---->',status);
         showAlert({
             messageTitle: 'Verify Intent Details',
-            messageContent: <ViewAuditAgencyDetails auditAgency={intent} />,
+            messageContent: <ViewAuditAgencyDetails auditAgency={{ ...intent, status }} />,
             confirmText: status==='Active'?'Ok':'Verify',
             onConfirm: status==='Active'?'':() => verify(intent),
             enableHeaderCloseBtn: true,

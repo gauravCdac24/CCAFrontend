@@ -25,7 +25,44 @@ const VisuallyHiddenInput = styled('input')({
     border: '0',
 });
 
+const ID_CARD_OPTIONS = [
+    { value: 'passport', label: 'Passport Details' },
+    { value: 'voter', label: "Voter's Identity Details" },
+    { value: 'pan', label: 'Income Tax PAN Details' },
+];
+
+const emptyPassportDetails = {
+    passportName: 'Passport',
+    appDocId: '',
+    passportNo: '',
+    passportIssuingAuthority: '',
+    passportExpiryDate: null,
+    file1: '',
+};
+
+const emptyVoterDetails = {
+    voterCardName: 'VoterCard',
+    appDocId: '',
+    voterIdNo: '',
+    file2: '',
+};
+
+const emptyPanDetails = {
+    panCardName: 'PanCard',
+    appDocId: '',
+    incomeTaxPanNo: '',
+    file3: '',
+};
+
+const hasIdDocument = (file, appDocId) => {
+    if (appDocId) return true;
+    if (!file) return false;
+    if (typeof file === 'string') return file.trim() !== '';
+    return true;
+};
+
 const errorMessages = {
+    idCardType: 'Please select ID Card details.',
     atLeastOne: "At least one field must be filled in either Votar Card Details, Pan Card Details and Passport Details.",
     creditcardtype: 'Credit Card Type is required.',
     creditCardNo: {
@@ -88,6 +125,7 @@ const FinancialDetails = ({handleNext,handleBack}) => {
             file4: '',
  
        },
+        idCardType: '',
         creditcardtype: '',
         creditCardNo: '',
         issuedBy: '',
@@ -166,9 +204,20 @@ const isFieldEnabled = (fieldName) => {
                     const voterDoc = applicationDocument.find(doc => doc.documentTitle === 'idCardDocument') || {};
                     const panDoc = applicationDocument.find(doc => doc.documentTitle === 'panCardDocument') || {};
                     const capitalDoc = applicationDocument.find(doc => doc.documentTitle === 'capitalDocument') || {};
+                    const hasPassport = Boolean(
+                        indivAdditionalDetails.passportNo
+                        || indivAdditionalDetails.passportIssuingAuthority
+                        || indivAdditionalDetails.passportExpiryDate
+                        || passportDoc.appDocId
+                        || passportDoc.fileName
+                    );
+                    const hasVoter = Boolean(indivAdditionalDetails.voterId || voterDoc.appDocId || voterDoc.fileName);
+                    const hasPan = Boolean(indivAdditionalDetails.pan || panDoc.appDocId || panDoc.fileName);
+                    const idCardType = hasPassport ? 'passport' : hasVoter ? 'voter' : hasPan ? 'pan' : '';
     
                     // Set the form values
                     setBasicDetailsFormValues({
+                        idCardType,
                         passportDetails: {
                             passportName: 'Passport',
                             passportNo: indivAdditionalDetails.passportNo || '',
@@ -277,22 +326,48 @@ const handleChange = (e) => {
     });
 };
 
-// Handle Date changes
-const handleDateChange = (name, date) => {
-    const isValidDate = (date) => {
-        return dayjs(date).isValid();
-    };
+const handleIdCardTypeChange = (event) => {
+    const { value } = event.target;
 
-    if (!isValidDate(date)) {
-        console.error('Invalid date:', date);
-        return;
+    setBasicDetailsFormValues((prevState) => ({
+        ...prevState,
+        idCardType: value,
+        passportDetails: value === 'passport' ? prevState.passportDetails : { ...emptyPassportDetails },
+        CardDetails: value === 'voter' ? prevState.CardDetails : { ...emptyVoterDetails },
+        PanCardDetails: value === 'pan' ? prevState.PanCardDetails : { ...emptyPanDetails },
+    }));
+
+    if (value !== 'passport') {
+        setFileName1('');
+        setFileInputKey1(Date.now());
+    }
+    if (value !== 'voter') {
+        setFileName2('');
+        setFileInputKey2(Date.now() + 1);
+    }
+    if (value !== 'pan') {
+        setFileName3('');
+        setFileInputKey3(Date.now() + 2);
     }
 
-    const formatDate = (date) => {
-        return dayjs(date).format('YYYY-MM-DD');
-    };
+    setFormErrors((prevErrors) => ({
+        ...prevErrors,
+        idCardType: '',
+        general: '',
+        passportNo: '',
+        passportIssuingAuthority: '',
+        passportExpiryDate: '',
+        file1: '',
+        voterIdNo: '',
+        file2: '',
+        incomeTaxPanNo: '',
+        file3: '',
+    }));
+};
 
-    const formattedDate = formatDate(date);
+// Handle Date changes
+const handleDateChange = (name, date) => {
+    const formattedDate = date && dayjs(date).isValid() ? dayjs(date).format('YYYY-MM-DD') : '';
 
     setBasicDetailsFormValues(prevState => {
         switch (name) {
@@ -496,33 +571,57 @@ const handleFileChange4 = (e) => {
 
     const validateForm = (basicDetailsFormValues) => {
         const errors = {};
+        const useIdCardDropdown = Number(appTypeMasterId) !== 4;
 
-        const cardDetails = basicDetailsFormValues.CardDetails;
-    const panCardDetails = basicDetailsFormValues.PanCardDetails;
-    const professionalDetails = basicDetailsFormValues.ProfessionalDetails;
+        if (useIdCardDropdown) {
+            if (!basicDetailsFormValues.idCardType) {
+                errors.idCardType = errorMessages.idCardType;
+            } else if (basicDetailsFormValues.idCardType === 'passport') {
+                const passportDetails = basicDetailsFormValues.passportDetails;
+                if (!passportDetails.passportNo) errors.passportNo = errorMessages.passportNo;
+                if (!passportDetails.passportIssuingAuthority) errors.passportIssuingAuthority = errorMessages.passportIssuingAuthority;
+                if (!passportDetails.passportExpiryDate || !dayjs(passportDetails.passportExpiryDate).isValid()) {
+                    errors.passportExpiryDate = errorMessages.passportExpiryDate.required;
+                } else if (!dayjs(passportDetails.passportExpiryDate).isAfter(dayjs(), 'day')) {
+                    errors.passportExpiryDate = errorMessages.passportExpiryDate.past;
+                }
+                if (!hasIdDocument(passportDetails.file1, passportDetails.appDocId)) errors.file1 = errorMessages.file1;
+            } else if (basicDetailsFormValues.idCardType === 'voter') {
+                const cardDetails = basicDetailsFormValues.CardDetails;
+                if (!cardDetails.voterIdNo) errors.voterIdNo = errorMessages.voterIdNo;
+                if (!hasIdDocument(cardDetails.file2, cardDetails.appDocId)) errors.file2 = errorMessages.file2;
+            } else if (basicDetailsFormValues.idCardType === 'pan') {
+                const panCardDetails = basicDetailsFormValues.PanCardDetails;
+                if (!panCardDetails.incomeTaxPanNo) errors.incomeTaxPanNo = errorMessages.incomeTaxPanNo;
+                if (!hasIdDocument(panCardDetails.file3, panCardDetails.appDocId)) errors.file3 = errorMessages.file3;
+            }
+        } else {
+            const cardDetails = basicDetailsFormValues.CardDetails;
+            const panCardDetails = basicDetailsFormValues.PanCardDetails;
+            const professionalDetails = basicDetailsFormValues.ProfessionalDetails;
+            const isCardDetailsEmpty = !cardDetails.appDocId && !cardDetails.voterIdNo && !cardDetails.file2;
+            const isPanCardDetailsEmpty = !panCardDetails.appDocId && !panCardDetails.incomeTaxPanNo && !panCardDetails.file3;
+            const isProfessionalDetailsEmpty = !professionalDetails.appDocId && !professionalDetails.capital && !professionalDetails.file4;
 
-    const isCardDetailsEmpty = !cardDetails.appDocId && !cardDetails.voterIdNo && !cardDetails.file2;
-    const isPanCardDetailsEmpty = !panCardDetails.appDocId && !panCardDetails.incomeTaxPanNo && !panCardDetails.file3;
-    const isProfessionalDetailsEmpty = !professionalDetails.appDocId && !professionalDetails.capital && !professionalDetails.file4;
+            if (isCardDetailsEmpty && isPanCardDetailsEmpty && isProfessionalDetailsEmpty) {
+                errors.general = errorMessages.atLeastOne;
+            }
 
-    if (isCardDetailsEmpty && isPanCardDetailsEmpty && isProfessionalDetailsEmpty) {
-        errors.general = errorMessages.atLeastOne; // General error if all are empty
-    }
+            const passportExpiry = basicDetailsFormValues.passportDetails?.passportExpiryDate;
+            if (passportExpiry) {
+                if (!dayjs(passportExpiry).isValid()) {
+                    errors.passportExpiryDate = errorMessages.passportExpiryDate.required;
+                } else if (!dayjs(passportExpiry).isAfter(dayjs(), 'day')) {
+                    errors.passportExpiryDate = errorMessages.passportExpiryDate.past;
+                }
+            }
+        }
         
       
         if (!basicDetailsFormValues.ispName) errors.ispName = errorMessages.ispName;
       
           if (!/^https?:\/\/[^\s]+$/.test(basicDetailsFormValues.webPageURL)) {
             errors.webPageURL = errorMessages.webPageURL.format;
-        }
-
-        const passportExpiry = basicDetailsFormValues.passportDetails?.passportExpiryDate;
-        if (passportExpiry) {
-            if (!dayjs(passportExpiry).isValid()) {
-                errors.passportExpiryDate = errorMessages.passportExpiryDate.required;
-            } else if (!dayjs(passportExpiry).isAfter(dayjs(), 'day')) {
-                errors.passportExpiryDate = errorMessages.passportExpiryDate.past;
-            }
         }
         
         // Validate Professional Details
@@ -566,33 +665,49 @@ const handleFileChange4 = (e) => {
     formData.append('useName', userName);
     formData.append('indivAdditionalDetailsId', basicDetailsFormValues.indivAdditionalDetailsId);
 
+    const useIdCardDropdown = Number(appTypeMasterId) !== 4;
+    const selectedIdCard = basicDetailsFormValues.idCardType;
+    const passportDetails = !useIdCardDropdown || selectedIdCard === 'passport'
+        ? basicDetailsFormValues.passportDetails
+        : emptyPassportDetails;
+    const voterDetails = !useIdCardDropdown || selectedIdCard === 'voter'
+        ? basicDetailsFormValues.CardDetails
+        : emptyVoterDetails;
+    const panDetails = !useIdCardDropdown || selectedIdCard === 'pan'
+        ? basicDetailsFormValues.PanCardDetails
+        : emptyPanDetails;
+
     // Append nested passport details
-    formData.append('passportappDocId', basicDetailsFormValues.passportDetails.appDocId);
-    formData.append('passportName', basicDetailsFormValues.passportDetails.passportName);
-    formData.append('passportNo', basicDetailsFormValues.passportDetails.passportNo);
-    formData.append('passportIssuingAuthority', basicDetailsFormValues.passportDetails.passportIssuingAuthority);
-    formData.append('passportExpiryDate', basicDetailsFormValues.passportDetails.passportExpiryDate);
-    if (basicDetailsFormValues.passportDetails.file1) {
-        formData.append('file1', basicDetailsFormValues.passportDetails.file1);
-        formData.append('fileName1',basicDetailsFormValues.passportDetails.file1)
+    formData.append('passportappDocId', passportDetails.appDocId);
+    formData.append('passportName', passportDetails.passportName);
+    formData.append('passportNo', passportDetails.passportNo);
+    formData.append('passportIssuingAuthority', passportDetails.passportIssuingAuthority);
+    const passportExpiry = passportDetails.passportExpiryDate;
+    formData.append(
+        'passportExpiryDate',
+        passportExpiry && dayjs(passportExpiry).isValid() ? dayjs(passportExpiry).format('YYYY-MM-DD') : ''
+    );
+    if (passportDetails.file1 instanceof File) {
+        formData.append('file1', passportDetails.file1);
+        formData.append('fileName1', passportDetails.file1.name);
     }
 
     // Append nested voter card details
-    formData.append('votarappDocId', basicDetailsFormValues.CardDetails.appDocId);
-    formData.append('voterCardName', basicDetailsFormValues.CardDetails.voterCardName);
-    formData.append('voterIdNo', basicDetailsFormValues.CardDetails.voterIdNo);
-    if (basicDetailsFormValues.CardDetails.file2) {
-        formData.append('file2', basicDetailsFormValues.CardDetails.file2);
-        formData.append('fileName2',basicDetailsFormValues.CardDetails.file2)
+    formData.append('votarappDocId', voterDetails.appDocId);
+    formData.append('voterCardName', voterDetails.voterCardName);
+    formData.append('voterIdNo', voterDetails.voterIdNo);
+    if (voterDetails.file2 instanceof File) {
+        formData.append('file2', voterDetails.file2);
+        formData.append('fileName2', voterDetails.file2.name);
     }
 
     // Append nested PAN card details
-    formData.append('panappDocId', basicDetailsFormValues.PanCardDetails.appDocId);
-    formData.append('panCardName', basicDetailsFormValues.PanCardDetails.panCardName);
-    formData.append('incomeTaxPanNo', basicDetailsFormValues.PanCardDetails.incomeTaxPanNo);
-    if (basicDetailsFormValues.PanCardDetails.file3) {
-        formData.append('file3', basicDetailsFormValues.PanCardDetails.file3);
-        formData.append('fileName3',basicDetailsFormValues.PanCardDetails.file3)
+    formData.append('panappDocId', panDetails.appDocId);
+    formData.append('panCardName', panDetails.panCardName);
+    formData.append('incomeTaxPanNo', panDetails.incomeTaxPanNo);
+    if (panDetails.file3 instanceof File) {
+        formData.append('file3', panDetails.file3);
+        formData.append('fileName3', panDetails.file3.name);
     }
 
     // Append nested professional details
@@ -672,6 +787,12 @@ const handleFileChange4 = (e) => {
                 console.error('Error downloading file:', error);
             }
         };
+
+    const showIdCardDropdown = Number(appTypeMasterId) !== 4;
+    const selectedIdCard = basicDetailsFormValues.idCardType;
+    const showPassportFields = !showIdCardDropdown || selectedIdCard === 'passport';
+    const showVoterFields = !showIdCardDropdown || selectedIdCard === 'voter';
+    const showPanFields = !showIdCardDropdown || selectedIdCard === 'pan';
 
     return (
         <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleFormSubmit}>
@@ -761,13 +882,43 @@ const handleFileChange4 = (e) => {
 
 </Grid>
             </Grid>
+            {showIdCardDropdown && (
+                <Grid container spacing={2}>
+                    <Grid item xs={12} sm={4}>
+                        <InputLabel shrink={false} htmlFor="idCardType">
+                            <Typography variant='body1'>ID Card Details<span className="req-asterisk">*</span></Typography>
+                        </InputLabel>
+                        <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }} error={!!formErrors.idCardType}>
+                            <Select
+                                id="idCardType"
+                                displayEmpty
+                                name="idCardType"
+                                value={selectedIdCard}
+                                onChange={handleIdCardTypeChange}
+                                disabled={!(isFieldEnabled("passportNo") || isFieldEnabled("voterIdNo") || isFieldEnabled("incomeTaxPanNo"))}
+                            >
+                                <MenuItem disabled value="">
+                                    Select ID Card Details
+                                </MenuItem>
+                                {ID_CARD_OPTIONS.map((option) => (
+                                    <MenuItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            {formErrors.idCardType && <FormHelperText sx={{ ml: 0 }} error>{formErrors.idCardType}</FormHelperText>}
+                        </FormControl>
+                    </Grid>
+                </Grid>
+            )}
+            {showPassportFields && (
+            <>
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"passportNo"}>
-                        <Typography variant='body1'>Passport No</Typography>
+                        <Typography variant='body1'>Passport No{showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
                     </InputLabel>
                     <TextField
-                        required
                         name='passportNo'
                         placeholder="Passport No."
                         fullWidth
@@ -785,10 +936,9 @@ const handleFileChange4 = (e) => {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"passportIssuingAuthority"}>
-                        <Typography variant='body1'>Passport Issuing Authority</Typography>
+                        <Typography variant='body1'>Passport Issuing Authority{showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
                     </InputLabel>
                     <TextField
-                        required
                         name='passportIssuingAuthority'
                         placeholder="Passport Issuing Authority"
                         error={!!(formErrors.passportIssuingAuthority && formErrors.passportIssuingAuthority)}
@@ -808,7 +958,7 @@ const handleFileChange4 = (e) => {
             <Grid container spacing={2}>
     <Grid item xs={12} sm>
         <InputLabel shrink={false} htmlFor={"passportExpiryDate"}>
-            <Typography variant='body1'>Passport Expiry Date</Typography>
+            <Typography variant='body1'>Passport Expiry Date{showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
         </InputLabel>
         <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
@@ -840,7 +990,7 @@ const handleFileChange4 = (e) => {
 
     <Grid item xs={12} sm>
         <InputLabel shrink={false} htmlFor={"pdffile"}>
-            <Typography variant='body1'>Upload Passport Document (Only PDF and Max allowed size 5 MB)</Typography>
+            <Typography variant='body1'>Upload Passport Document (Only PDF and Max allowed size 5 MB){showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
         </InputLabel>
 
         <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
@@ -895,11 +1045,14 @@ const handleFileChange4 = (e) => {
         </Grid>
     )}
 </Grid>
+            </>
+            )}
 
+            {showVoterFields && (
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"firstName"}>
-                        <Typography variant='body1'>Voter’s Identity Card No.</Typography>
+                        <Typography variant='body1'>Voter’s Identity Card No.{showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
                     </InputLabel>
 
                     <TextField
@@ -915,15 +1068,16 @@ const handleFileChange4 = (e) => {
                         error={!!(formErrors.voterIdNo && formErrors.voterIdNo)}
                         helperText={formErrors?.voterIdNo}
                         size="small"
+                        margin="dense"
                         inputProps={{ maxLength: 14 }}
                     />
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"pdffile"}>
-                        <Typography variant='body1'>Upload ID Card Document (Only PDF and Max allowed size 5 MB)</Typography>
+                        <Typography variant='body1'>Upload ID Card Document (Only PDF and Max allowed size 5 MB){showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
                     </InputLabel>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
+                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
                         <Grid item >
                             <Button
                                 component="label"
@@ -973,10 +1127,12 @@ const handleFileChange4 = (e) => {
         </Grid>
     )}
             </Grid>
+            )}
+            {showPanFields && (
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"incomTaxPanNo"}>
-                        <Typography variant='body1'>Income Tax PAN No.</Typography>
+                        <Typography variant='body1'>Income Tax PAN No.{showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -988,6 +1144,7 @@ const handleFileChange4 = (e) => {
                         helperText={formErrors?.incomeTaxPanNo}
                         placeholder="Income Tax PAN No."
                         fullWidth
+                        margin="dense"
                         value={basicDetailsFormValues.PanCardDetails.incomeTaxPanNo}
                         variant="outlined"
                         size='small'
@@ -996,10 +1153,10 @@ const handleFileChange4 = (e) => {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"pdffile"}>
-                        <Typography variant='body1'>Upload Pan Document (Only PDF and Max allowed size 5 MB)</Typography>
+                        <Typography variant='body1'>Upload Pan Document (Only PDF and Max allowed size 5 MB){showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
                     </InputLabel>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
+                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
                         <Grid item >
                             <Button
                                 component="label"
@@ -1049,6 +1206,7 @@ const handleFileChange4 = (e) => {
     )}
 
             </Grid>
+            )}
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
                     <Typography variant='h7' ><b>ISP Details<span className="req-asterisk">*</span>(15)</b></Typography>

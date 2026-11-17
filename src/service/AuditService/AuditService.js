@@ -412,6 +412,54 @@ const acceptAuditorRemarks = (obj) => {
 	return API.post(AUDIT_SERVICE+"/accept-auditor-remarks",obj)
 }
 
+const getMultiAuditorEsignStatus = (userName) => {
+	return API.get(AUDIT_SERVICE + "/multi-auditor-esign-status", {
+		params: { userName },
+	});
+};
+
+const prepareAuditorEsign = (userName, appAuditorId) => {
+	const formData = new FormData();
+	formData.append("userName", userName);
+	formData.append("appAuditorId", appAuditorId);
+	return API.post(AUDIT_SERVICE + "/prepare-auditor-esign", formData);
+};
+
+const getAcceptanceLetterStatus = (userName) => {
+	return API.get(AUDIT_SERVICE + "/acceptance-letter-status", {
+		params: { userName },
+	});
+};
+
+const markAcceptanceDownloaded = (userName) => {
+	const formData = new FormData();
+	formData.append("userName", userName);
+	return API.post(AUDIT_SERVICE + "/mark-acceptance-downloaded", formData);
+};
+
+const uploadAcceptanceLetter = (userName, file) => {
+	const formData = new FormData();
+	formData.append("userName", userName);
+	formData.append("file", file);
+	return API.post(AUDIT_SERVICE + "/upload-acceptance-letter", formData, {
+		headers: { "Content-Type": "multipart/form-data" },
+	});
+};
+
+const downloadUploadedAcceptanceLetter = (userName) => {
+	return API.get(AUDIT_SERVICE + "/download-uploaded-acceptance-letter", {
+		params: { userName },
+		responseType: "blob",
+		...sconfig,
+	});
+};
+
+const prepareAcceptanceEsign = (userName) => {
+	const formData = new FormData();
+	formData.append("userName", userName);
+	return API.post(AUDIT_SERVICE + "/prepare-acceptance-esign", formData);
+};
+
 export default{
 
     addNewAuditAgencySlection,
@@ -462,4 +510,11 @@ export default{
 				getByAllAuditorRemarksByApplicantUserName,
 				viewAuditReport,
 				acceptAuditorRemarks,
+				getMultiAuditorEsignStatus,
+				prepareAuditorEsign,
+				getAcceptanceLetterStatus,
+				markAcceptanceDownloaded,
+				uploadAcceptanceLetter,
+				downloadUploadedAcceptanceLetter,
+				prepareAcceptanceEsign,
             };

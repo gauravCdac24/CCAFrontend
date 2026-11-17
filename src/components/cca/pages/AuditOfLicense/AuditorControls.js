@@ -412,8 +412,8 @@ const downloadfile = async ( documentTitle) => {
                               <React.Fragment key={`parameter-${paramIndex}`}>
                                <TableRow
   sx={{
-    pointerEvents: parameter.isDisabled ? "none" : "auto", // Disable interaction if `isDisabled` is true
-    opacity: parameter.isDisabled ? 0.5 : 1,             // Reduce opacity for a disabled look
+    pointerEvents: parameter.isDisabled ? "none" : "auto", 
+    opacity: parameter.isDisabled ? 0.5 : 1,             
   }}
 >
   <TableCell
@@ -421,7 +421,7 @@ const downloadfile = async ( documentTitle) => {
     sx={{
       border: 0.5,
       fontWeight: "bold",
-      color: parameter.isDisabled ? "gray" : "inherit",  // Muted color if disabled
+      color: parameter.isDisabled ? "gray" : "inherit",  
     }}
   >
     {parameter.auditParameter}
@@ -471,8 +471,8 @@ const downloadfile = async ( documentTitle) => {
   <FormControlLabel
     control={
       <Radio
-        checked={complianceValues[controlIndex] === "N/A"} // Check if the compliance value for this row is "N/A"
-        onChange={() => handleRadioChange("N/A", controlIndex)} // Update the compliance value for this row
+        checked={complianceValues[controlIndex] === "N/A"} 
+        onChange={() => handleRadioChange("N/A", controlIndex)} 
         value="N/A" // Set the value for "N/A"
         name={`compliance-${controlIndex}`}
       />

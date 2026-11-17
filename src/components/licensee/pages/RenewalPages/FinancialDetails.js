@@ -279,20 +279,7 @@ const handleChange = (e) => {
 
 // Handle Date changes
 const handleDateChange = (name, date) => {
-    const isValidDate = (date) => {
-        return dayjs(date).isValid();
-    };
-
-    if (!isValidDate(date)) {
-        console.error('Invalid date:', date);
-        return;
-    }
-
-    const formatDate = (date) => {
-        return dayjs(date).format('YYYY-MM-DD');
-    };
-
-    const formattedDate = formatDate(date);
+    const formattedDate = date && dayjs(date).isValid() ? dayjs(date).format('YYYY-MM-DD') : '';
 
     setBasicDetailsFormValues(prevState => {
         switch (name) {
@@ -571,7 +558,11 @@ const handleFileChange4 = (e) => {
     formData.append('passportName', basicDetailsFormValues.passportDetails.passportName);
     formData.append('passportNo', basicDetailsFormValues.passportDetails.passportNo);
     formData.append('passportIssuingAuthority', basicDetailsFormValues.passportDetails.passportIssuingAuthority);
-    formData.append('passportExpiryDate', basicDetailsFormValues.passportDetails.passportExpiryDate);
+    const passportExpiry = basicDetailsFormValues.passportDetails.passportExpiryDate;
+    formData.append(
+        'passportExpiryDate',
+        passportExpiry && dayjs(passportExpiry).isValid() ? dayjs(passportExpiry).format('YYYY-MM-DD') : ''
+    );
     if (basicDetailsFormValues.passportDetails.file1) {
         formData.append('file1', basicDetailsFormValues.passportDetails.file1);
         formData.append('fileName1',basicDetailsFormValues.passportDetails.file1)
@@ -767,7 +758,6 @@ const handleFileChange4 = (e) => {
                         <Typography variant='body1'>Passport No</Typography>
                     </InputLabel>
                     <TextField
-                        required
                         name='passportNo'
                         placeholder="Passport No."
                         fullWidth
@@ -788,7 +778,6 @@ const handleFileChange4 = (e) => {
                         <Typography variant='body1'>Passport Issuing Authority</Typography>
                     </InputLabel>
                     <TextField
-                        required
                         name='passportIssuingAuthority'
                         placeholder="Passport Issuing Authority"
                         error={!!(formErrors.passportIssuingAuthority && formErrors.passportIssuingAuthority)}

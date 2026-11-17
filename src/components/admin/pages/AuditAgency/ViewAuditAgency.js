@@ -53,7 +53,7 @@ const ViewAuditAgency = () => {
         setLoading(true);
         AuditAgency.changeAuditAgencyStatus(id)
         .then((response)=>{
-
+            getAllAuditAgency();
         })
         .catch((err)=>{
 

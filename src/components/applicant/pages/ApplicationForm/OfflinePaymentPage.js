@@ -18,6 +18,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import showAlert from '../../../global/common/MessageBox/AlertService';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
+import { bankNames } from '../../../global/util/bankNames';
 
 const TRANSACTION_TYPES = {
   DEMAND_DRAFT: 'Demand Draft',
@@ -68,24 +69,6 @@ const OfflinePaymentPage = forwardRef(({ cid, submitPayment, redirectPath = '/ap
   const [formErrors, setFormErrors] = useState({
     bankDraft: {},
   });
-
-  const bankNames = [
-    'State Bank of India',
-    'HDFC Bank',
-    'ICICI Bank',
-    'Axis Bank',
-    'Punjab National Bank',
-    'Bank of Baroda',
-    'Canara Bank',
-    'Union Bank of India',
-    'Kotak Mahindra Bank',
-    'Bank of India',
-    'IndusInd Bank',
-    'Central Bank of India',
-    'Indian Bank',
-    'Indian Overseas Bank',
-    'Bank of Maharashtra',
-  ];
 
   const isFieldEnabled = () => paymentMode === 'offline';
   const transactionType = basicDetailsFormValues.bankDraft.transactionType;

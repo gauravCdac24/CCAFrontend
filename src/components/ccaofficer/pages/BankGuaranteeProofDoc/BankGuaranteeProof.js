@@ -8,6 +8,7 @@ import { styled } from '@mui/material/styles';
 import LicenseIssuanceService from '../../../../service/LicenseIssuanceService/LicenseIssuanceService';
 import ValidatePattern from '../../../global/util/ValidatePattern';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
+import { bankNames } from '../../../global/util/bankNames';
 
 const VisuallyHiddenInput = styled('input')({
     position: 'absolute',
@@ -19,24 +20,6 @@ const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0,0,0,0)',
     border: '0',
 });
-
-const bankNames = [
-    "State Bank of India",
-    "HDFC Bank",
-    "ICICI Bank",
-    "Axis Bank",
-    "Punjab National Bank",
-    "Bank of Baroda",
-    "Canara Bank",
-    "Union Bank of India",
-    "Kotak Mahindra Bank",
-    "Bank of India",
-    "IndusInd Bank",
-    "Central Bank of India",
-    "Indian Bank",
-    "Indian Overseas Bank",
-    "Bank of Maharashtra"
-];
 
 const DATE_PLACEHOLDER = 'DD-MM-YYYY';
 

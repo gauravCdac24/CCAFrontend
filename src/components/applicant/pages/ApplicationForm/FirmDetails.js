@@ -180,7 +180,7 @@ const FirmDetails = ({handleNext,handleFormDataChange   }) => {
                     });
     
                     // You can also filter states and cities here as needed
-                    const filteredStates = states.filter(state => state.countryId.countryId === parseInt(residentialData.country));
+                    const filteredStates = states.filter(state => state.countryId.countryId === parseInt(residentialData.country) && state.status === 'Active');
                     setFilteredStates(filteredStates);
     
                     const filteredCities = cities.filter(city => city.stateId.stateId === parseInt(residentialData.state));
@@ -431,7 +431,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
         // Handle country change
         if (name === "country") {
-            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value));
+            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
             setFilteredStates(filteredStates);
             updatedValues.state = '';
             updatedValues.city = '';
@@ -449,7 +449,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
         // Handle country change
         if (name === "country1") {
-            const filteredState = states.filter(state => state.countryId.countryId === parseInt(value));
+            const filteredState = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
             setFilteredState(filteredState);
             updatedsValues.state1 = '';
             updatedValues.city1 = '';
@@ -720,7 +720,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                             <MenuItem disabled value="">
                                  Select Country
                             </MenuItem>
-                            {countries.map(country => (
+                            {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(communicationAddressFormValues.country)).map(country => (
                                 <MenuItem key={country.countryId} value={country.countryId}>
                                     {country.countryName}
                                 </MenuItem>

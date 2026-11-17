@@ -2070,24 +2070,19 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 } else {
     delete errors.partnerDetails[index].general;
 
-    // Validate passport fields only if passportNo is filled
-    if (partner.passposrtNo) {
-        if (!partner.passportIssuingAthority) {
-            errors.partnerDetails[index].passportIssuingAuthority = errorMsg.passportIssuingAuthority;
+    // Passport number, issuing authority, and expiry are optional.
+    // Check the date only when the applicant entered one.
+    delete errors.partnerDetails[index].passportIssuingAuthority;
+    delete errors.partnerDetails[index].passportIssuingAthority;
+    if (partner.passportExpirydate) {
+        if (!dayjs(partner.passportExpirydate).isValid() || !dayjs(partner.passportExpirydate).isAfter(dayjs(), 'day')) {
+            errors.partnerDetails[index].passportExpirydate = errorMsg.passportExpiryDate.past;
         } else {
-            delete errors.partnerDetails[index].passportIssuingAuthority;
-        }
-
-        if (!partner.passportExpirydate) {
-            errors.partnerDetails[index].passportExpiryDate = errorMsg.passportExpiryDate.required;
-        } else if (!dayjs(partner.passportExpirydate).isValid() || !dayjs(partner.passportExpirydate).isAfter(dayjs(), 'day')) {
-            errors.partnerDetails[index].passportExpiryDate = errorMsg.passportExpiryDate.past;
-        } else {
-            delete errors.partnerDetails[index].passportExpiryDate;
+            delete errors.partnerDetails[index].passportExpirydate;
         }
     } else {
-        delete errors.partnerDetails[index].passportIssuingAuthority;
         delete errors.partnerDetails[index].passportExpiryDate;
+        delete errors.partnerDetails[index].passportExpirydate;
     }
 
     // Validate voterCardNo only if it is filled
@@ -2187,7 +2182,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     
         // Handle country change
         if (name === "country") {
-            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value));
+            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
             setFilteredState(filteredStates);
             // Reset state and city when country changes
             updatedPartner.state = '';
@@ -2212,22 +2207,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     
 
     const handleDateChange = (name, date, index) => {
-        console.log('Current State:', communicationAddressFormValues);
-
-        const isValidDate = (date) => {
-            return dayjs(date).isValid();
-        };
-
-        if (!isValidDate(date)) {
-            console.error('Invalid date:', date);
-            return;
-        }
-
-        const formatDate = (date) => {
-            return dayjs(date).format('YYYY-MM-DD');
-        };
-
-        const formattedDate = formatDate(date);
+        const formattedDate = date && dayjs(date).isValid() ? dayjs(date).format('YYYY-MM-DD') : '';
 
         setCommunicationAddressFormValues(prevValues => {
             console.log('Previous Values:', prevValues);
@@ -2527,7 +2507,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     
                         if (currentCountryId && currentStateId) {
                             // Filter states and cities based on current country and state
-                            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(currentCountryId));
+                            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(currentCountryId) && state.status === 'Active');
                             const filteredCities = cities.filter(city => city.stateId.stateId === parseInt(currentStateId));
     
                             setFilteredState(filteredStates);
@@ -2930,7 +2910,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 <MenuItem disabled value="">
                     Select Country
                 </MenuItem>
-                {countries.map(country => (
+                {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(communicationAddressFormValues.partnerDetails[index]?.country)).map(country => (
                     <MenuItem key={country.countryId} value={country.countryId}>
                         {country.countryName}
                     </MenuItem>
@@ -3299,7 +3279,6 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 <Typography variant='body1'>Passport No</Typography>
                             </InputLabel>
                             <TextField
-                                required
                                 name='passposrtNo'
                                 placeholder="Passport No."
                                 fullWidth
@@ -3320,7 +3299,6 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 <Typography variant='body1'>Passport Issuing Authority</Typography>
                             </InputLabel>
                             <TextField
-                                required
                                 name='passportIssuingAthority'
                                 placeholder="Passport Issuing Authority"
                                 fullWidth

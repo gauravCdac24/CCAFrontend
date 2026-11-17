@@ -170,7 +170,7 @@ const CCADashboard = () =>{
       const states = await StateService.getAllStateList();
                     
       const filteredStates = states.data.filter(
-        state => state.countryId.countryName === 'India'
+        state => state.countryId.countryName === 'India' && state.status === 'Active'
       );
 
       const list = filteredStates?.map((obj, index) => {

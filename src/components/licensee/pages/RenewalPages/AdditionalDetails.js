@@ -12,6 +12,7 @@ import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/app
 import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
 import CheckboxTreeView, { MUI_X_PRODUCTS } from './CheckboxTreeView'
 import { defaultSelectedIds, idsFromServiceLabels, selectedServiceLabels, serviceFlagsFromLabels } from '../../../global/util/applicationServices';
+import { bankNames } from '../../../global/util/bankNames';
 
 const errorMessages = {
   bankName: {
@@ -43,24 +44,6 @@ const errorMessages = {
 
 
 const AdditionalDetails = ({ handleNext, handleBack }) => {
-
-  const bankNames = [
-    "State Bank of India",
-    "HDFC Bank",
-    "ICICI Bank",
-    "Axis Bank",
-    "Punjab National Bank",
-    "Bank of Baroda",
-    "Canara Bank",
-    "Union Bank of India",
-    "Kotak Mahindra Bank",
-    "Bank of India",
-    "IndusInd Bank",
-    "Central Bank of India",
-    "Indian Bank",
-    "Indian Overseas Bank",
-    "Bank of Maharashtra"
-];
 
   const userName = useSelector((state)=>state.jwtAuthentication.username);
   const appTypeMasterId= useSelector((state)=>state.licenseApplication.applicationType);

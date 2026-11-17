@@ -190,7 +190,7 @@ const IntentRegistration = () => {
     }, []);
     
     useEffect(() => {
-        CountryService.getAllCountryList().then(data => {
+        CountryService.getAllActiveCountryList().then(data => {
             setCountry(data.data);
             console.log("Fetched country:",countries); 
 
@@ -242,7 +242,7 @@ const IntentRegistration = () => {
         const { name, value } = e.target;
 
         if (name === "country") {
-            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value));
+            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
             setFilteredStates(filteredStates);
             console.log("filteredStates==>",filteredStates)
             setIntentFormValues({
@@ -813,7 +813,7 @@ const IntentRegistration = () => {
                                     <MenuItem value="">
                                         Select Country
                                     </MenuItem>
-                                    {countries.map(country => (
+                                    {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(intentFormValues.country)).map(country => (
                                         <MenuItem key={country.countryId} value={country.countryId}>
                                             {country.countryName}
                                         </MenuItem>

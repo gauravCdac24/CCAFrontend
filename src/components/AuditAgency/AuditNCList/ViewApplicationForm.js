@@ -6,7 +6,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import showAlert from "../../global/common/MessageBox/AlertService";
 import dateFormatter from "../../global/util/DateFormatter";
 import CustomTable from "../../global/util/CustomTable";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { encrypt, decrypt } from "../../global/util/EncryptDecrypt";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -26,6 +26,7 @@ const ViewNewApplicationForm = () => {
   const [isAppTypeFound, setAppTypeFound] = useState(false);
   const label = { inputProps: { "aria-label": "Switch" } };
   const navigate = useNavigate();
+  const location = useLocation();
 
   const userName = useSelector((state) => state.jwtAuthentication.username);
   const [allApplicationTypeList, setAllApplicationTypeList] = useState([]);
@@ -145,6 +146,20 @@ const ViewNewApplicationForm = () => {
     getAllApplicationType();
     getAllAuditorMain();
   }, [isAppTypeFound]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("auditorsEsignDone") === "1") {
+      showAlert({
+        messageTitle: "Auditors eSign",
+        messageContent:
+          "All auditors have completed eSign. The application is now at Pending Audit Acceptance for the applicant.",
+        confirmText: "Ok",
+      });
+      navigate(location.pathname, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const [applicationType, setApplicationType] = useState({
     appTypeMasterId: "",

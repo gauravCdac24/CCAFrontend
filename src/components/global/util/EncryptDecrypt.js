@@ -40,3 +40,18 @@ export const decrypt = (dataToDecrypt) => {
         return null;
     }
 };
+
+export const toLocationId = (value) => {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+    const raw = String(value).trim();
+    const decrypted = decrypt(raw);
+    if (decrypted && /^\d+$/.test(decrypted.trim())) {
+        return parseInt(decrypted.trim(), 10);
+    }
+    if (/^\d+$/.test(raw)) {
+        return parseInt(raw, 10);
+    }
+    return '';
+};

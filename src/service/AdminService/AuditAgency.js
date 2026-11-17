@@ -24,9 +24,6 @@ const ALL_USER="/get-all-users";
 		},
 	}
 
-	const state = store.getState();
-const username = state.jwtAuthentication.username;
-
 const addNewAuditAgency = (objs)=>{
 	let obj = {...objs};
 	obj.country = encrypt(obj.country);
@@ -68,6 +65,7 @@ const getAuditAgencyList = () =>{
 }
 
 const changeAuditAgencyStatus = (id) =>{
+	const username = store.getState().jwtAuthentication.username;
 	return API.get(ADMIN_SERVICE+CHANGE_AUDIT_AGENCY_STATUS,{
 		params:{
 			id:encrypt(id),
@@ -83,7 +81,7 @@ const downloadFile = ()=>{
 }
 
 const getAuditAgencyById = (id) =>{
-
+	const username = store.getState().jwtAuthentication.username;
 	return API.get(ADMIN_SERVICE+GET_AUDIT_AGENCY_BY_ID,{
 		params:{
 			id:encrypt(id),

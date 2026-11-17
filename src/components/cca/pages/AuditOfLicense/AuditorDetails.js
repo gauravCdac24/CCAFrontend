@@ -61,7 +61,6 @@ const errorMsg = {
 const AuditorDetails = (() => {
     const { id } = useParams();
     const ApplicantUserName = decrypt(id)
-    console.log(ApplicantUserName)
     const [audiAgencyFormValues, setAudiAgencyFormValues] = useState({ auditAgencyName: '', applicantUserName: ApplicantUserName, intentAppId: '', undertakingFileName: '', undertakingFile: null, auditors: [], auditorDesscription: [{ auditorName: '', certificateType: '', file: null, auditorDescriptionId: '', certificateName: '', certificateExpiry: '' }], auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '', auditScopeId: '' }] });
     const [formErrors, setFormErrors] = useState({});
     const [captchaText, setCaptchaText] = useState('');
@@ -77,8 +76,6 @@ const AuditorDetails = (() => {
 
         AuditService.getAuditorApplicationbyApplicatantUserName(ApplicantUserName)
             .then((response) => {
-                console.log('getAuditorApplicationbyApplicatantUserName:', response.data);
-
                 // Check if startDate and endDate are correctly parsed
                 const processDates = (dateStr) => {
                     if (!dateStr) return '';
@@ -140,8 +137,6 @@ const AuditorDetails = (() => {
             .finally(() => setLoading(false));
     };
 
-    console.log('audiAgencyFormValues===>:', audiAgencyFormValues);
-
     // Reset form values
     const handleReset = () => {
         setAudiAgencyFormValues((prev) => prev.map((formValue) => ({
@@ -177,9 +172,6 @@ const AuditorDetails = (() => {
             (agency) => agency.auditAgencyId === value
         );
 
-        console.log("Selected Agency:", selectedAgency); // Debugging selected agency
-        console.log("Before Update:", audiAgencyFormValues); // Debugging state before update
-
         setAudiAgencyFormValues((prev) => ({
             ...prev,
             [name]: value,
@@ -190,10 +182,6 @@ const AuditorDetails = (() => {
 
         console.log("After Update:", audiAgencyFormValues); // Debugging state after update
     };
-
-    // Options for dropdowns
-    const auditorNames = ['John Doe', 'Jane Smith', 'Alice Johnson'];
-    const certificateTypes = ['ISO 9001', 'ISO 27001', 'ISO 14001'];
 
     // Handle dropdown changes
     const handleSelectChange = (index, field, value) => {
@@ -349,7 +337,6 @@ const AuditorDetails = (() => {
         setLoading(true);
         AuditService.getAllAuditSelectionList()
           .then((response) => {
-            console.log('Audit Agencies Selection:', response.data);
       
             const auditAgencySelectionList = response.data || [];
             setAllAuditAgencySelectionList(auditAgencySelectionList);
@@ -364,14 +351,6 @@ const AuditorDetails = (() => {
                 (item) => item?.auditAgencyId === agency?.auditAgencyId
               )
             );
-      
-            console.log('Selected Agency:', selectedAgency);
-            console.log('Selected Agency Properties:', {
-              auditAgencyName: selectedAgency?.auditAgencyName,
-              phoneRecord: selectedAgency?.phoneRecord,
-              emailId: selectedAgency?.emailId,
-              auditors: selectedAgency?.auditors,
-            });
       
             setAudiAgencyFormValues((prev) => {
               const updatedFormValues = { ...prev };
@@ -434,7 +413,6 @@ const AuditorDetails = (() => {
 
 
     const handleConfrimSubmit = () => {
-        console.log("sfgydgc=====>", audiAgencyFormValues);
 
         const formData = new FormData();
 
@@ -501,8 +479,6 @@ const AuditorDetails = (() => {
             // Extract the filename from the Content-Disposition header
             const contentDisposition = response.headers['content-disposition'];
 
-            console.log(JSON.stringify(contentDisposition))
-
             const filename = documentTitle;
 
             link.setAttribute('download', filename);
@@ -531,9 +507,7 @@ const AuditorDetails = (() => {
             // Extract the filename from the Content-Disposition header
             const contentDisposition = response.headers['content-disposition'];
 
-            console.log(JSON.stringify(contentDisposition))
-
-            const filename = "AgencyUndertaking";
+            const filename = documentTitle;
 
             link.setAttribute('download', filename);
             document.body.appendChild(link);
@@ -576,7 +550,7 @@ const AuditorDetails = (() => {
     };
 
     const approvedFunction = () => {
-        console.log("sfgydgc=====>", audiAgencyFormValues);
+       
 
         const formData = new FormData();
 
@@ -631,7 +605,6 @@ const AuditorDetails = (() => {
     };
 
     const rejectedFunction = () => {
-        console.log("sfgydgc=====>", audiAgencyFormValues);
 
         const formData = new FormData();
 
@@ -775,7 +748,7 @@ const AuditorDetails = (() => {
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }} >Auditor Name</TableCell>
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>Certificate Type</TableCell>
                                             <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>Certificate Expiry</TableCell>
-                                            <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>File Upload</TableCell>
+                                            <TableCell sx={{ border: 0.5, borderColor: 'grey.100', fontWeight: 'bold' }}>File Upload (Only PDF and Max allowed size 5 MB)</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>

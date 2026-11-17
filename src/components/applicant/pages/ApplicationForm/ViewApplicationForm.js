@@ -26,6 +26,7 @@ import AuditAgencySelection from '../AuditAgencySelection/AuditAgencySelection';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import DownloadIcon from '@mui/icons-material/Download';
+import DrawIcon from '@mui/icons-material/Draw';
 import GovernmentAgencyForm from '../../../../service/NewLicenseService/GovernmentAgencyForm';
 import FirmApplicationForm from '../../../../service/NewLicenseService/FirmApplicationForm';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -39,6 +40,8 @@ import EsignService from '../../../../service/EsignService/EsignService';
 import OfflinePaymentPage from './OfflinePaymentPage';
 import { canSelectAuditAgency, hasLicenseAction } from '../../../global/util/licenseAcquisitionWorkflow';
 import printApplicationPreview from '../../../global/util/printApplicationPreview';
+import AuditService from '../../../../service/AuditService/AuditService';
+import AuditAcceptanceService from '../../../../service/AdminService/AuditAcceptanceService';
 
 
 const ViewApplicationForm = () => {
@@ -53,6 +56,8 @@ const ViewApplicationForm = () => {
     const signerFullName = useSelector((state) => state.jwtAuthentication.name);
     const [allApplicationTypeList, setAllApplicationTypeList] = useState([]);
     const [pdfUrl, setPdfUrl] = useState(null);
+    const [acceptanceLetterStatus, setAcceptanceLetterStatus] = useState("NONE");
+    const acceptanceFileInputRef = useRef(null);
 
 
     //------Manish
@@ -171,7 +176,160 @@ const ViewApplicationForm = () => {
         getAllApplicationForm();
     }, [allApplicationTypeList]);
 
-   
+    const loadAcceptanceLetterStatus = () => {
+        if (!userName) {
+            return;
+        }
+        AuditService.getAcceptanceLetterStatus(userName)
+            .then((response) => {
+                setAcceptanceLetterStatus(
+                    response?.data?.acceptanceLetterStatus || "NONE"
+                );
+            })
+            .catch(() => setAcceptanceLetterStatus("NONE"));
+    };
+
+    useEffect(() => {
+        const row = allApplicationFormList[0];
+        if (
+            row &&
+            (String(row.status || "").toLowerCase().includes("pending audit acceptance") ||
+                hasLicenseAction(row.allowedActions || [], "AUDIT_ACCEPTANCE"))
+        ) {
+            loadAcceptanceLetterStatus();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allApplicationFormList, userName]);
+
+    const downloadAuditAcceptanceLetter = async () => {
+        try {
+            setLoading(true);
+            const listRes = await AuditAcceptanceService.getAllActiveDocuments();
+            const activeList = Array.isArray(listRes?.data) ? listRes.data : [];
+            if (!activeList.length) {
+                showAlert({
+                    messageTitle: "Error",
+                    messageContent: "No active Audit Acceptance letter is available from admin master.",
+                    confirmText: "Ok",
+                });
+                return;
+            }
+            const activeDoc = activeList[0];
+            const fileRes = await AuditAcceptanceService.downloadFile(
+                activeDoc.auditAcceptanceId,
+                true
+            );
+            const blob = new Blob([fileRes.data], {
+                type: fileRes.headers["content-type"] || "application/pdf",
+            });
+            const link = document.createElement("a");
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute(
+                "download",
+                activeDoc.documentName || "AuditAcceptanceLetter.pdf"
+            );
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            await AuditService.markAcceptanceDownloaded(userName);
+            await loadAcceptanceLetterStatus();
+            getAllApplicationForm();
+        } catch (err) {
+            console.error(err);
+            showAlert({
+                messageTitle: "Error",
+                messageContent: "Unable to download the Audit acceptance letter.",
+                confirmText: "Ok",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAcceptanceUploadClick = () => {
+        if (acceptanceFileInputRef.current) {
+            acceptanceFileInputRef.current.value = "";
+            acceptanceFileInputRef.current.click();
+        }
+    };
+
+    const handleAcceptanceFileSelected = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+            return;
+        }
+        if (file.type && !String(file.type).includes("pdf")) {
+            showAlert({
+                messageTitle: "Validation Error",
+                messageContent: "Please upload a PDF Audit acceptance letter.",
+                confirmText: "Ok",
+            });
+            return;
+        }
+        try {
+            setLoading(true);
+            await AuditService.uploadAcceptanceLetter(userName, file);
+            await loadAcceptanceLetterStatus();
+            showAlert({
+                messageTitle: "Success",
+                messageContent:
+                    "Audit acceptance letter uploaded. You can now eSign the letter.",
+                confirmText: "Ok",
+            });
+            getAllApplicationForm();
+        } catch (err) {
+            console.error(err);
+            showAlert({
+                messageTitle: "Error",
+                messageContent:
+                    err?.response?.data ||
+                    "Unable to upload the Audit acceptance letter.",
+                confirmText: "Ok",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const startAcceptanceLetterEsign = async () => {
+        try {
+            setLoading(true);
+            const downloadRes = await AuditService.downloadUploadedAcceptanceLetter(userName);
+            const blob = new Blob([downloadRes.data], {
+                type: downloadRes.headers["content-type"] || "application/pdf",
+            });
+            const prepRes = await AuditService.prepareAcceptanceEsign(userName);
+            const eSignedId = prepRes?.data?.eSignedId;
+            if (!eSignedId) {
+                throw new Error("Unable to prepare acceptance letter eSign.");
+            }
+            const fullName = (signerFullName || "").trim() || userName;
+            CallComponent({
+                component: (
+                    <Esign
+                        efile={blob}
+                        fullName={fullName}
+                        maxFileSize={5}
+                        serviceName="/audit-service"
+                        serviceUrl="/download-final-esigned-report"
+                        documentPath="/AuditAcceptanceLetter"
+                        orgFileId={`${eSignedId} `}
+                        redirectUrl="/applicant/applicationform"
+                    />
+                ),
+            });
+        } catch (err) {
+            console.error(err);
+            showAlert({
+                messageTitle: "Error",
+                messageContent:
+                    err?.message || "Unable to start eSign for the Audit acceptance letter.",
+                confirmText: "Ok",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const changeApplicationFormStatus = (id) => {
         setLoading(true);
@@ -772,16 +930,68 @@ const createIndivReport = async (userName) => {
                         );
                     }
 
+                    if (hasLicenseAction(actions, 'AUDIT_ACCEPTANCE')) {
+                        const letterStatus = String(acceptanceLetterStatus || "NONE").toUpperCase();
+                        if (letterStatus === "NONE") {
+                            actionButtons.push(
+                                <Tooltip key="acceptance-download" title="Download Audit acceptance letter">
+                                    <GridActionsCellItem
+                                        icon={<DownloadIcon color="info" />}
+                                        label="Download Audit acceptance letter"
+                                        onClick={() => downloadAuditAcceptanceLetter()}
+                                    />
+                                </Tooltip>
+                            );
+                        } else if (letterStatus === "DOWNLOADED") {
+                            actionButtons.push(
+                                <Tooltip key="acceptance-upload" title="Upload the Audit acceptance letter">
+                                    <GridActionsCellItem
+                                        icon={<CloudUploadIcon color="info" />}
+                                        label="Upload Audit acceptance letter"
+                                        onClick={() => handleAcceptanceUploadClick()}
+                                    />
+                                </Tooltip>
+                            );
+                        } else if (letterStatus === "UPLOADED") {
+                            actionButtons.push(
+                                <Tooltip key="acceptance-esign" title="eSign Audit acceptance letter">
+                                    <GridActionsCellItem
+                                        icon={<DrawIcon color="secondary" />}
+                                        label="eSign Audit acceptance letter"
+                                        onClick={() => startAcceptanceLetterEsign()}
+                                    />
+                                </Tooltip>
+                            );
+                        } else if (letterStatus === "SIGNED") {
+                            actionButtons.push(
+                                <Tooltip key="acceptance-signed" title="Audit acceptance letter eSigned">
+                                    <GridActionsCellItem
+                                        icon={<ChecklistIcon color="success" />}
+                                        label="Acceptance letter signed"
+                                        disabled
+                                    />
+                                </Tooltip>
+                            );
+                        }
+                    }
+
                     return <Box sx={{ display: 'flex', gap: '10px', mt: 1 }}>{actionButtons}</Box>;
                 },
             },
         ],
-        [allApplicationFormList]
+        [allApplicationFormList, acceptanceLetterStatus, userName]
     );
     
 
     return (
         <>
+            <input
+                ref={acceptanceFileInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                style={{ display: "none" }}
+                onChange={handleAcceptanceFileSelected}
+            />
             {allApplicationFormList.length > 0 ? (
                 <CustomTable columns={columns} rows={allApplicationFormList} hideColumnsForExport={['Action']} pageSizeOptions={[10, 25, 50, 100]} hidePagination={true} hideToolbar={true}/>
             ) : (

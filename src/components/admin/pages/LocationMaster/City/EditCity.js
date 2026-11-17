@@ -215,7 +215,7 @@ const EditCity = () => {
                                     <MenuItem disabled value="">
                                         State Name
                                     </MenuItem>
-                                    {states.map((item, index) => (
+                                    {states.filter((item) => item.status === 'Active' || String(item.stateId) === String(cityFormValues.stateId)).map((item, index) => (
                                         <MenuItem key={index.stateId} value={item.stateId}>{item.stateName}</MenuItem>
                                     ))}
                                 </Select>

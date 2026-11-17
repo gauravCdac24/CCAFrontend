@@ -159,6 +159,7 @@ const ViewApplicationForm = () => {
         ApplicationForm.getApplicationDetailsFormByUsername(userName)
             .then((response) => {
                 const intentApp = response.data.intentApp;
+                const workflow = response.data.workflow || {};
                 console.log("-=---->",allApplicationTypeList)
                 if (intentApp) {
                     const matchedType = allApplicationTypeList.find(
@@ -176,6 +177,7 @@ const ViewApplicationForm = () => {
                         applicationType: applicationType, // Set the application type name
                         //------Manish
                         intentAppId: intentApp.intentAppId,
+                        allowedActions: workflow.allowedActions || [],
                     };
     
                    
@@ -740,7 +742,9 @@ const ViewApplicationForm = () => {
 
                     // After CCA grants in-principle approval, the licensee submits
                     // Bank Guarantee, Agreement and CSR (SRS section 10).
-                    if(params.row.status === "IN_PRINCIPLE_APPROVAL_GRANTED"){
+                    const allowedActions = params.row.allowedActions || [];
+                    if (params.row.status === "IN_PRINCIPLE_APPROVAL_GRANTED"
+                        || allowedActions.includes("UPLOAD_LICENSE_DOCUMENTS")) {
 
                         actionButtons.push (
                             <Tooltip title="Submission of Bank Guarantee, Agreement & CSR">

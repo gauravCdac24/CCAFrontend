@@ -30,7 +30,7 @@ const REMARK_FIELDS = [
   ["remark", "Remarks"],
   ["auditorRemarks", "Auditor remarks"],
   ["auditorVerification", "Auditor remarks"],
-  ["ccaRemarks", "CCA remarks"],
+  ["ccaRemarks", "Remarks"],
   ["applicantRemarks", "Applicant remarks"],
   ["reviewRemarks", "Review remarks"],
   ["ncRemarks", "NC remarks"],

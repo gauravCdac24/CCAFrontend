@@ -867,7 +867,7 @@ const handleDownloadClick = async(id) => {
 
                    >
                       <Typography variant="h6" sx={{flexGrow: 1 }}>
-                        Reviewd on {dateFormatter(element.created)}
+                        Reviewed on {dateFormatter(element.created)}
                       </Typography>
                       <IconButton 
                         

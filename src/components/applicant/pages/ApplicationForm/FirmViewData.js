@@ -7,6 +7,8 @@ import FirmApplicationForm from '../../../../service/NewLicenseService/FirmAppli
 import StateService from '../../../../service/AdminService/StateService';
 import CityService from '../../../../service/AdminService/CityService';
 import CountryService from '../../../../service/AdminService/CountryService';
+import showAlert from '../../../global/common/MessageBox/AlertService';
+import { getLatestApplicationDoc, openApplicationDocument } from '../../../global/util/viewApplicationDocument';
 
 const FirmViewData = ({userName}) => {
    
@@ -153,31 +155,21 @@ const [documents, setDocuments] = useState([]);
 	
 	
 	
-	const handleDownloads = async (appDocId, documentTitle) => {
+	const handleDownloads = async (appDocId, documentTitle, event) => {
   try {
-      // Fetch the file from the server
-      const response = await ApplicationForm.viewFile(appDocId);
-
-      // Create a blob from the response data
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-
-      // Create a link element
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-
-      // Extract the filename from the Content-Disposition header
-      const contentDisposition = response.headers['content-disposition'];
-
-      console.log(JSON.stringify(contentDisposition))
-
-      const filename = documentTitle;
-
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      await openApplicationDocument(
+        (id) => ApplicationForm.viewFile(id),
+        appDocId,
+        documentTitle,
+        event
+      );
   } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('Error viewing file:', error);
+      showAlert({
+        messageTitle: 'Error',
+        messageContent: 'Unable to open the document. Please try again.',
+        confirmText: 'OK',
+      });
   }
 };
 
@@ -494,31 +486,21 @@ if (!basicDetailsFormValues || Object.keys(basicDetailsFormValues).length === 0)
 // };
 
 
-const handleDownload = async (appDocId, documentTitle) => {
+const handleDownload = async (appDocId, documentTitle, event) => {
   try {
-      // Fetch the file from the server
-      const response = await ApplicationForm.viewFile(appDocId);
-
-      // Create a blob from the response data
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-
-      // Create a link element
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-
-      // Extract the filename from the Content-Disposition header
-      const contentDisposition = response.headers['content-disposition'];
-
-      console.log(JSON.stringify(contentDisposition))
-
-      const filename = documentTitle;
-
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      await openApplicationDocument(
+        (id) => ApplicationForm.viewFile(id),
+        appDocId,
+        documentTitle,
+        event
+      );
   } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('Error viewing file:', error);
+      showAlert({
+        messageTitle: 'Error',
+        messageContent: 'Unable to open the document. Please try again.',
+        confirmText: 'OK',
+      });
   }
 };
 
@@ -715,24 +697,32 @@ const handleDownload = async (appDocId, documentTitle) => {
           <Typography variant="body1">{basicDetailsFormValues2.firmNetWorth}</Typography>
           </Grid>
           <Grid item sm={7}>
-          {basicDetailsFormValues2.applicationDocuments?.map((doc, index) => 
-            doc.documentTitle === "firmNetWorthDocument" && (
+          {(() => {
+            const netWorthDoc = getLatestApplicationDoc(
+              basicDetailsFormValues2.applicationDocuments,
+              'firmNetWorthDocument'
+            );
+            if (!netWorthDoc) {
+              return null;
+            }
+            return (
             <Box
-              key={index}
               component="span"
-              data-app-doc-id={doc.appDocId}
-              data-doc-title={doc.documentTitle}
+              data-app-doc-id={netWorthDoc.appDocId}
+              data-doc-title={netWorthDoc.documentTitle}
             >
             <Link
+            component="button"
+            type="button"
             data-print-hide
-            onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
-            sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }}
+            onClick={(e) => handleDownload(netWorthDoc.appDocId, netWorthDoc.documentTitle, e)}
+            sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline', border: 0, background: 'none', p: 0, font: 'inherit' }}
         >
             View
         </Link>
             </Box>
-            )
-          )}
+            );
+          })()}
         </Grid>
         </Grid>
       </Grid>
@@ -748,24 +738,32 @@ const handleDownload = async (appDocId, documentTitle) => {
             <Typography variant="body1">{basicDetailsFormValues2.paidUpCapital}</Typography>
           </Grid>
           <Grid item sm={7}>
-            {basicDetailsFormValues2.applicationDocuments?.map((doc, index) => 
-              doc.documentTitle === "firmPanCardDocument" && (
+            {(() => {
+              const paidUpDoc = getLatestApplicationDoc(
+                basicDetailsFormValues2.applicationDocuments,
+                ['paidUpCapitalDocument', 'firmPaidUpCapitalDocument']
+              );
+              if (!paidUpDoc) {
+                return null;
+              }
+              return (
                 <Box
-                  key={index}
                   component="span"
-                  data-app-doc-id={doc.appDocId}
-                  data-doc-title={doc.documentTitle}
+                  data-app-doc-id={paidUpDoc.appDocId}
+                  data-doc-title={paidUpDoc.documentTitle}
                 >
                 <Link
+                component="button"
+                type="button"
                 data-print-hide
-                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={(e) => handleDownload(paidUpDoc.appDocId, paidUpDoc.documentTitle, e)}
+                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline', border: 0, background: 'none', p: 0, font: 'inherit' }}
             >
                 View
             </Link>
                 </Box>
-              )
-            )}
+              );
+            })()}
           </Grid>
         </Grid>
       </Grid>
@@ -1050,9 +1048,11 @@ const handleDownload = async (appDocId, documentTitle) => {
           data-doc-title={cpsDocument.documentTitle || 'CPSDocument'}
         >
             <Link
+                component="button"
+                type="button"
                 data-print-hide
-                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={(e) => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle, e)}
+                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline', border: 0, background: 'none', p: 0, font: 'inherit' }}
             >
                 view
             </Link>
@@ -1096,8 +1096,10 @@ const handleDownload = async (appDocId, documentTitle) => {
               <Box sx={{ display: 'flex', ml: 4 }}>
                 {/* Conditionally render the "View" link if the document title is not "CPSDocument" */}
                 <Link
+                  component="button"
+                  type="button"
                   data-print-hide
-                  onClick={() => handleDownloads(cpsDocument.appDocId, cpsDocument.documentTitle)}
+                  onClick={(e) => handleDownloads(cpsDocument.appDocId, cpsDocument.documentTitle, e)}
                   sx={{
                     color: 'red',
                     cursor: 'pointer',
@@ -1105,6 +1107,10 @@ const handleDownload = async (appDocId, documentTitle) => {
                     marginRight: '12px',
                     display: 'flex',
                     alignItems: 'center',
+                    border: 0,
+                    background: 'none',
+                    p: 0,
+                    font: 'inherit',
                   }}
                 >
                   View

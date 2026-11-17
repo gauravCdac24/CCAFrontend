@@ -82,13 +82,28 @@ const AuditAgencySelection = forwardRef(({intentAppId}, ref) => {
         setLoading(true);
         AuditAgency.getAllActiveAuditAgencyList()
             .then((response) => {
-                setAllAuditAgencyList(response.data || []);
+                const list = Array.isArray(response.data) ? response.data : [];
+                setAllAuditAgencyList(list);
             })
             .catch(() =>
-                // Fallback: filter Active from full list if active-only API is unavailable
                 AuditAgency.getAllAuditAgencyList().then((response) => {
+                    const today = new Date().toISOString().slice(0, 10);
                     const list = Array.isArray(response.data)
-                        ? response.data.filter((agency) => agency?.status === 'Active')
+                        ? response.data.filter((agency) => {
+                            const status = String(agency?.status || '').trim().toLowerCase();
+                            if (status !== 'active') {
+                                return false;
+                            }
+                            const from = agency?.effectiveFrom || '';
+                            const to = agency?.effectiveTo || '';
+                            if (from && from > today) {
+                                return false;
+                            }
+                            if (to && to < today) {
+                                return false;
+                            }
+                            return true;
+                        })
                         : [];
                     setAllAuditAgencyList(list);
                 })

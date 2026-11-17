@@ -189,7 +189,7 @@ const OrganizationalDetails = ({ handleNext, handleFormDataChange }) => {
 
         // Handle country change
         if (name === "country") {
-            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value));
+            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
             setFilteredStates(filteredStates);
             updatedValues.state = '';
             updatedValues.city = '';
@@ -252,7 +252,7 @@ const OrganizationalDetails = ({ handleNext, handleFormDataChange }) => {
                         intentId: govtOrgApp.intentAppId.intentAppId || '',
                     });
                  
-                        const filteredStates = states.filter(state => state.countryId.countryId === parseInt(communicationAddressFormValues.country));
+                        const filteredStates = states.filter(state => state.countryId.countryId === parseInt(communicationAddressFormValues.country) && state.status === 'Active');
                         setFilteredStates(filteredStates);
                
                         const filteredCities = cities.filter(city => city.stateId.stateId === parseInt(communicationAddressFormValues.state));
@@ -735,7 +735,7 @@ return isEnabled;
                             <MenuItem disabled value="">
                                  Select Country
                             </MenuItem>
-                            {countries.map(country => (
+                            {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(communicationAddressFormValues.country)).map(country => (
                                 <MenuItem key={country.countryId} value={country.countryId}>
                                     {country.countryName}
                                 </MenuItem>

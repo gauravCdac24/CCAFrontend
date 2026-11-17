@@ -350,7 +350,7 @@ const ApplicationHistoryPopup = ({
               {review?.ccaRemarks ? (
                 <Box>
                   <Typography variant="body2" fontWeight={600}>
-                    CCA Remarks
+                    Remarks
                   </Typography>
                   <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
                     {review.ccaRemarks}

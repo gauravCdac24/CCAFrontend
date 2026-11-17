@@ -1,6 +1,41 @@
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL || ''}/pdf.worker.min.mjs`;
+/**
+ * The deployed static server returns pdf.worker.min.mjs as
+ * application/octet-stream, so a module Worker and a dynamic import of that
+ * URL both fail and every attachment hits the print error. Fetch the script
+ * (MIME is ignored for the body) and hand PDF.js a blob URL with a JavaScript
+ * type, which Chrome will run as a module worker.
+ */
+let pdfWorkerReady;
+
+const ensurePdfWorker = () => {
+  if (pdfjs.GlobalWorkerOptions.workerSrc?.startsWith('blob:')) {
+    return Promise.resolve();
+  }
+  if (!pdfWorkerReady) {
+    const workerUrl = `${process.env.PUBLIC_URL || ''}/pdf.worker.min.mjs`;
+    pdfWorkerReady = fetch(workerUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('PDF worker script could not be downloaded.');
+        }
+        return response.text();
+      })
+      .then((source) => {
+        if (!source.includes('WorkerMessageHandler')) {
+          throw new Error('PDF worker script was not returned by the server.');
+        }
+        const blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+        pdfjs.GlobalWorkerOptions.workerSrc = blobUrl;
+      })
+      .catch((error) => {
+        pdfWorkerReady = null;
+        throw error;
+      });
+  }
+  return pdfWorkerReady;
+};
 
 const PRINT_STYLES = `
   @page { size: A4; margin: 12mm; }
@@ -10,6 +45,25 @@ const PRINT_STYLES = `
     color: #000;
     margin: 0;
     padding: 16px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 0 18px;
+    text-align: center;
+  }
+  .brand-logo {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    flex: 0 0 auto;
+  }
+  .brand-title {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
   }
   h1 { font-size: 18px; margin: 0 0 8px; }
   h2 { font-size: 14px; margin: 20px 0 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
@@ -165,6 +219,21 @@ const blobToDataUrl = (blob) =>
     reader.readAsDataURL(blob);
   });
 
+const CCA_PRINT_TITLE = 'Licensing of Certifying Authorities and Dashboard for DSCs';
+
+const loadCcaLogoDataUrl = async () => {
+  try {
+    const response = await fetch(`${process.env.PUBLIC_URL || ''}/images/ccalogo.png`);
+    if (!response.ok) {
+      return '';
+    }
+    return await blobToDataUrl(await response.blob());
+  } catch (error) {
+    console.error('Failed to load CCA logo for print:', error);
+    return '';
+  }
+};
+
 const waitForImages = (doc) => {
   const images = Array.from(doc.images || []);
   return Promise.all(
@@ -200,19 +269,61 @@ const collectDocuments = (root) => {
   return docs;
 };
 
+const fileNameFromDisposition = (header) => {
+  const value = String(header || '');
+  const match = value.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+  const raw = match?.[1] || match?.[2] || '';
+  try {
+    return decodeURIComponent(raw).trim();
+  } catch {
+    return String(raw).trim();
+  }
+};
+
+const sniffDocumentKind = async (blob, declaredType, fileName) => {
+  const type = String(declaredType || blob.type || '').toLowerCase();
+  const name = String(fileName || '').toLowerCase();
+  if (type.startsWith('image/')) {
+    return type;
+  }
+  if (type.includes('pdf') || name.endsWith('.pdf')) {
+    return 'application/pdf';
+  }
+  if (name.endsWith('.png')) return 'image/png';
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg';
+  if (name.endsWith('.gif')) return 'image/gif';
+  if (name.endsWith('.webp')) return 'image/webp';
+
+  const header = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
+  const signature = String.fromCharCode(...header.slice(0, 5));
+  if (signature.startsWith('%PDF')) return 'application/pdf';
+  if (header[0] === 0x89 && header[1] === 0x50) return 'image/png';
+  if (header[0] === 0xff && header[1] === 0xd8) return 'image/jpeg';
+  if (signature.startsWith('GIF8')) return 'image/gif';
+  return type || 'application/octet-stream';
+};
+
 const renderPdfPages = async (blob) => {
-  const data = await blob.arrayBuffer();
+  await ensurePdfWorker();
+  const data = new Uint8Array(await blob.arrayBuffer());
   const pdf = await pdfjs.getDocument({ data }).promise;
   const pages = [];
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 1.5 });
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: context, viewport }).promise;
-    pages.push(canvas.toDataURL('image/jpeg', 0.92));
+  try {
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+      const page = await pdf.getPage(pageNum);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = Math.min(1.5, 1100 / Math.max(baseViewport.width, 1));
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d', { alpha: false });
+      canvas.width = Math.max(1, Math.floor(viewport.width));
+      canvas.height = Math.max(1, Math.floor(viewport.height));
+      await page.render({ canvasContext: context, viewport }).promise;
+      pages.push(canvas.toDataURL('image/jpeg', 0.82));
+      page.cleanup?.();
+    }
+  } finally {
+    await pdf.destroy().catch(() => {});
   }
   return pages;
 };
@@ -228,12 +339,14 @@ const buildAttachmentHtml = async (docs, fetchFile) => {
     parts.push(`<div class="doc-block"><h3>${title}</h3>`);
     try {
       const response = await fetchFile(doc.appDocId);
-      const contentType = (response.headers?.['content-type'] || response.data?.type || '').split(';')[0].trim();
+      const headerType = response.headers?.['content-type'] || response.data?.type || '';
+      const contentType = String(headerType).split(';')[0].trim();
       const blob =
         response.data instanceof Blob
           ? response.data
           : new Blob([response.data], { type: contentType || 'application/octet-stream' });
-      const type = (blob.type || contentType || '').toLowerCase();
+      const fileName = fileNameFromDisposition(response.headers?.['content-disposition']);
+      const type = await sniffDocumentKind(blob, blob.type || contentType, fileName);
 
       if (type.startsWith('image/')) {
         const dataUrl = await blobToDataUrl(blob);
@@ -294,8 +407,14 @@ const printApplicationPreview = async ({
   normalizeChoicesForPrint(clone);
 
   const docs = collectDocuments(printRoot);
-  const attachmentsHtml = await buildAttachmentHtml(docs, fetchFile);
+  const [attachmentsHtml, logoDataUrl] = await Promise.all([
+    buildAttachmentHtml(docs, fetchFile),
+    loadCcaLogoDataUrl(),
+  ]);
   const subtitle = userName ? `<div class="meta">Applicant: ${escapeHtml(userName)}</div>` : '';
+  const logoHtml = logoDataUrl
+    ? `<img class="brand-logo" src="${logoDataUrl}" alt="CCA Logo" />`
+    : '';
 
   const html = `<!DOCTYPE html>
 <html>
@@ -305,6 +424,10 @@ const printApplicationPreview = async ({
   <style>${PRINT_STYLES}</style>
 </head>
 <body>
+  <div class="brand">
+    ${logoHtml}
+    <div class="brand-title">${escapeHtml(CCA_PRINT_TITLE)}</div>
+  </div>
   <h1>${escapeHtml(title)}</h1>
   ${subtitle}
   <h2>Application Details</h2>

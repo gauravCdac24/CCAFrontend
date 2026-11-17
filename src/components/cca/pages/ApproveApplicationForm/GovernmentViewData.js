@@ -1557,7 +1557,7 @@ const GovernmentViewData = (props) => {
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Typography variant="h6" style={{ marginTop: "10px" }}>
-                  CCA Remarks
+                  Remarks
                 </Typography>
                 <TextField
                   multiline
@@ -1644,7 +1644,7 @@ const GovernmentViewData = (props) => {
                   }
                 >
                   <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                    Reviewd on{" "}
+                    Reviewed on{" "}
                     {dateFormatter(element?.reviewDate || element?.created)}
                   </Typography>
                   <IconButton
@@ -2563,7 +2563,7 @@ const GovernmentViewData = (props) => {
                       <Grid container spacing={2}>
                         <Grid item xs={12}>
                           <Typography variant="h6" style={{ marginTop: "10px" }}>
-                            CCA Remarks
+                            Remarks
                           </Typography>
                           <TextField
                             multiline

@@ -2107,7 +2107,7 @@ const FirmViewData = () => {
                     <Grid container spacing={2}>
                       <Grid item xs={12}>
                         <Typography variant="h6" style={{ marginTop: '10px' }}>
-                          CCA Remarks
+                          Remarks
                         </Typography>
                         <TextField
                           multiline
@@ -3335,7 +3335,7 @@ const FirmViewData = () => {
                     <Grid container spacing={2}>
                       <Grid item xs={12}>
                         <Typography variant="h6" style={{ marginTop: '10px' }}>
-                          CCA Remarks
+                          Remarks
                         </Typography>
                         <TextField
                           multiline

@@ -197,7 +197,7 @@ const AddDSCeSignIssued = () => {
                                     typeof state.countryId === 'object'
                                         ? state.countryId?.countryName
                                         : null;
-                                return countryName === 'India';
+                                return countryName === 'India' && state.status === 'Active';
                             });
                             setFilteredState(filteredStates);
                             setIndiaCountryId(filteredCountry?.countryId || '');

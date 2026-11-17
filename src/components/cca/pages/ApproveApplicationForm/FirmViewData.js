@@ -2866,7 +2866,7 @@ const FirmViewData = (props) => {
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
                       <Typography variant="h6" style={{ marginTop: "10px" }}>
-                        CCA Remarks
+                        Remarks
                       </Typography>
                       <TextField
                         multiline
@@ -2955,7 +2955,7 @@ const FirmViewData = (props) => {
                     }
                   >
                     <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                      Reviewd on {dateFormatter(element.created)}
+                      Reviewed on {dateFormatter(element.created)}
                     </Typography>
                     <IconButton
                       sx={{
@@ -4976,7 +4976,7 @@ const FirmViewData = (props) => {
                             variant="h6"
                             style={{ marginTop: "10px" }}
                           >
-                            CCA Remarks
+                            Remarks
                           </Typography>
                           <TextField
                             multiline

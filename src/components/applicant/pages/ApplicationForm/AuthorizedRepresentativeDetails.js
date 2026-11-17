@@ -97,7 +97,7 @@ const AuthorizedRepresentativeDetails = ({ handleNext, handleFormDataChange, han
 
         // Handle country change
         if (name === "country") {
-            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value));
+            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
             setFilteredStates(filteredStates);
             updatedValues.state = '';
             updatedValues.city = '';
@@ -170,7 +170,7 @@ console.log("representativeData===>",JSON.stringify(representativeData));
                         userName: prevValues.userName || ''
                     }));
                       // You can also filter states and cities here as needed
-                      const filteredStates = states.filter(state => state.countryId.countryId === parseInt(addressData.country));
+                      const filteredStates = states.filter(state => state.countryId.countryId === parseInt(addressData.country) && state.status === 'Active');
                       setFilteredStates(filteredStates);
       
                       const filteredCities = cities.filter(city => city.stateId.stateId === parseInt(addressData.state));
@@ -450,7 +450,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
                             <MenuItem disabled value="">
                                  Select Country
                             </MenuItem>
-                            {countries.map(country => (
+                            {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(communicationAddressFormValues.country)).map(country => (
                                 <MenuItem key={country.countryId} value={country.countryId}>
                                     {country.countryName}
                                 </MenuItem>

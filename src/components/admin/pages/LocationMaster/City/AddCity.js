@@ -180,7 +180,7 @@ const AddCity = () => {
                                     <MenuItem disabled value="">
                                         State Name
                                     </MenuItem>
-                                    {states.map((item, index) => (
+                                    {states.filter((item) => item.status === 'Active').map((item, index) => (
                                         <MenuItem key={index} value={item.stateId}>{item.stateName}</MenuItem>
                                     ))}
                                 </Select>

@@ -58,7 +58,8 @@ export const getActiveStepIndex = (currentStatus) => {
     status.includes("agency selection") ||
     status.includes("approve from cca") ||
     status.includes("nc issued by auditor") ||
-    status.includes("nc action taken by applicant")
+    status.includes("nc action taken by applicant") ||
+    status.includes("pending audit acceptance")
   ) {
     return 5;
   }

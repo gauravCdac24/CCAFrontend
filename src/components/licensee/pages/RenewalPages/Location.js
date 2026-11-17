@@ -245,7 +245,7 @@ const [fileName1, setFileName1] = useState('');
                 // Filter states and cities based on official and residential countries/states
                 if (official.country && official.state) {
                     const filteredState = states.filter(
-                        (state) => state.countryId.countryId === parseInt(official.country)
+                        (state) => state.countryId.countryId === parseInt(official.country) && state.status === 'Active'
                     );
                     setFilteredState(filteredState);
     
@@ -257,7 +257,7 @@ const [fileName1, setFileName1] = useState('');
     
                 if (residential.country && residential.state) {
                     const filteredStates = states.filter(
-                        (state) => state.countryId.countryId === parseInt(residential.country)
+                        (state) => state.countryId.countryId === parseInt(residential.country) && state.status === 'Active'
                     );
                     setFilteredStates(filteredStates);
     
@@ -428,7 +428,7 @@ const [fileName1, setFileName1] = useState('');
     
         // Handle country change
         if (name === "country") {
-            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value));
+            const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
             setFilteredState(filteredStates);
             // Clear city selection if country changes
             setCommunicationAddressFormValues(prevValues => ({
@@ -735,7 +735,7 @@ const [fileName1, setFileName1] = useState('');
                         <MenuItem disabled value="">
                             Select Country
                         </MenuItem>
-                        {countries.map(country => (
+                        {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(editFormValues.country)).map(country => (
                             <MenuItem key={country.countryId} value={country.countryId}>
                                 {country.countryName}
                             </MenuItem>
@@ -830,7 +830,7 @@ const [fileName1, setFileName1] = useState('');
         
        
         const fvalues = { ...communicationAddressFormValues.LocationDetails[index] };
-        const filteredStates = states.filter(state => state.countryId.countryId === parseInt(editFormValues.country)); 
+        const filteredStates = states.filter(state => state.countryId.countryId === parseInt(editFormValues.country) && state.status === 'Active'); 
         const filteredCities = cities.filter(city => city.stateId.stateId === parseInt(editFormValues.state));
         
         
@@ -1270,7 +1270,7 @@ const [selectedLocationFullName, setSelectedLocationFullName] = useState('');
                                 <MenuItem disabled value="">
                                     Select Country
                                 </MenuItem>
-                                {countries.map(country => (
+                                {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(communicationAddressFormValues.country)).map(country => (
                                     <MenuItem key={country.countryId} value={country.countryId}>
                                         {country.countryName}
                                     </MenuItem>

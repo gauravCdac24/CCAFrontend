@@ -34,13 +34,23 @@ const newEsignRequest = (esignData) =>{
 
 
     const formData = new FormData();
-    formData.append('files', esignData.file)
+    // Server expects a PDF multipart part with a filename; plain Blob often has none.
+    const uploadFile = esignData.file;
+    if (uploadFile instanceof File) {
+        formData.append('files', uploadFile);
+    } else if (uploadFile) {
+        formData.append(
+            'files',
+            uploadFile,
+            uploadFile.name || `EsignDocument_${Date.now()}.pdf`
+        );
+    }
     formData.append('userName', encrypt(username))
     if(esignData.fullName != null)
       formData.append('fullNames', encrypt(esignData.fullName))
     formData.append('serviceName', encrypt(esignData.serviceName))
     formData.append('serviceUrl', encrypt(esignData.serviceUrl))
-    formData.append('orgFileId', encrypt(esignData.orgFileId))
+    formData.append('orgFileId', encrypt(String(esignData.orgFileId || '').trim()))
     formData.append('documentPath', encrypt(esignData.documentPath))
     formData.append('redirectUrl', encrypt(esignData.redirectUrl))
     

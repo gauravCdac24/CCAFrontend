@@ -1273,7 +1273,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 
               >
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                  Reviewd on {dateFormatter(Date.now())}
+                  Reviewed on {dateFormatter(Date.now())}
                 </Typography>
                 <IconButton
 

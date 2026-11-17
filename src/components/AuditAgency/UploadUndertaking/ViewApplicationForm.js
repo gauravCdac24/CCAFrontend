@@ -43,6 +43,16 @@ const isUploadUndertakingStatus = (status) => {
   );
 };
 
+// Undertaking submit moves the application to "Recomanded For Audit Agency",
+// but the button must also stay hidden if that status update did not land
+// and the saved audit form already has the undertaking.
+const isUndertakingFilled = (data) => {
+  if (!data || typeof data !== "object") return false;
+  if (String(data.undertakingFileName || "").trim()) return true;
+  const auditors = Array.isArray(data.auditorDesscription) ? data.auditorDesscription : [];
+  return auditors.some((item) => String(item?.auditorName || "").trim());
+};
+
 // SRS: annexure audit remarks only after CCA approves audit agency appointment (UC11 pre-condition)
 const isAnnexureReviewStatus = (status) => {
   const s = normalizeStatus(status);
@@ -99,6 +109,28 @@ const ViewNewApplicationForm = () => {
       const annexureList = auditorMainRes.data || [];
       const appArray = Array.isArray(applications) ? applications : Object.values(applications);
 
+      const undertakingFilledByUser = {};
+      await Promise.all(
+        appArray
+          .filter(
+            (value) =>
+              isUploadUndertakingStatus(value.applicationCurrentStatus) &&
+              value.applicantUserName
+          )
+          .map(async (value) => {
+            try {
+              const formRes = await AuditService.getAuditorApplicationbyApplicatantUserName(
+                value.applicantUserName
+              );
+              undertakingFilledByUser[value.applicantUserName] = isUndertakingFilled(
+                formRes?.data
+              );
+            } catch {
+              undertakingFilledByUser[value.applicantUserName] = false;
+            }
+          })
+      );
+
       const formattedList = await Promise.all(
         appArray.map(async (value, index) => {
           let annexureEntry = annexureList.find(
@@ -133,6 +165,9 @@ const ViewNewApplicationForm = () => {
             auditorTracker: annexureEntry
               ? annexureEntry.auditorTracker
               : "NOT FOUND",
+            undertakingFilled: Boolean(
+              undertakingFilledByUser[value.applicantUserName]
+            ),
           };
         })
       );
@@ -215,6 +250,7 @@ const ViewNewApplicationForm = () => {
             applicantUserName,
             applicationType,
             auditorTracker,
+            undertakingFilled,
           } = params.row;
 
           if (applicationCurrentStatus === APP_STATUS.PENDING) return null;
@@ -244,7 +280,7 @@ const ViewNewApplicationForm = () => {
                 </Tooltip>
               )}
 
-              {isUploadUndertakingStatus(applicationCurrentStatus) && (
+              {isUploadUndertakingStatus(applicationCurrentStatus) && !undertakingFilled && (
                 <Tooltip title="Upload Undertaking & Auditors Details">
                   <GridActionsCellItem
                     icon={<FileUploadIcon color="error" />}
@@ -266,16 +302,6 @@ const ViewNewApplicationForm = () => {
                 </Tooltip>
               )}
 
-              {/* 5. NC Action Actions */}
-              {applicationCurrentStatus === APP_STATUS.NC_ACTION_TAKEN && (
-                <Tooltip title="Submit Audit Report">
-                  <GridActionsCellItem
-                    icon={<FileUploadIcon color="error" />}
-                    label="Report"
-                    onClick={() => handleEncryptedNavigate(applicantUserName, "ncclosurereport")}
-                  />
-                </Tooltip>
-              )}
             </Box>
           );
         },
