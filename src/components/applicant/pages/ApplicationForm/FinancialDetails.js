@@ -618,6 +618,25 @@ const handleFileChange4 = (e) => {
         }
         
       
+        // Credit card details (optional as a group — if any field is entered, require all three)
+        const hasAnyCreditCard =
+            Boolean(basicDetailsFormValues.creditcardtype) ||
+            Boolean(basicDetailsFormValues.creditCardNo) ||
+            Boolean(basicDetailsFormValues.issuedBy);
+        if (hasAnyCreditCard) {
+            if (!basicDetailsFormValues.creditcardtype) {
+                errors.creditcardtype = errorMessages.creditcardtype;
+            }
+            if (!basicDetailsFormValues.creditCardNo) {
+                errors.creditCardNo = errorMessages.creditCardNo.required;
+            } else if (!/^\d{15,16}$/.test(String(basicDetailsFormValues.creditCardNo).replace(/\s+/g, ''))) {
+                errors.creditCardNo = errorMessages.creditCardNo.format;
+            }
+            if (!basicDetailsFormValues.issuedBy) {
+                errors.issuedBy = errorMessages.issuedBy;
+            }
+        }
+
         if (!basicDetailsFormValues.ispName) errors.ispName = errorMessages.ispName;
       
           if (!/^https?:\/\/[^\s]+$/.test(basicDetailsFormValues.webPageURL)) {

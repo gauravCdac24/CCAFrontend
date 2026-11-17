@@ -294,26 +294,65 @@ const ViewApplicationForm = () => {
     const startAcceptanceLetterEsign = async () => {
         try {
             setLoading(true);
-            const downloadRes = await AuditService.downloadUploadedAcceptanceLetter(userName);
-            const blob = new Blob([downloadRes.data], {
-                type: downloadRes.headers["content-type"] || "application/pdf",
-            });
             const prepRes = await AuditService.prepareAcceptanceEsign(userName);
-            const eSignedId = prepRes?.data?.eSignedId;
+            const prep = prepRes?.data || {};
+            const eSignedId = prep.eSignedId;
             if (!eSignedId) {
                 throw new Error("Unable to prepare acceptance letter eSign.");
             }
+
+            // Packet = auditor-signed full NC report + uploaded acceptance letter, then applicant eSigns.
+            const parts = [];
+            if (prep.needsFullReport && prep.previousSignedDocId) {
+                const reportBlob = await EsignService.viewDigitallySignedDocument(
+                    prep.previousSignedDocId
+                );
+                parts.push(
+                    new File([reportBlob], "AuditReport.pdf", { type: "application/pdf" })
+                );
+            }
+            try {
+                const letterRes = await AuditService.downloadUploadedAcceptanceLetter(userName);
+                parts.push(
+                    new File([letterRes.data], "AcceptanceLetter.pdf", {
+                        type: letterRes.headers["content-type"] || "application/pdf",
+                    })
+                );
+            } catch (letterErr) {
+                console.warn("Uploaded acceptance letter not available:", letterErr);
+            }
+            if (parts.length === 0) {
+                throw new Error(
+                    "Unable to build acceptance eSign PDF. Ensure auditors have eSigned and acceptance letter is uploaded."
+                );
+            }
+
+            let pdfFile;
+            if (parts.length === 1) {
+                pdfFile = parts[0];
+            } else {
+                const mergedRes = await AuditService.mergePdfs(parts);
+                pdfFile = new File(
+                    [mergedRes.data],
+                    `AuditReport_Acceptance_${eSignedId}.pdf`,
+                    {
+                        type:
+                            mergedRes.headers?.["content-type"] || "application/pdf",
+                    }
+                );
+            }
+
             const fullName = (signerFullName || "").trim() || userName;
             CallComponent({
                 component: (
                     <Esign
-                        efile={blob}
+                        efile={pdfFile}
                         fullName={fullName}
-                        maxFileSize={5}
+                        maxFileSize={15}
                         serviceName="/audit-service"
                         serviceUrl="/download-final-esigned-report"
-                        documentPath="/AuditAcceptanceLetter"
-                        orgFileId={`${eSignedId} `}
+                        documentPath="/CoverLetter"
+                        orgFileId={String(eSignedId).trim()}
                         redirectUrl="/applicant/applicationform"
                     />
                 ),

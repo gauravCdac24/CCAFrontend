@@ -34,10 +34,6 @@ import { styled } from '@mui/material/styles';
 import MinimumAttempt from "../../../service/AdminService/MinimumAttempt";
 import dateFormatter from "../../global/util/DateFormatter";
 import CloseIcon from "@mui/icons-material/Close";
-import EsignService from "../../../service/EsignService/EsignService";
-
-
-
 const VisuallyHiddenInput = styled('input')({
   position: 'absolute',
   width: '1px',
@@ -83,49 +79,49 @@ const AuditorControls = () => {
   }, [pdfUrl]);
   const handleViewDocument = async () => {
     try {
-      // Fetch signed document ID
-      const response = await AuditService.getEsignedDocumentId(ApplicantUserName);
-      const signedDocId = response.data?.signedDocId;
-
-      if (!signedDocId) {
-        console.error("No signed document ID found.");
-        return;
+      setLoading(true);
+      const pdfBlob = await AuditService.getFinalReviewReportBlob(ApplicantUserName);
+      if (pdfUrl) {
+        window.URL.revokeObjectURL(pdfUrl);
       }
-
-      const pdfBlob = await EsignService.viewDigitallySignedDocument(signedDocId);
-
       const url = window.URL.createObjectURL(pdfBlob);
-      //alert("PDF URL: " + url); // Log the URL to the console
       setPdfUrl(url);
-
       setOpen(true);
-
     } catch (error) {
       console.error("Error fetching and downloading file:", error);
+      showAlert({
+        messageTitle: "Error",
+        messageContent: error?.message || "Unable to open the Final eSigned Report.",
+        confirmText: "Ok",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-
-  
-  
   const handleDownloadDocument = async () => {
     try {
-      // Fetch signed document ID
-      const response = await AuditService.getEsignedDocumentId(ApplicantUserName);
-      const signedDocId = response.data?.signedDocId;
-
-      if (!signedDocId) {
-        console.error("No signed document ID found.");
-        return;
-      }
-
-      const pdfBlob = await EsignService.downloadDigitallySignedDocument(signedDocId, "finalSignedDocument");
-
-      const url = window.URL.createObjectURL(new Blob([pdfBlob], { type: "application/pdf" }));
-      setPdfUrl(url);
-
+      setLoading(true);
+      const pdfBlob = await AuditService.getFinalReviewReportBlob(ApplicantUserName);
+      const url = window.URL.createObjectURL(
+        new Blob([pdfBlob], { type: "application/pdf" })
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "FinalReviewAuditReport.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error fetching and downloading file:", error);
+      showAlert({
+        messageTitle: "Error",
+        messageContent: error?.message || "Unable to download the Final eSigned Report.",
+        confirmText: "Ok",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 

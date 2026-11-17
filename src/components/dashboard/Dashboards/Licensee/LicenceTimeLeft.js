@@ -44,7 +44,7 @@ const LicenceTimeLeft = ({ expiryDate, issueDate }) => {
                 }}
             >
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Licence time left
+                    License time left
                 </Typography>
                 <Typography
                     variant="h5"

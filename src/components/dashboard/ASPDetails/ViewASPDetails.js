@@ -1,6 +1,46 @@
-import { Box, Grid2, Typography } from "@mui/material";
+import { useState } from "react";
+import { Box, Button, Grid2, Typography } from "@mui/material";
+import DashboardService from "../../../service/DashboardService/DashboardService";
+import showAlert from "../../global/common/MessageBox/AlertService";
+
+const fileNameFromHeader = (header) => {
+    const match = String(header || "").match(/filename="?([^"]+)"?/i);
+    return match?.[1] || "ASPReports.pdf";
+};
 
 const ViewASPDetails = ({aspObj}) =>{
+    const [downloading, setDownloading] = useState(false);
+
+    const downloadAspReports = async () => {
+        if (!aspObj?.aspId) {
+            return;
+        }
+        setDownloading(true);
+        try {
+            const response = await DashboardService.downloadAspAuditReports(aspObj.aspId);
+            const contentType = response.headers["content-type"] || "application/pdf";
+            if (String(contentType).includes("text") || String(contentType).includes("json")) {
+                throw new Error("Unable to download the ASP audit reports.");
+            }
+            const blob = new Blob([response.data], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const link = window.document.createElement("a");
+            link.href = url;
+            link.download = fileNameFromHeader(response.headers["content-disposition"]);
+            window.document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            showAlert({
+                messageTitle: "ASP Reports",
+                messageContent: "Unable to download the ASP audit reports.",
+                confirmText: "Ok",
+            });
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     return(
         <>
@@ -61,7 +101,18 @@ const ViewASPDetails = ({aspObj}) =>{
                 </Grid2>
             </Grid2>
 
-
+            {aspObj.auditReportCount !== 0 && (
+            <Grid2 container spacing={2} alignItems="center">
+                <Grid2 size={{ xs: 6, sm: 6 }}>
+                    <Typography variant="h6" color="primary.tabletext">ASP Reports:</Typography>
+                </Grid2>
+                <Grid2 size={{ xs: 6, sm: 6 }}>
+                    <Button variant="outlined" size="small" disabled={downloading} onClick={downloadAspReports}>
+                        ASP Reports
+                    </Button>
+                </Grid2>
+            </Grid2>
+            )}
 
             <Grid2 container spacing={2}>
                 <Grid2 size={{ xs: 6, sm: 6 }}>

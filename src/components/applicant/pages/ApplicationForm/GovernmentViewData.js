@@ -9,7 +9,7 @@ import CountryService from '../../../../service/AdminService/CountryService';
 import StateService from '../../../../service/AdminService/StateService';
 import VisibilityIcon from '@mui/icons-material/Visibility'; // Importing View Icon
 import showAlert from '../../../global/common/MessageBox/AlertService';
-import { openApplicationDocument } from '../../../global/util/viewApplicationDocument';
+import { keepLatestDocumentPerTitle, openApplicationDocument } from '../../../global/util/viewApplicationDocument';
 
 
 const GovernmentViewData = ({userName}) => {
@@ -208,7 +208,7 @@ const [documents, setDocuments] = useState([]);
             ApplicationForm.getApplicationForm6ByUsername(userName)
                 .then((response) => {
                     console.log(response.data);
-                    const documents = response.data.documents;
+                    const documents = keepLatestDocumentPerTitle(response.data.documents);
                     setDocuments(documents);
                 })
                 .catch((err) => {

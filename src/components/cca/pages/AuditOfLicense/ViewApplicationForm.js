@@ -16,10 +16,21 @@ import ApplicationReviewCommittee from "../../../../service/RenewLicenseService/
 import IndividualViewData from "./IndividualViewData";
 import FirmViewData from "./FirmViewData";
 import GovernmentViewData from "./GovernmentViewData";
+import FreshIndividualViewData from "../../../applicant/pages/ApplicationForm/IndividualViewData";
+import FreshFirmViewData from "../../../applicant/pages/ApplicationForm/FirmViewData";
+import FreshGovernmentViewData from "../../../applicant/pages/ApplicationForm/GovernmentViewData";
 import MinimumAttempt from "../../../../service/AdminService/MinimumAttempt";
 import ApplicationReview from "../../../../service/RenewLicenseService/ApplicationReview";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
+
+const isRenewalApplication = (status) =>
+  String(status || "").toUpperCase().includes("RENEWAL");
+
+const applicationFormTitle = (status) =>
+  isRenewalApplication(status)
+    ? "View Renew Application Form"
+    : "View Application Form";
 
 const ViewNewApplicationForm = () => {
   const [isLoading, setLoading] = useState(false);
@@ -361,17 +372,20 @@ const ViewNewApplicationForm = () => {
     navigate("/applicant/applicationform/addapplicationform");
   };
 
-  const renderStepsContent = (id, userName) => {
+  const renderStepsContent = (id, userName, status) => {
     const stepId = parseInt(id, 10);
+    const renewal = isRenewalApplication(status);
+    const Individual = renewal ? IndividualViewData : FreshIndividualViewData;
+    const Firm = renewal ? FirmViewData : FreshFirmViewData;
+    const Government = renewal ? GovernmentViewData : FreshGovernmentViewData;
     switch (stepId) {
       case 1:
-        return <IndividualViewData userName={userName} />; // Pass data as props
+        return <Individual userName={userName} />;
       case 2:
-        return <FirmViewData userName={userName} />;
       case 3:
-        return <FirmViewData userName={userName} />;
+        return <Firm userName={userName} />;
       case 4:
-        return <GovernmentViewData userName={userName} />;
+        return <Government userName={userName} />;
       default:
         return <Typography variant="h6">Unknown step</Typography>;
     }
@@ -381,11 +395,12 @@ const ViewNewApplicationForm = () => {
     renderStepsContent();
   }, []);
 
-  const viewApplicationForms = (id, userName) => {
+  const viewApplicationForms = (id, userName, status) => {
+    const title = applicationFormTitle(status);
     if (id) {
       showAlert({
-        messageTitle: "View Renew Application Form",
-        messageContent: renderStepsContent(id, userName), // Pass applicationData to renderStepContent
+        messageTitle: title,
+        messageContent: renderStepsContent(id, userName, status),
         confirmText: "Ok",
         enableHeaderCloseBtn: true,
         disableOutsideKeyDown: true,
@@ -394,7 +409,7 @@ const ViewNewApplicationForm = () => {
       });
     } else {
       showAlert({
-        messageTitle: "View Renew Application Form",
+        messageTitle: title,
         messageContent:
           "Error in getting application details, try after some time.",
         confirmText: "Ok",
@@ -488,14 +503,22 @@ const ViewNewApplicationForm = () => {
         const actionButtons = [];
         if (params.row.applicationCurrentStatus !== "pending") {
           actionButtons.push(
-            <Tooltip title="View the Renewal Application" key="view-renewal">
+            <Tooltip
+              title={
+                isRenewalApplication(params.row.applicationCurrentStatus)
+                  ? "View the Renewal Application"
+                  : "View the Application"
+              }
+              key="view-application"
+            >
               <GridActionsCellItem
                 icon={<VisibilityIcon color="success" />}
                 label="View"
                 onClick={() =>
                   viewApplicationForms(
                     params.row.applicationType,
-                    params.row.applicantUserName
+                    params.row.applicantUserName,
+                    params.row.applicationCurrentStatus
                   )
                 }
               />

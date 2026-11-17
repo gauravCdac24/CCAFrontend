@@ -17,9 +17,6 @@ import { decrypt } from "../../../global/util/EncryptDecrypt";
 import AuditService from "../../../../service/AuditService/AuditService";
 import { styled } from '@mui/material/styles';
 import CloseIcon from "@mui/icons-material/Close";
-import EsignService from "../../../../service/EsignService/EsignService";
-
-
 
 const VisuallyHiddenInput = styled('input')({
   position: 'absolute',
@@ -50,44 +47,33 @@ const SendToRejection = () => {
 
   const handleViewDocument = async () => {
       try {
-        // Fetch signed document ID
-        const response = await AuditService.getEsignedDocumentId(ApplicantUserName);
-        const signedDocId = response.data?.signedDocId;
-  
-        if (!signedDocId) {
-          console.error("No signed document ID found.");
-          return;
+        const pdfBlob = await AuditService.getFinalReviewReportBlob(ApplicantUserName);
+        if (pdfUrl) {
+          window.URL.revokeObjectURL(pdfUrl);
         }
-  
-        const pdfBlob = await EsignService.viewDigitallySignedDocument(signedDocId);
-  
-        const url = window.URL.createObjectURL(new Blob([pdfBlob], { type: "application/pdf" }));
+        const url = window.URL.createObjectURL(
+          new Blob([pdfBlob], { type: "application/pdf" })
+        );
         setPdfUrl(url);
-  
         setOpen(true);
-  
       } catch (error) {
         console.error("Error fetching and downloading file:", error);
       }
     };
-  
-  
+
     const handleDownloadDocument = async () => {
       try {
-        // Fetch signed document ID
-        const response = await AuditService.getEsignedDocumentId(ApplicantUserName);
-        const signedDocId = response.data?.signedDocId;
-  
-        if (!signedDocId) {
-          console.error("No signed document ID found.");
-          return;
-        }
-  
-        const pdfBlob = await EsignService.downloadDigitallySignedDocument(signedDocId, "finalSignedDocument");
-  
-        const url = window.URL.createObjectURL(new Blob([pdfBlob], { type: "application/pdf" }));
-        //setPdfUrl(url);
-  
+        const pdfBlob = await AuditService.getFinalReviewReportBlob(ApplicantUserName);
+        const url = window.URL.createObjectURL(
+          new Blob([pdfBlob], { type: "application/pdf" })
+        );
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", "FinalReviewAuditReport.pdf");
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error("Error fetching and downloading file:", error);
       }

@@ -83,6 +83,11 @@ const CPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/CPSDoc'))
 const EditCPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/EditCPSDoc'))
 const AddCPSDoc = lazy(()=>import('../components/admin/pages/CPSDocument/AddCPSDoc'))
 
+//CSRDoc
+const CSRDoc = lazy(()=>import('../components/admin/pages/CSRDocument/CSRDoc'))
+const EditCSRDoc = lazy(()=>import('../components/admin/pages/CSRDocument/EditCSRDoc'))
+const AddCSRDoc = lazy(()=>import('../components/admin/pages/CSRDocument/AddCSRDoc'))
+
 //Audit Acceptance
 const AuditAcceptance = lazy(()=>import('../components/admin/pages/AuditAcceptance/AuditAcceptance'))
 const AddAuditAcceptance = lazy(()=>import('../components/admin/pages/AuditAcceptance/AddAuditAcceptance'))
@@ -517,6 +522,26 @@ const PrivateRoutesConfig = {
             path: 'cps/editcps/:id',
             element:(
                 <PrivateRoute  component={EditCPSDoc} />
+            )
+        },
+
+        // CSR (fixed route — same pattern as CPS)
+        {
+            path: 'csr',
+            element:(
+                <PrivateRoute  component={CSRDoc} />
+            )
+        },
+        {
+            path: 'csr/addcsr',
+            element:(
+                <PrivateRoute  component={AddCSRDoc} />
+            )
+        },
+        {
+            path: 'csr/editcsr/:id',
+            element:(
+                <PrivateRoute  component={EditCSRDoc} />
             )
         },
 

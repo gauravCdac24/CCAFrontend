@@ -10,6 +10,7 @@ import IssuanceService from '../../../../service/NewLicenseService/IssuanceServi
 import BankGuaranteeTemplateService from '../../../../service/AdminService/BankGuaranteeTemplateService';
 import AgreementTemplateService from '../../../../service/AdminService/AgreementTemplateService';
 import CrossCertificationTemplateService from '../../../../service/AdminService/CrossCertificationTemplateService';
+import CSRDocService from '../../../../service/AdminService/CSRDocService';
 
 const VisuallyHiddenInput = styled('input')({
     position: 'absolute',
@@ -204,6 +205,11 @@ const UploadDocuments = forwardRef(({intentAppId, refreshList}, ref) => {
             service: BankGuaranteeTemplateService,
             title: 'Download Bank Guarantee Template',
             fallback: 'BankGuaranteeTemplate',
+        },
+        'CSRTemplate.pdf': {
+            service: CSRDocService,
+            title: 'Download CSR Template',
+            fallback: 'CSRTemplate',
         },
         'AgreementTemplate.pdf': {
             service: AgreementTemplateService,

@@ -2,6 +2,43 @@
  * Helpers for "View" links on application document previews.
  */
 
+const isActiveDocument = (status) =>
+  String(status || '').trim().toLowerCase() === 'active';
+
+/**
+ * Section 35 shows one file per title. A later Active upload replaces an older
+ * copy of the same title (the earlier copy was the audit report).
+ * A title that was uploaded only once is kept even when it is inactive.
+ * @param {Array} docs
+ */
+export const keepLatestDocumentPerTitle = (docs) => {
+  if (!Array.isArray(docs)) {
+    return [];
+  }
+  const ordered = docs
+    .slice()
+    .sort((a, b) => Number(a?.appDocId || 0) - Number(b?.appDocId || 0));
+  const chosen = new Map();
+  ordered.forEach((doc) => {
+    const title = doc?.documentTitle || '';
+    const current = chosen.get(title);
+    if (!current) {
+      chosen.set(title, doc);
+      return;
+    }
+    const candidateActive = isActiveDocument(doc.status);
+    const currentActive = isActiveDocument(current.status);
+    if (candidateActive && !currentActive) {
+      chosen.set(title, doc);
+      return;
+    }
+    if (candidateActive === currentActive && Number(doc.appDocId || 0) > Number(current.appDocId || 0)) {
+      chosen.set(title, doc);
+    }
+  });
+  return Array.from(chosen.values());
+};
+
 /**
  * Pick the latest matching application document (Active preferred).
  * @param {Array} docs

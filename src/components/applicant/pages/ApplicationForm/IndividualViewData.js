@@ -6,7 +6,7 @@ import CityService from '../../../../service/AdminService/CityService';
 import CountryService from '../../../../service/AdminService/CountryService';
 import StateService from '../../../../service/AdminService/StateService';
 import showAlert from '../../../global/common/MessageBox/AlertService';
-import { getLatestApplicationDoc, openApplicationDocument } from '../../../global/util/viewApplicationDocument';
+import { getLatestApplicationDoc, keepLatestDocumentPerTitle, openApplicationDocument } from '../../../global/util/viewApplicationDocument';
 
 const IndividualViewData = ({userName}) => {
    
@@ -247,7 +247,7 @@ const [documents, setDocuments] = useState([]);
             ApplicationForm.getApplicationForm6ByUsername(userName)
                 .then((response) => {
                     console.log(response.data);
-                    const documents = response.data.documents;
+                    const documents = keepLatestDocumentPerTitle(response.data.documents);
                     setDocuments(documents);
                 })
                 .catch((err) => {
@@ -803,52 +803,61 @@ const renderSingleDocView = (docs, title) => {
  
 
     {/* Title */}
-    
       <Typography variant="h6">
         9. Credit Card Details:
       </Typography>
-    
 
-    {/* Credit Card Type */}
-    <Grid container spacing={2} sx={{ml:1}}>
-    <Grid item sm={6}>
-      <Typography variant="body1">
-        Credit Card Type: 
-      </Typography>
-      </Grid>
-      <Grid item sm={6}>
-      <Typography variant="body1">
-       {`${basicDetailsFormValues3.indivAdditionalDetails.creditCardType}`}
-      </Typography>
-      </Grid>
-    </Grid>
-   
-    {/* Credit Card Number */}
-    <Grid container spacing={2} sx={{ml:1}}>
-    <Grid item sm={6}>
-      <Typography variant="body1">
-        Credit Card No.: 
-      </Typography>
-    </Grid>
-    <Grid item sm={6}>
-      <Typography variant="body1">
-        {`${basicDetailsFormValues3.indivAdditionalDetails.creditCardNo}`}
-      </Typography>
-    </Grid>
-</Grid>
-    {/* Issued By */}
-    <Grid container spacing={2} sx={{ml:1}}>
-    <Grid item sm={6}>
-      <Typography variant="body1">
-        Issued By: 
-      </Typography>
-    </Grid>
-    <Grid item sm={6}>
-      <Typography variant="body1">
-        {`${basicDetailsFormValues3.indivAdditionalDetails.creditCardIssuedBy}`}
-      </Typography>
-    </Grid>
-  </Grid>
+    {(() => {
+      const credit = basicDetailsFormValues3?.indivAdditionalDetails || {};
+      const creditType = credit.creditCardType || credit.creditcardtype || '';
+      const creditNo = credit.creditCardNo || credit.creditcardNo || '';
+      const creditIssuedBy = credit.creditCardIssuedBy || credit.issuedBy || '';
+      const hasCredit =
+        Boolean(String(creditType).trim()) ||
+        Boolean(String(creditNo).trim()) ||
+        Boolean(String(creditIssuedBy).trim());
+      if (!hasCredit) {
+        return (
+          <Typography variant="body1" sx={{ ml: 1, mb: 1, fontStyle: 'italic', color: 'text.secondary' }}>
+            Not provided
+          </Typography>
+        );
+      }
+      return (
+        <>
+          <Grid container spacing={2} alignItems="center" sx={{ ml: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="body1" sx={{ display: 'inline' }}>
+                Credit Card Type:
+              </Typography>
+              <Typography variant="body1" component="span" sx={{ ml: 1, fontWeight: 600 }}>
+                {creditType}
+              </Typography>
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} alignItems="center" sx={{ ml: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="body1" sx={{ display: 'inline' }}>
+                Credit Card No.:
+              </Typography>
+              <Typography variant="body1" component="span" sx={{ ml: 1, fontWeight: 600 }}>
+                {creditNo}
+              </Typography>
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} alignItems="center" sx={{ ml: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="body1" sx={{ display: 'inline' }}>
+                Issued By:
+              </Typography>
+              <Typography variant="body1" component="span" sx={{ ml: 1, fontWeight: 600 }}>
+                {creditIssuedBy}
+              </Typography>
+            </Grid>
+          </Grid>
+        </>
+      );
+    })()}
 
 
 
@@ -885,8 +894,9 @@ const renderSingleDocView = (docs, title) => {
     {/* Web URL Address */}
     <Grid item sm={6}>
       <Typography variant="body1" sx={{ display: 'inline', marginLeft: '8px' }}>
-        {/* Replace with actual data when available */}
-        {/* {`${basicDetailsFormValues.application.webURL}`} */}
+        {basicDetailsFormValues3?.indivAdditionalDetails?.personalWebPage
+          || basicDetailsFormValues3?.indivAdditionalDetails?.webURL
+          || '—'}
       </Typography>
     </Grid>
   </Grid>

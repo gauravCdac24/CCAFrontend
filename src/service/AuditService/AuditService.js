@@ -460,6 +460,75 @@ const prepareAcceptanceEsign = (userName) => {
 	return API.post(AUDIT_SERVICE + "/prepare-acceptance-esign", formData);
 };
 
+const mergePdfs = (files) => {
+	const formData = new FormData();
+	(files || []).forEach((file, index) => {
+		if (!file) {
+			return;
+		}
+		formData.append(
+			"files",
+			file,
+			file.name || `part_${index + 1}.pdf`
+		);
+	});
+	return API.post(AUDIT_SERVICE + "/merge-pdfs", formData, {
+		headers: { "Content-Type": "multipart/form-data" },
+		responseType: "blob",
+		...sconfig,
+	});
+};
+
+const downloadFinalReviewReport = (userName) => {
+	return API.get(AUDIT_SERVICE + "/download-final-review-report", {
+		params: { userName },
+		responseType: "blob",
+		...sconfig,
+	});
+};
+
+/**
+ * Build Final eSigned Report for Review Committee:
+ * auditor-signed NC report + applicant eSigned acceptance letter (when present).
+ */
+const getFinalReviewReportBlob = async (applicantUserName) => {
+	const metaRes = await getEsignedDocumentId(applicantUserName);
+	const signedDocId = metaRes?.data?.signedDocId;
+	const acceptanceSignedDocId = metaRes?.data?.acceptanceSignedDocId;
+	if (!signedDocId) {
+		throw new Error("No signed audit report found.");
+	}
+
+	const EsignService = (await import("../EsignService/EsignService")).default;
+	const reportBlob = await EsignService.viewDigitallySignedDocument(signedDocId);
+	const parts = [
+		new File([reportBlob], "AuditReport.pdf", { type: "application/pdf" }),
+	];
+
+	if (acceptanceSignedDocId) {
+		try {
+			const acceptanceBlob = await EsignService.viewDigitallySignedDocument(
+				acceptanceSignedDocId
+			);
+			parts.push(
+				new File([acceptanceBlob], "AcceptanceLetter.pdf", {
+					type: "application/pdf",
+				})
+			);
+		} catch (err) {
+			console.warn("Acceptance letter signed PDF unavailable:", err);
+		}
+	}
+
+	if (parts.length === 1) {
+		return parts[0];
+	}
+	const mergedRes = await mergePdfs(parts);
+	return new Blob([mergedRes.data], {
+		type: mergedRes.headers?.["content-type"] || "application/pdf",
+	});
+};
+
 export default{
 
     addNewAuditAgencySlection,
@@ -517,4 +586,7 @@ export default{
 				uploadAcceptanceLetter,
 				downloadUploadedAcceptanceLetter,
 				prepareAcceptanceEsign,
+				mergePdfs,
+				downloadFinalReviewReport,
+				getFinalReviewReportBlob,
             };

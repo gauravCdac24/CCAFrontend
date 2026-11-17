@@ -8,7 +8,7 @@ import StateService from '../../../../service/AdminService/StateService';
 import CityService from '../../../../service/AdminService/CityService';
 import CountryService from '../../../../service/AdminService/CountryService';
 import showAlert from '../../../global/common/MessageBox/AlertService';
-import { getLatestApplicationDoc, openApplicationDocument } from '../../../global/util/viewApplicationDocument';
+import { getLatestApplicationDoc, keepLatestDocumentPerTitle, openApplicationDocument } from '../../../global/util/viewApplicationDocument';
 
 const FirmViewData = ({userName}) => {
    
@@ -140,7 +140,7 @@ const [documents, setDocuments] = useState([]);
             ApplicationForm.getApplicationForm6ByUsername(userName)
                 .then((response) => {
                     console.log(response.data);
-                    const documents = response.data.documents;
+                    const documents = keepLatestDocumentPerTitle(response.data.documents);
                     setDocuments(documents);
                 })
                 .catch((err) => {

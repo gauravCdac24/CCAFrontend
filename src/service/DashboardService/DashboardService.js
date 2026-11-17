@@ -11,6 +11,7 @@ import store from '../../store';
 	const ADD_ASP_DETAILS = "/add-asp-details";
 	const GET_ALL_ASP = "/get-all-asp";
 	const GET_ASP_BY_ID = "/get-asp-by-id";
+	const DOWNLOAD_ASP_AUDIT_REPORTS = "/download-asp-audit-reports";
 	const GET_ALL_ACTIVE_CA = "/get-all-active-ca";
 	const GET_ALL_ACTIVE_ESP = "/get-all-active-esp";
 	//
@@ -161,7 +162,12 @@ import store from '../../store';
 	}
 
 	const getAllASP = () =>{
-		return API.get(DASHBOARD_SERVICE_BASE_URL + GET_ALL_ASP);
+		const username = auth().username;
+		return API.get(DASHBOARD_SERVICE_BASE_URL + GET_ALL_ASP, {
+			params: {
+				id: encrypt(username)
+			}
+		});
 	}
 
 	const getAllDSCeSignIssued = () =>{
@@ -174,6 +180,17 @@ import store from '../../store';
 				id:encrypt(id)
 			}
 		})
+	}
+
+	const downloadAspAuditReports = (aspId) => {
+		const username = auth().username;
+		return API.get(DASHBOARD_SERVICE_BASE_URL + DOWNLOAD_ASP_AUDIT_REPORTS, {
+			params: {
+				id: encrypt(String(aspId)),
+				pid: encrypt(username)
+			},
+			responseType: 'blob'
+		});
 	}
 
 	const getDSCeSignIssuedByID = (id) =>{
@@ -498,6 +515,7 @@ export default{
 	getAllASP,
 	getAllDSCeSignIssued,
 	getASPByID,
+	downloadAspAuditReports,
 	getDSCeSignIssuedByID,
 	updateDSCeSign,
 	updateASPDetails,
