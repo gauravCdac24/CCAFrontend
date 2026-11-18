@@ -53,6 +53,7 @@ const AUDITOR_APPROVE_NC="/auditor-accept-nc";
 
 const FORWORD_TO_APPLICANT="/forword-to-applicant";
 const DOWNLOAD_FINAL_RIVISION="/download-auditor-report";
+const DOWNLOAD_AUDITOR_SIGNED_REPORT="/download-auditor-signed-report";
 const GET_ESIGNED_DOCUMENT_ID="/get-esign-document-id";
 const GET_AUDIT_ESIGN_STATUS="/get-audit-esign-status";
 const MARK_AUDIT_ESIGN_FAILED="/mark-audit-esign-failed";
@@ -335,6 +336,16 @@ const downloadDocument = (obj) => {
   });
 }
 
+const downloadAuditorSignedReport = (userName) => {
+	return API.get(AUDIT_SERVICE + DOWNLOAD_AUDITOR_SIGNED_REPORT, {
+		params: {
+			userName: userName
+		},
+		responseType: 'blob',
+		...sconfig
+	});
+}
+
 
 const getEsignedDocumentId = (ApplicantUserName) =>{
 	return API.get(AUDIT_SERVICE+GET_ESIGNED_DOCUMENT_ID,{
@@ -568,6 +579,7 @@ export default{
 				getAuditorApprovedData,
 				forwordToApplicant,
 				downloadDocument,
+				downloadAuditorSignedReport,
 				getEsignedDocumentId,
 				getAuditEsignStatus,
 				markAuditEsignFailed,

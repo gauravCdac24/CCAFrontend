@@ -12,6 +12,9 @@ import { encrypt,decrypt } from '../../../global/util/EncryptDecrypt';
 import RoleService from '../../../../service/AdminService/RoleService';
 import ViewDetailsApplicationForm from './ViewDetailsApplicationForm';
 import ApplicationForm from '../../../../service/NewLicenseService/ApplicationForm';
+import AuditService from '../../../../service/AuditService/AuditService';
+import EsignService from '../../../../service/EsignService/EsignService';
+import AuditAcceptanceService from '../../../../service/AdminService/AuditAcceptanceService';
 import { useDispatch, useSelector } from 'react-redux';
 import AddApplicationForm from './AddApplicationForm';
 import ApplicationType from '../../../../service/AdminService/ApplicationType';
@@ -513,6 +516,92 @@ const ViewApplicationForm = () => {
                 return <Typography variant="h6">Unknown step</Typography>;
         }
     };
+
+    const isPendingAuditAcceptance = (status) => {
+        const normalized = String(status || '').trim().toLowerCase().replace(/_/g, ' ');
+        return normalized.includes('pending audit acceptance');
+    };
+
+    const saveDownloadedFile = (data, contentType, fileName) => {
+        const blob = new Blob([data], { type: contentType || 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
+
+    const handleDownloadAuditReport = async () => {
+        try {
+            const metaRes = await AuditService.getEsignedDocumentId(userName);
+            const data = metaRes?.data || {};
+            const signerKey = String(data.signerKey || '').toUpperCase();
+            const signedDocId = data.auditorSignedDocId
+                || (signerKey !== 'ACCEPTANCE' ? data.signedDocId : null);
+            if (!signedDocId) {
+                showAlert({
+                    messageTitle: 'Download Error',
+                    messageContent: 'Signed audit report is not available.',
+                    confirmText: 'Ok',
+                });
+                return;
+            }
+            const response = await EsignService.downloadEsignedDocument(signedDocId);
+            const contentType = response.headers?.['content-type'] || 'application/pdf';
+            if (String(contentType).includes('application/json') || String(contentType).includes('text/')) {
+                showAlert({
+                    messageTitle: 'Download Error',
+                    messageContent: 'Signed audit report is not available.',
+                    confirmText: 'Ok',
+                });
+                return;
+            }
+            saveDownloadedFile(
+                response.data,
+                String(contentType).includes('pdf') ? contentType : 'application/pdf',
+                'AuditReport.pdf'
+            );
+        } catch (error) {
+            console.error('Error downloading audit report:', error);
+            showAlert({
+                messageTitle: 'Download Error',
+                messageContent: 'Failed to download the audit report.',
+                confirmText: 'Ok',
+            });
+        }
+    };
+
+    const handleDownloadAuditAcceptanceForm = async () => {
+        try {
+            const listRes = await AuditAcceptanceService.getAllActiveDocuments();
+            const activeList = Array.isArray(listRes?.data) ? listRes.data : [];
+            if (!activeList.length) {
+                showAlert({
+                    messageTitle: 'Download Error',
+                    messageContent: 'No active audit acceptance form is available.',
+                    confirmText: 'Ok',
+                });
+                return;
+            }
+            const activeDoc = activeList[0];
+            const fileRes = await AuditAcceptanceService.downloadFile(activeDoc.auditAcceptanceId, true);
+            saveDownloadedFile(
+                fileRes.data,
+                fileRes.headers?.['content-type'],
+                activeDoc.documentName || activeDoc.fileName || 'AuditAcceptanceForm.pdf'
+            );
+        } catch (error) {
+            console.error('Error downloading audit acceptance form:', error);
+            showAlert({
+                messageTitle: 'Download Error',
+                messageContent: 'Failed to download the audit acceptance form.',
+                confirmText: 'Ok',
+            });
+        }
+    };
     
 
     const handleDDSubmit = () => {
@@ -677,6 +766,15 @@ const ViewApplicationForm = () => {
                                     onClick={() => viewApplicationForm(params.row)} 
                                 />
                             </Tooltip>,
+                            isPendingAuditAcceptance(params.row.status) ? (
+                            <Tooltip title="Download Audit Report">
+                            <GridActionsCellItem
+                                icon={<DownloadIcon color="info" />}
+                                label="Download Audit Report"
+                                onClick={() => handleDownloadAuditReport()}
+                            />
+                            </Tooltip>
+                            ) : (
                             <Tooltip title="Download Application Form">
                             <GridActionsCellItem 
                                 icon={<DownloadIcon color="info" />} 
@@ -684,6 +782,16 @@ const ViewApplicationForm = () => {
                                 onClick={() => handleDownload(params.row.intentAppId)} 
                             />
                             </Tooltip>
+                            ),
+                            isPendingAuditAcceptance(params.row.status) && (
+                            <Tooltip title="Download Audit Acceptance Form">
+                            <GridActionsCellItem
+                                icon={<DownloadIcon color="success" />}
+                                label="Download Audit Acceptance Form"
+                                onClick={() => handleDownloadAuditAcceptanceForm()}
+                            />
+                            </Tooltip>
+                            )
                             
                         );
                     } 

@@ -742,6 +742,56 @@ const createIndivReport = async (userName) => {
         }
     };
 
+    const isPendingAuditAcceptance = (status, actions) => {
+        const normalized = String(status || '').trim().toLowerCase().replace(/_/g, ' ');
+        return normalized.includes('pending audit acceptance')
+            || hasLicenseAction(actions || [], 'AUDIT_ACCEPTANCE');
+    };
+
+    const handleDownloadAuditReport = async () => {
+        try {
+            const metaRes = await AuditService.getEsignedDocumentId(userName);
+            const data = metaRes?.data || {};
+            const signerKey = String(data.signerKey || '').toUpperCase();
+            const signedDocId = data.auditorSignedDocId
+                || (signerKey !== 'ACCEPTANCE' ? data.signedDocId : null);
+            if (!signedDocId) {
+                showAlert({
+                    messageTitle: 'Download Error',
+                    messageContent: 'Signed audit report is not available.',
+                    confirmText: 'Ok',
+                });
+                return;
+            }
+            const response = await EsignService.downloadEsignedDocument(signedDocId);
+            const contentType = response.headers?.['content-type'] || 'application/pdf';
+            if (String(contentType).includes('application/json') || String(contentType).includes('text/')) {
+                showAlert({
+                    messageTitle: 'Download Error',
+                    messageContent: 'Signed audit report is not available.',
+                    confirmText: 'Ok',
+                });
+                return;
+            }
+            const blob = new Blob([response.data], {
+                type: String(contentType).includes('pdf') ? contentType : 'application/pdf',
+            });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', 'AuditReport.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (error) {
+            console.error('Error downloading audit report:', error);
+            showAlert({
+                messageTitle: 'Download Error',
+                messageContent: 'Failed to download the audit report.',
+                confirmText: 'Ok',
+            });
+        }
+    };
+
 
      const viewTracker = (intentAppId) => {
          showAlert({
@@ -849,15 +899,27 @@ const createIndivReport = async (userName) => {
                     }
 
                     if (hasLicenseAction(actions, 'DOWNLOAD')) {
-                        actionButtons.push(
-                            <Tooltip key="download" title="Download Application Form">
-                                <GridActionsCellItem
-                                    icon={<DownloadIcon color="info" />}
-                                    label="Download"
-                                    onClick={() => handleDownload(params.row.intentAppId)}
-                                />
-                            </Tooltip>
-                        );
+                        if (isPendingAuditAcceptance(params.row.status, actions)) {
+                            actionButtons.push(
+                                <Tooltip key="download-audit-report" title="Download Audit Report">
+                                    <GridActionsCellItem
+                                        icon={<DownloadIcon color="info" />}
+                                        label="Download Audit Report"
+                                        onClick={() => handleDownloadAuditReport()}
+                                    />
+                                </Tooltip>
+                            );
+                        } else {
+                            actionButtons.push(
+                                <Tooltip key="download" title="Download Application Form">
+                                    <GridActionsCellItem
+                                        icon={<DownloadIcon color="info" />}
+                                        label="Download"
+                                        onClick={() => handleDownload(params.row.intentAppId)}
+                                    />
+                                </Tooltip>
+                            );
+                        }
                     }
 
                     if (hasLicenseAction(actions, 'TRACKER')) {
