@@ -638,10 +638,6 @@ const handleFileChange4 = (e) => {
         }
 
         if (!basicDetailsFormValues.ispName) errors.ispName = errorMessages.ispName;
-      
-          if (!/^https?:\/\/[^\s]+$/.test(basicDetailsFormValues.webPageURL)) {
-            errors.webPageURL = errorMessages.webPageURL.format;
-        }
         
         // Validate Professional Details
         if (!basicDetailsFormValues.ProfessionalDetails.capital) errors.capital = errorMessages.capital;
@@ -818,7 +814,7 @@ const handleFileChange4 = (e) => {
             <Grid container spacing={2}>
                 <Grid container>
                     <Grid item >
-                        <Typography variant='h7' sx={{ mt: 1, mb: 1 }} ><b>Credit Card Details(9)</b></Typography>
+                        <Typography variant='h7' sx={{ mt: 1, mb: 1 }} ><b>Credit Card Details</b></Typography>
                     </Grid>
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -892,7 +888,7 @@ const handleFileChange4 = (e) => {
 
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'><b>ID Card Details(12,13,14)</b></Typography>
+                    <Typography variant='h7'><b>ID Card Details</b></Typography>
                 </Grid>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
                 {formErrors.general && (
@@ -1228,7 +1224,7 @@ const handleFileChange4 = (e) => {
             )}
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7' ><b>ISP Details<span className="req-asterisk">*</span>(15)</b></Typography>
+                    <Typography variant='h7' ><b>ISP Details<span className="req-asterisk">*</span></b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
@@ -1299,11 +1295,10 @@ const handleFileChange4 = (e) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"webPageURL"}>
-                        <Typography variant='body1'>Web Page URL<span className="req-asterisk">*</span>(16)</Typography>
+                        <Typography variant='body1'><b>Web Page URL</b></Typography>
                     </InputLabel>
                     <TextField
-                        required
-                        placeholder="Web Page URL"
+                        placeholder="https://www.example.com/"
                         fullWidth
                         variant="outlined"
                         onChange={handleChange}
@@ -1321,7 +1316,7 @@ const handleFileChange4 = (e) => {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Business Capital<span className="req-asterisk">*</span>(17)</b></Typography>
+                    <Typography variant='h7'> <b>Business Capital<span className="req-asterisk">*</span></b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>

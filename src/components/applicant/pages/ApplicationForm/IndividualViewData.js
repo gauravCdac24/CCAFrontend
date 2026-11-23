@@ -50,8 +50,11 @@ const [basicDetailsFormValues2, setBasicDetailsFormValues2] = useState({ residen
                 const { indivAddressDTO } = response.data;
 
                 // Assuming indivAddressDTO has residential and official addresses
-                const residentialAddress = indivAddressDTO.residential;
-                const officialAddress = indivAddressDTO.official;
+                const residentialAddress = indivAddressDTO?.residential || {};
+                const officialAddress = {
+                    ...(indivAddressDTO?.official || {}),
+                    officeName: indivAddressDTO?.official?.officeName || '',
+                };
 
                 // Set state with both residential and official addresses
                 setBasicDetailsFormValues2({
@@ -550,6 +553,15 @@ const renderSingleDocView = (docs, title) => {
   
   
     <Typography variant="h6">B. Office Address<span className="req-asterisk">*</span>:</Typography>
+
+    <Grid container spacing={2} sx={{ ml: 1 }}>
+  <Grid item sm={6}>
+    <Typography variant="body1">Name of Office:</Typography>
+  </Grid>
+  <Grid item sm={6}>
+    <Typography variant="body1">{`${basicDetailsFormValues2.officialAddress.officeName || 'N/A'}`}</Typography>
+  </Grid>
+  </Grid>
   
     <Grid container spacing={2} sx={{ ml: 1 }}>
   <Grid item sm={6}>

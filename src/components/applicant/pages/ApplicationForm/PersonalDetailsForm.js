@@ -2326,7 +2326,7 @@ console.log(basicDetailsFormValues.intentAppId)
             <Grid container spacing={2}>
                 <Grid container>
                     <Grid item >
-                        <Typography variant='h7' sx={{ mt: 1, mb: 1 }}>Full Name<span className="req-asterisk">*</span>(1)</Typography>
+                        <Typography variant='h7' sx={{ mt: 1, mb: 1 }}>Full Name<span className="req-asterisk">*</span></Typography>
                     </Grid>
                 </Grid>
                 <Grid item xs={12} sm>
@@ -2423,7 +2423,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 <Grid container spacing={2}>
                 <Grid item xs={12}>
                     <Box display="flex" alignItems="center">
-                        <Typography variant="body1">Have you ever been known by any other name? (2)</Typography>
+                        <Typography variant="body1">Have you ever been known by any other name?</Typography>
                         <RadioGroup
                             row
                             value={selectedOption}
@@ -2521,7 +2521,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         <React.Fragment key={index}>
                             <Grid item xs={12} sm={3.5} sx={{ mt: 2 }}>
                                 <InputLabel shrink={false} htmlFor={`email-${index}`}>
-                                    <Typography variant='body1' >{basicDetailsFormValues.emailId.length > 1 ? `${index + 1}. ` : ''} Email<span className="req-asterisk">*</span>(10)</Typography>
+                                    <Typography variant='body1' >{basicDetailsFormValues.emailId.length > 1 ? `${index + 1}. ` : ''} Email<span className="req-asterisk">*</span></Typography>
                                 </InputLabel>
                                 <TextField
                                     id={`email-${index}`}
@@ -2570,7 +2570,7 @@ console.log(basicDetailsFormValues.intentAppId)
                     {/* Date of Birth Field */}
                     <Grid item xs={12} sm>
                         <InputLabel shrink={false} htmlFor={"dob"}>
-                            <Typography variant='body1'>Date Of Birth<span className="req-asterisk">*</span>(7)</Typography>
+                            <Typography variant='body1'>Date Of Birth<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DatePicker
@@ -2598,7 +2598,7 @@ console.log(basicDetailsFormValues.intentAppId)
                     {/* Gender Field */}
                     <Grid item xs={12} sm>
                         <InputLabel shrink={false} htmlFor={"gender"}>
-                            <Typography variant='body1'>Gender<span className="req-asterisk">*</span>(6)</Typography>
+                            <Typography variant='body1'>Gender<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                             <Select
@@ -2628,7 +2628,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid container spacing={2}>
                 <Grid item xs={12}>
-                    <Typography variant="h7" sx={{ mt: 1, mb: 1 }}>Father's Name<span className="req-asterisk">*</span>(5)</Typography>
+                    <Typography variant="h7" sx={{ mt: 1, mb: 1 }}>Father's Name<span className="req-asterisk">*</span></Typography>
                 </Grid>
                 <Grid item xs={12} sm>
 
@@ -2724,7 +2724,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid item xs={12} sm={6} sx={{ ml: -2 }}>
       <InputLabel shrink={false} htmlFor={"nationality"}>
-        <Typography variant='body1'>Nationality<span className="req-asterisk">*</span>(8)</Typography>
+        <Typography variant='body1'>Nationality<span className="req-asterisk">*</span></Typography>
       </InputLabel>
 
       <FormControl sx={{ mt: 1, width: '100%' }}>

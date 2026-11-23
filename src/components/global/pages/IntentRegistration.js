@@ -190,7 +190,7 @@ const IntentRegistration = () => {
     }, []);
     
     useEffect(() => {
-        CountryService.getAllActiveCountryList().then(data => {
+        CountryService.getAllCountryList().then(data => {
             setCountry(data.data);
             console.log("Fetched country:",countries); 
 
@@ -801,7 +801,6 @@ const IntentRegistration = () => {
                             <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
                                 <Select
                                     id="country"
-                                    
                                     required
                                     value={intentFormValues.country}
                                     onChange={handleInputChange}
@@ -809,8 +808,12 @@ const IntentRegistration = () => {
                                     name="country"
                                     error={!!formErrors.country}
                                     size='small'
+                                    MenuProps={{
+                                        anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                                        transformOrigin: { vertical: 'top', horizontal: 'left' },
+                                    }}
                                 >
-                                    <MenuItem value="">
+                                    <MenuItem disabled value="">
                                         Select Country
                                     </MenuItem>
                                     {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(intentFormValues.country)).map(country => (
@@ -829,7 +832,6 @@ const IntentRegistration = () => {
                             <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
                                 <Select
                                     id="state"
-                                   
                                     required
                                     value={intentFormValues.state}
                                     onChange={handleInputChange}
@@ -837,8 +839,12 @@ const IntentRegistration = () => {
                                     name="state"
                                     error={!!formErrors.state}
                                     size='small'
+                                    MenuProps={{
+                                        anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                                        transformOrigin: { vertical: 'top', horizontal: 'left' },
+                                    }}
                                 >
-                                    <MenuItem value="">
+                                    <MenuItem disabled value="">
                                         Select State/Province
                                     </MenuItem>
                                     {filteredStates.map(state => (
@@ -850,8 +856,6 @@ const IntentRegistration = () => {
                                 {formErrors.state && <FormHelperText error>{formErrors.state}</FormHelperText>}
                             </FormControl>
                         </Grid>
-              
-                   
                         <Grid item xs={12} sm={3} >
                             <InputLabel shrink={false} htmlFor="district">
                                 <Typography variant='body1'>District*</Typography>
@@ -859,7 +863,6 @@ const IntentRegistration = () => {
                             <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
                                 <Select
                                     id="city"
-                                    margin='dense'
                                     required
                                     value={intentFormValues.city}
                                     fullWidth
@@ -868,8 +871,12 @@ const IntentRegistration = () => {
                                     size='small'
                                     name="city"
                                     error={!!formErrors.city}
+                                    MenuProps={{
+                                        anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                                        transformOrigin: { vertical: 'top', horizontal: 'left' },
+                                    }}
                                 >
-                                    <MenuItem value="">
+                                    <MenuItem disabled value="">
                                         Select District
                                     </MenuItem>
                                     {filteredCities.map(city => (
@@ -880,9 +887,7 @@ const IntentRegistration = () => {
                                 </Select>
                                 {formErrors.city && <FormHelperText error>{formErrors.city}</FormHelperText>}
                             </FormControl>
-                        </Grid> 
-
-                                
+                        </Grid>
                                 <Grid item xs={12} sm={3} >
                                     <InputLabel shrink={false} htmlFor={"pin"}>
                                         <Typography variant='body1'>Pin*</Typography>
@@ -903,8 +908,7 @@ const IntentRegistration = () => {
                                         size="small"
                                         inputProps={{ maxLength: 6 }}
                                     />
-                                </Grid>  
-
+                                </Grid>
                             </Grid>
                             <Grid container justifyContent="center" sx={{ mt: 2 }}>
                         <Grid item xs={12} sm={4}>

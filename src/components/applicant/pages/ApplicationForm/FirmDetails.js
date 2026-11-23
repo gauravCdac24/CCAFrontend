@@ -349,13 +349,6 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             errors.fax = errorMsg.fax.format;
         }
     
-        // Validate telephoneNo
-        if (!values.telephoneNo) {
-            errors.telephoneNo = errorMsg.telephoneNo.blank;
-        } else if (isNaN(values.telephoneNo)) {
-            errors.telephoneNo = errorMsg.telephoneNo.format;
-        }
-    
         // // Validate mobile
          if (!values.officeName) {
              errors.officeName = errorMsg.officeName.blank;
@@ -523,7 +516,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="registrationNo">
-                        <Typography variant='body1'>Registration Number(18)<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Registration Number<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="registrationNo"
@@ -546,7 +539,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                 </Grid>
                 <Grid item xs={12} sm>
     <InputLabel shrink={false} htmlFor="incorporationDate">
-        <Typography variant='body1'>Date Of Incorporation/Agreement/Partnership (19)<span className="req-asterisk">*</span></Typography>
+        <Typography variant='body1'>Date Of Incorporation/Agreement/Partnership<span className="req-asterisk">*</span></Typography>
     </InputLabel>
     <LocalizationProvider dateAdapter={AdapterDayjs}>
         <DatePicker
@@ -573,7 +566,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 </Grid>
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>Particulars of Business<span className="req-asterisk">*</span>(20)</Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>Particulars of Business<span className="req-asterisk">*</span></Typography>
                 </Grid>
             </Grid>
 
@@ -584,7 +577,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                 <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="officeName">
-                        <Typography variant='body1'>Office Name<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Name of Office<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="officeName"
@@ -592,7 +585,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                         required
                         fullWidth
                         onKeyDown={(e) => validatePattern(e, /^[A-Za-z ]+$/)}
-                        placeholder='Office Name'
+                        placeholder='Name of Office'
                         name="officeName"
                         variant='outlined'
                         onChange={handleInputChange}
@@ -812,12 +805,11 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
-                        <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Telephone No</Typography>
                     </InputLabel>
                     <TextField
                         id="telephoneNo"
                         margin="dense"
-                        required
                         fullWidth
                         placeholder='Telephone No'
                         name="telephoneNo"

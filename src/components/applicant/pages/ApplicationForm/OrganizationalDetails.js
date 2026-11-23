@@ -360,24 +360,18 @@ console.log(appData)
             errors.pin = errorMsg.pin.format;
         }
     
-        // Validate fax
-        if (!values.fax) {
-            errors.fax = errorMsg.fax.blank;
-        } else if (isNaN(values.fax)) {
+        // Validate fax (optional)
+        if (values.fax && isNaN(values.fax)) {
             errors.fax = errorMsg.fax.format;
         }
     
-        // Validate telephoneNo
-        if (!values.telephoneNo) {
-            errors.telephoneNo = errorMsg.telephoneNo.blank;
-        } else if (isNaN(values.telephoneNo)) {
+        // Validate telephoneNo (optional)
+        if (values.telephoneNo && isNaN(values.telephoneNo)) {
             errors.telephoneNo = errorMsg.telephoneNo.format;
         }
 
-        // Validate webURL
-        if (!values.webURL || !values.webURL.trim()) {
-            errors.webURL = errorMsg.webURL.blank;
-        } else if (!isValidWebUrl(values.webURL)) {
+        // Validate webURL (optional)
+        if (values.webURL && values.webURL.trim() && !isValidWebUrl(values.webURL)) {
             errors.webURL = errorMsg.webURL.format;
         }
     
@@ -546,7 +540,7 @@ return isEnabled;
             {/* Residential Address Section */}
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>1. Particulars of Organization(28)</Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>1. Particulars of Organization</Typography>
                 </Grid>
             </Grid>
 
@@ -829,12 +823,11 @@ return isEnabled;
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
-                        <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Telephone No</Typography>
                     </InputLabel>
                     <TextField
                         id="telephoneNo"
                         margin="dense"
-                        required
                         fullWidth
                         placeholder='Telephone No'
                         name="telephoneNo"
@@ -851,12 +844,11 @@ return isEnabled;
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="fax">
-                        <Typography variant='body1'>Fax<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Fax</Typography>
                     </InputLabel>
                     <TextField
                         id="fax"
                         margin="dense"
-                        required
                         fullWidth
                         placeholder='Fax'
                         name="fax"
@@ -872,12 +864,11 @@ return isEnabled;
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="webURL">
-                        <Typography variant='body1'>Web Page URL<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Web Page URL</Typography>
                     </InputLabel>
                     <TextField
                         id="webURL"
                         margin="dense"
-                        required
                         fullWidth
                         placeholder='https://www.example.gov.in'
                         name="webURL"
@@ -1041,7 +1032,7 @@ return isEnabled;
             <Grid container sx={{ mt: 1, mb: 1 }}>
     <Grid item xs={12}>
         <Typography variant='h6' sx={{ mt: 1 }}>
-            2. Public Key @(32)
+            2. Public Key
         </Typography>
     </Grid>
     <Grid item xs={12} sx={{ mt: 1 }}>

@@ -77,6 +77,9 @@ const errorMsg = {
   certificationLevel: {
     blank: "certificationLevel cannot be empty.",
   },
+  file1: {
+    blank: "Certificate Document is required.",
+  },
   companyName: {
     blank: "companyName cannot be empty.",
   },
@@ -559,7 +562,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
     handleBack();
   };
 
-  const validateForm = () => {
+  const validateForm = (typeToValidate) => {
     const errors = {};
 
     // Validate blockNo
@@ -626,6 +629,15 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
       errors.pin = errorMsg.pin.blank;
     } else if (!/^\d{6}$/.test(communicationAddressFormValues.pin)) {
       errors.pin = errorMsg.pin.format;
+    }
+
+    const type = typeToValidate || communicationAddressFormValues.locationType;
+    if (
+      (type === "PR" || type === "DR") &&
+      !communicationAddressFormValues.certificationDocument &&
+      !fileName1
+    ) {
+      errors.file1 = errorMsg.file1.blank;
     }
 
     // Return errors object
@@ -699,7 +711,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
     console.log("Current form values:", communicationAddressFormValues);
 
     // Validate the form fields
-    const errors = validateForm();
+    const errors = validateForm(typeToAdd);
     console.log("Form errors:", errors);
 
     if (Object.keys(errors).length === 0) {
@@ -1208,7 +1220,8 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
       entry.city &&
       entry.pin &&
       entry.companyName &&
-      entry.certificationLevel
+      entry.certificationLevel &&
+      (entry.certificationDocument || entry.certificateName)
     );
   };
 
@@ -1745,6 +1758,9 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
                 <Typography variant="body1">
                   Upload Certificate Document (Only PDF and Max allowed size 5
                   MB)
+                  {(locationType === "PR" || locationType === "DR") && (
+                    <span className="req-asterisk">*</span>
+                  )}
                 </Typography>
               </InputLabel>
 

@@ -26,6 +26,22 @@ const ORDINALS = {
     9: 'Ninth',
 };
 
+const FORM_STEP_NAMES = {
+    personalDetails: 'Personal Details',
+    addressDetails: 'Contact Details',
+    financialDetails: 'Financial Details',
+    firmDetails: 'Firm Details',
+    incomeTaxDocumentDetails: 'Contact Details',
+    partner: 'Details Of Partners',
+    authorizedRepresentative: 'Authorized Representative Details',
+    organizationalDetails: 'Organization Details',
+    additionalDetails: 'Additional Details',
+    location: 'Location of Facility',
+    cpsDocument: 'CPS & Additional Document',
+    //checklist: 'Application Checklist',
+    //declaration: 'Confirmation & Declaration',
+};
+
 const resolveAppType = (appTypeMasterId) => {
     const appType = Number(appTypeMasterId);
     return Number.isFinite(appType) && appType > 0 ? appType : 1;
@@ -39,12 +55,18 @@ export const getFormStepLabel = (appTypeMasterId, formKey) => {
     return ORDINALS[stepNumber] || `${stepNumber}th`;
 };
 
+const getFormStepName = (appTypeMasterId, formKey) => {
+    if (formKey === 'additionalDetails' && resolveAppType(appTypeMasterId) === 4) {
+        return 'Bank Details';
+    }
+    return FORM_STEP_NAMES[formKey] || getFormStepLabel(appTypeMasterId, formKey);
+};
+
 export const getStepSuccessAlert = (appTypeMasterId, formKey, isUpdate = false) => {
-    const stepLabel = getFormStepLabel(appTypeMasterId, formKey);
-    const action = isUpdate ? 'updated' : 'saved';
+    const stepName = getFormStepName(appTypeMasterId, formKey);
     return {
-        messageTitle: `${stepLabel} Step Successful`,
-        messageContent: `${stepLabel} step ${action} successfully.`,
+        messageTitle: `${stepName} Successful`,
+        messageContent: `${stepName} added successfully.`,
     };
 };
 

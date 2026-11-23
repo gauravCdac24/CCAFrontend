@@ -691,7 +691,7 @@ const specificDocs = documents
 
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'><b>CPS Template<span className="req-asterisk">*</span>(34)</b></Typography>
+                    <Typography variant='h7'><b>CPS Template<span className="req-asterisk">*</span></b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>

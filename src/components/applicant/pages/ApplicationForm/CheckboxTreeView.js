@@ -122,7 +122,7 @@ const CheckboxTreeView = ({ data = MUI_X_PRODUCTS, preSelectedParentId = '1', on
   return (
     <Box sx={{ minHeight: 200, minWidth: 350 }}>
 
-     <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
+     <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
       Please select the service:
     </Typography>
 

@@ -567,7 +567,7 @@ if (!basicDetailsFormValues.file3) {
         <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleFormSubmit}>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Income Tax PAN No.(21)</b></Typography>
+                    <Typography variant='h7'> <b>Income Tax PAN No.</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
@@ -644,7 +644,7 @@ if (!basicDetailsFormValues.file3) {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Turnover in the last Financial Year(22)</b></Typography>
+                    <Typography variant='h7'> <b>Turnover in the last Financial Year</b></Typography>
                 </Grid>
             </Grid>
 
@@ -682,7 +682,7 @@ if (!basicDetailsFormValues.file3) {
 
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Net Worth(23)</b></Typography>
+                    <Typography variant='h7'> <b>Net Worth</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2} alignItems="center">
@@ -692,7 +692,7 @@ if (!basicDetailsFormValues.file3) {
                     </InputLabel>
                     <TextField
                         required
-                        placeholder="Net worth"
+                        placeholder="e.g. 550000000 (≥ 50 crores)"
                         fullWidth
                         variant="outlined"
                         size='small'
@@ -765,7 +765,7 @@ if (!basicDetailsFormValues.file3) {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Paid up Capital(24)</b></Typography>
+                    <Typography variant='h7'> <b>Paid up Capital</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2} alignItems="center">
@@ -775,7 +775,7 @@ if (!basicDetailsFormValues.file3) {
                     </InputLabel>
                     <TextField
                         required
-                        placeholder="Paid up Capital"
+                        placeholder="e.g. 40000000 (≤ 5 crores)"
                         fullWidth
                         variant="outlined"
                         size='small'
@@ -847,7 +847,7 @@ if (!basicDetailsFormValues.file3) {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Insurence Details<span className="req-asterisk">*</span>(25)</b></Typography>
+                    <Typography variant='h7'> <b>Insurence Details<span className="req-asterisk">*</span></b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>

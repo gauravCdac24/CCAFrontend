@@ -28,6 +28,12 @@ const VisuallyHiddenInput = styled('input')({
     border: '0',
 });
 
+const ID_CARD_OPTIONS = [
+    { value: 'passport', label: 'Passport Details' },
+    { value: 'voter', label: "Voter's Identity Details" },
+    { value: 'pan', label: 'Income Tax PAN Details' },
+];
+
 
 const countryList=[
     {
@@ -1900,6 +1906,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 lastName: '',
                 middleName: '',
                 salutation: '',
+                idCardType: '',
                 passposrtNo: '',
                 passportIssuingAthority: '',
                 passportExpirydate: '',
@@ -2002,20 +2009,6 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 errors.partnerDetails[index].pin = errorMsg.pin.format;
             }
 
-            // Validate fax
-            if (!partner.fax) {
-                errors.partnerDetails[index].fax = errorMsg.fax.blank;
-            } else if (isNaN(partner.fax)) {
-                errors.partnerDetails[index].fax = errorMsg.fax.format;
-            }
-
-            // Validate telephoneNo
-            if (!partner.telephoneNo) {
-                errors.partnerDetails[index].telephoneNo = errorMsg.telephoneNo.blank;
-            } else if (isNaN(partner.telephoneNo)) {
-                errors.partnerDetails[index].telephoneNo = errorMsg.telephoneNo.format;
-            }
-
             // Validate mobile
             if (!partner.mobile) {
                 errors.partnerDetails[index].mobile = errorMsg.mobile.blank;
@@ -2062,39 +2055,39 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             //     errors.partnerDetails[index].email = errorMsg.emailId.format;
             // }
 
-            // alert(`passport Card Number: ${partner.passposrtNo}`);
-           // Check if all relevant fields are empty
- // Check if all relevant fields are empty
- if (!partner.passposrtNo && !partner.voterCardNo && !partner.pancardNo) {
-    errors.partnerDetails[index].general = "At least one of Passport No, Voter ID, or PAN Card must be filled.";
-} else {
-    delete errors.partnerDetails[index].general;
-
-    // Passport number, issuing authority, and expiry are optional.
-    // Check the date only when the applicant entered one.
-    delete errors.partnerDetails[index].passportIssuingAuthority;
-    delete errors.partnerDetails[index].passportIssuingAthority;
-    if (partner.passportExpirydate) {
-        if (!dayjs(partner.passportExpirydate).isValid() || !dayjs(partner.passportExpirydate).isAfter(dayjs(), 'day')) {
-            errors.partnerDetails[index].passportExpirydate = errorMsg.passportExpiryDate.past;
-        } else {
-            delete errors.partnerDetails[index].passportExpirydate;
-        }
-    } else {
-        delete errors.partnerDetails[index].passportExpiryDate;
-        delete errors.partnerDetails[index].passportExpirydate;
-    }
-
-    // Validate voterCardNo only if it is filled
-    if (partner.voterCardNo) {
-        delete errors.partnerDetails[index].voterCardNo;
-    }
-
-    // Validate pancardNo only if it is filled
-    if (partner.pancardNo) {
-        delete errors.partnerDetails[index].pancardNo;
-    } 
-}
+            // ID Card Details — same pattern as individual (select one type)
+            if (!partner.idCardType) {
+                errors.partnerDetails[index].idCardType = 'Please select ID Card details.';
+            } else if (partner.idCardType === 'passport') {
+                if (!partner.passposrtNo) {
+                    errors.partnerDetails[index].passposrtNo = errorMsg.passportNo;
+                }
+                if (!partner.passportIssuingAthority) {
+                    errors.partnerDetails[index].passportIssuingAthority = errorMsg.passportIssuingAuthority;
+                }
+                if (!partner.passportExpirydate || !dayjs(partner.passportExpirydate).isValid()) {
+                    errors.partnerDetails[index].passportExpirydate = errorMsg.passportExpiryDate.required;
+                } else if (!dayjs(partner.passportExpirydate).isAfter(dayjs(), 'day')) {
+                    errors.partnerDetails[index].passportExpirydate = errorMsg.passportExpiryDate.past;
+                }
+                if (!partner.files?.passportDocument?.fileObject && !partner.files?.passportDocument?.fileName && !partner.passportDocument) {
+                    errors.partnerDetails[index].passportDocument = errorMsg.file1;
+                }
+            } else if (partner.idCardType === 'voter') {
+                if (!partner.voterCardNo) {
+                    errors.partnerDetails[index].voterCardNo = errorMsg.voterCardNo;
+                }
+                if (!partner.files?.idCardDocument?.fileObject && !partner.files?.idCardDocument?.fileName && !partner.voterCardDocument) {
+                    errors.partnerDetails[index].idCardDocument = errorMsg.file2;
+                }
+            } else if (partner.idCardType === 'pan') {
+                if (!partner.pancardNo) {
+                    errors.partnerDetails[index].pancardNo = errorMsg.pancardNo;
+                }
+                if (!partner.files?.panCardDocument?.fileObject && !partner.files?.panCardDocument?.fileName && !partner.pancardDocument) {
+                    errors.partnerDetails[index].panCardDocument = errorMsg.file3;
+                }
+            }
             // Validate webURL
             if (partner.webURL && !/^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(partner.webURL)) {
                 errors.partnerDetails[index].webURL = errorMsg.webURL.format;
@@ -2203,6 +2196,58 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             ...prevState,
             partnerDetails: updatedPartnerDetails
         }));
+    };
+
+    const handleIdCardTypeChange = (event, index) => {
+        const { value } = event.target;
+
+        setCommunicationAddressFormValues((prevState) => {
+            const updatedPartnerDetails = [...prevState.partnerDetails];
+            const current = updatedPartnerDetails[index] || {};
+            updatedPartnerDetails[index] = {
+                ...current,
+                idCardType: value,
+                passposrtNo: value === 'passport' ? current.passposrtNo : '',
+                passportIssuingAthority: value === 'passport' ? current.passportIssuingAthority : '',
+                passportExpirydate: value === 'passport' ? current.passportExpirydate : '',
+                passportDocument: value === 'passport' ? current.passportDocument : '',
+                voterCardNo: value === 'voter' ? current.voterCardNo : '',
+                voterCardDocument: value === 'voter' ? current.voterCardDocument : '',
+                pancardNo: value === 'pan' ? current.pancardNo : '',
+                pancardDocument: value === 'pan' ? current.pancardDocument : '',
+                files: {
+                    passportDocument: value === 'passport' ? current.files?.passportDocument : null,
+                    idCardDocument: value === 'voter' ? current.files?.idCardDocument : null,
+                    panCardDocument: value === 'pan' ? current.files?.panCardDocument : null,
+                },
+            };
+            return {
+                ...prevState,
+                partnerDetails: updatedPartnerDetails,
+            };
+        });
+
+        setFormErrors((prevErrors) => {
+            const partnerErrors = Array.isArray(prevErrors.partnerDetails)
+                ? [...prevErrors.partnerDetails]
+                : [];
+            const currentErrors = { ...(partnerErrors[index] || {}) };
+            delete currentErrors.idCardType;
+            delete currentErrors.passposrtNo;
+            delete currentErrors.passportIssuingAthority;
+            delete currentErrors.passportExpirydate;
+            delete currentErrors.passportDocument;
+            delete currentErrors.voterCardNo;
+            delete currentErrors.idCardDocument;
+            delete currentErrors.pancardNo;
+            delete currentErrors.panCardDocument;
+            delete currentErrors.general;
+            partnerErrors[index] = currentErrors;
+            return {
+                ...prevErrors,
+                partnerDetails: partnerErrors,
+            };
+        });
     };
     
 
@@ -2356,10 +2401,12 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 lastName: '',
                 middleName: '',
                 salutation: '',
-                passportNo: '',
+                idCardType: '',
+                passposrtNo: '',
                 passportIssuingAthority: '',
                 passportExpirydate: '',
                 voterCardNo: '',
+                pancardNo: '',
                 nationality:'',
                 webURL: '',
                 userName:userName,
@@ -2438,6 +2485,11 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     
                             console.log("abc1244456===>", correspondingAddress);
     
+                            const hasPassport = Boolean(partner.passportNo || partner.passportIssuingAuthority || partner.passportExpiryDate || partner.passportDocument);
+                            const hasVoter = Boolean(partner.voterIdCard || partner.voterIdCardDocument);
+                            const hasPan = Boolean(partner.pan || partner.panDocument);
+                            const idCardType = hasPassport ? 'passport' : hasVoter ? 'voter' : hasPan ? 'pan' : '';
+
                             // Return the partner details with the matching address data
                             return {
                                 // Map partner details from appFirmApplication
@@ -2450,6 +2502,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 fax: partner.fax || '',
                                 email: partner.emailId || '',
                                 nationality: partner.nationality || '',
+                                idCardType,
                                 passposrtNo: partner.passportNo || '',
                                 passportIssuingAthority: partner.passportIssuingAuthority || '',
                                 passportExpirydate: partner.passportExpiryDate || '',
@@ -2546,8 +2599,19 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             // Prepare FormData
             const formData = new FormData();
     
-            // Append the partnerDetails JSON
-           formData.append('partnerDetails', JSON.stringify(communicationAddressFormValues.partnerDetails));
+            // Append partnerDetails JSON without UI-only fields (backend DTO rejects unknown props like idCardType)
+            const partnersForSubmit = communicationAddressFormValues.partnerDetails.map((partner) => {
+                const {
+                    idCardType,
+                    visaType,
+                    visaNumber,
+                    visaIssueDate,
+                    visaExpiryDate,
+                    ...rest
+                } = partner;
+                return rest;
+            });
+           formData.append('partnerDetails', JSON.stringify(partnersForSubmit));
     
             // Loop through partnerDetails array to append each partner's files
             communicationAddressFormValues.partnerDetails.forEach((partner, index) => {
@@ -2559,7 +2623,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         const file = partner.files[fileKey].fileObject; 
                         console.log("Attempting to append file for key: " + fileKey);
                 
-                        if (file) {
+                        if (file && file instanceof File) {
                             // Log the details of the file being appended
                             console.log(`Appending file: ${file.name} for key: ${fileKey}`);
                             formData.append(`files[${fileKey}][${index}]`, file); // Append with key indicating the file type
@@ -2626,7 +2690,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 <React.Fragment key={index}>
                     <Grid container sx={{ mt: 1, mb: 1, alignItems: 'center' }}>
                         <Grid item xs>
-                            <Typography variant='h6' sx={{ mt: 1 }}>{communicationAddressFormValues.partnerDetails.length > 1 ? `${index + 1}. ` : ''} Details of Partners/Members/Directors (26)</Typography>
+                            <Typography variant='h6' sx={{ mt: 1 }}>{communicationAddressFormValues.partnerDetails.length > 1 ? `${index + 1}. ` : ''} Details of Partners/Members/Directors</Typography>
                         </Grid>
                         <Grid item xs={1} sm={0.5} sx={{ display: 'flex', justifyContent: 'flex-start' }}>
                             {communicationAddressFormValues.partnerDetails.length > 1 && index === communicationAddressFormValues.partnerDetails.length - 1 && communicationAddressFormValues.partnerDetails.length < MAX_EMAIL_IDS ? (
@@ -3019,12 +3083,11 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="telephoneNo">
-                                <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
+                                <Typography variant='body1'>Telephone No</Typography>
                             </InputLabel>
                             <TextField
                                 id="telephoneNo"
                                 margin="dense"
-                                required
                                 fullWidth
                                 placeholder='Telephone No'
                                 name="telephoneNo"
@@ -3041,12 +3104,11 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
                         <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor="fax">
-                                <Typography variant='body1'>Fax<span className="req-asterisk">*</span></Typography>
+                                <Typography variant='body1'>Fax</Typography>
                             </InputLabel>
                             <TextField
                                 id="fax"
                                 margin="dense"
-                                required
                                 fullWidth
                                 placeholder='Fax'
                                 name="fax"
@@ -3135,16 +3197,26 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     <Autocomplete
       id="nationality"
       onChange={(event, newValue) => {
-        // Pass the index and name to the handleAutoComplete function
         handleAutoComplete('nationality', newValue ? newValue.value : '', index);
+        setFormErrors((prevErrors) => {
+          const partnerErrors = Array.isArray(prevErrors.partnerDetails)
+            ? [...prevErrors.partnerDetails]
+            : [];
+          if (partnerErrors[index]) {
+            const next = { ...partnerErrors[index] };
+            delete next.nationality;
+            partnerErrors[index] = next;
+          }
+          return { ...prevErrors, partnerDetails: partnerErrors };
+        });
       }}
       value={
         nationalityOptions.find(option => option.value === communicationAddressFormValues.partnerDetails?.[index]?.nationality) || null
       }
       name="nationality"
       options={nationalityOptions}
-      getOptionLabel={(option) => option.label}
-      isOptionEqualToValue={(option, value) => option.value === value}
+      getOptionLabel={(option) => option?.label || ''}
+      isOptionEqualToValue={(option, value) => option?.value === value?.value}
       renderOption={(props, option) => (
         <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
           {option.label}
@@ -3272,267 +3344,305 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     </Grid>
 </Grid>
 
-
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm>
-                            <InputLabel shrink={false} htmlFor={"passposrtNo"}>
-                                <Typography variant='body1'>Passport No</Typography>
+                        <Grid item xs={12} sm={4}>
+                            <InputLabel shrink={false} htmlFor={`idCardType-${index}`}>
+                                <Typography variant='body1'>ID Card Details<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
-                            <TextField
-                                name='passposrtNo'
-                                placeholder="Passport No."
-                                fullWidth
-                                id='passposrtNo'
+                            <FormControl
                                 variant="outlined"
-                                value={communicationAddressFormValues.partnerDetails[index]?.passposrtNo || ''}
                                 size="small"
-                                onChange={(event) => handleInputChange(event, index)}
-                                error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passposrtNo)}
-                                helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passposrtNo) || ''}
-                                inputProps={{ maxLength: 30 }}
-                                onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Za-z]+$/)}
-                                margin="dense"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm>
-                            <InputLabel shrink={false} htmlFor={"passportIssuingAuthority"}>
-                                <Typography variant='body1'>Passport Issuing Authority</Typography>
-                            </InputLabel>
-                            <TextField
-                                name='passportIssuingAthority'
-                                placeholder="Passport Issuing Authority"
-                                fullWidth
-                                id='passportIssuingAthority'
-                                variant="outlined"
-                                onChange={(event) => handleInputChange(event, index)}
-                                error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportIssuingAthority)}
-                                helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportIssuingAthority) || ''}
-                                size="small"
-                                value={communicationAddressFormValues.partnerDetails[index]?.passportIssuingAthority || ''}
-                                onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z]+$/)}
-                                inputProps={{ maxLength: 30 }}
-                                margin="dense"
-                            />
+                                sx={{ width: '100%', mt: 1 }}
+                                error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.idCardType)}
+                            >
+                                <Select
+                                    id={`idCardType-${index}`}
+                                    displayEmpty
+                                    name="idCardType"
+                                    value={communicationAddressFormValues.partnerDetails[index]?.idCardType || ''}
+                                    onChange={(event) => handleIdCardTypeChange(event, index)}
+                                >
+                                    <MenuItem disabled value="">
+                                        Select ID Card Details
+                                    </MenuItem>
+                                    {ID_CARD_OPTIONS.map((option) => (
+                                        <MenuItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {(formErrors.partnerDetails && formErrors.partnerDetails[index]?.idCardType) && (
+                                    <FormHelperText sx={{ ml: 0 }} error>
+                                        {formErrors.partnerDetails[index].idCardType}
+                                    </FormHelperText>
+                                )}
+                            </FormControl>
                         </Grid>
                     </Grid>
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm>
-                            <InputLabel shrink={false} htmlFor={"passportExpiryDate"}>
-                                <Typography variant='body1'>Passport Expiry Date</Typography>
-                            </InputLabel>
-                            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                <DatePicker
-                                    id="passportExpirydate"
-                                    disablePast
-                                    minDate={dayjs().add(1, 'day')}
-                                    name="passportExpirydate"
-                                    value={
-                                        communicationAddressFormValues.partnerDetails[index]?.passportExpirydate
-                                            && dayjs(communicationAddressFormValues.partnerDetails[index]?.passportExpirydate).isValid()
-                                            ? dayjs(communicationAddressFormValues.partnerDetails[index]?.passportExpirydate)
-                                            : null
-                                    }
-                                    onChange={(date) => handleDateChange('passportExpirydate', date, index)}
-                                    slotProps={{
-                                        textField: {
-                                            size: 'small',
-                                            fullWidth: true,
-                                            placeholder: "Passport Expiry Date",
-                                            error: !!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportExpirydate),
-                                            helperText: (formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportExpirydate),
-                                        }
-                                    }}
-                                    sx={{ mt: 1 }}
+
+                    {communicationAddressFormValues.partnerDetails[index]?.idCardType === 'passport' && (
+                        <>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm>
+                                    <InputLabel shrink={false} htmlFor={"passposrtNo"}>
+                                        <Typography variant='body1'>Passport No<span className="req-asterisk">*</span></Typography>
+                                    </InputLabel>
+                                    <TextField
+                                        name='passposrtNo'
+                                        placeholder="Passport No."
+                                        fullWidth
+                                        id='passposrtNo'
+                                        variant="outlined"
+                                        value={communicationAddressFormValues.partnerDetails[index]?.passposrtNo || ''}
+                                        size="small"
+                                        onChange={(event) => handleInputChange(event, index)}
+                                        error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passposrtNo)}
+                                        helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passposrtNo) || ''}
+                                        inputProps={{ maxLength: 30 }}
+                                        onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Za-z]+$/)}
+                                        margin="dense"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm>
+                                    <InputLabel shrink={false} htmlFor={"passportIssuingAuthority"}>
+                                        <Typography variant='body1'>Passport Issuing Authority<span className="req-asterisk">*</span></Typography>
+                                    </InputLabel>
+                                    <TextField
+                                        name='passportIssuingAthority'
+                                        placeholder="Passport Issuing Authority"
+                                        fullWidth
+                                        id='passportIssuingAthority'
+                                        variant="outlined"
+                                        onChange={(event) => handleInputChange(event, index)}
+                                        error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportIssuingAthority)}
+                                        helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportIssuingAthority) || ''}
+                                        size="small"
+                                        value={communicationAddressFormValues.partnerDetails[index]?.passportIssuingAthority || ''}
+                                        onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z]+$/)}
+                                        inputProps={{ maxLength: 30 }}
+                                        margin="dense"
+                                    />
+                                </Grid>
+                            </Grid>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm>
+                                    <InputLabel shrink={false} htmlFor={"passportExpiryDate"}>
+                                        <Typography variant='body1'>Passport Expiry Date<span className="req-asterisk">*</span></Typography>
+                                    </InputLabel>
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <DatePicker
+                                            id="passportExpirydate"
+                                            disablePast
+                                            minDate={dayjs().add(1, 'day')}
+                                            name="passportExpirydate"
+                                            value={
+                                                communicationAddressFormValues.partnerDetails[index]?.passportExpirydate
+                                                    && dayjs(communicationAddressFormValues.partnerDetails[index]?.passportExpirydate).isValid()
+                                                    ? dayjs(communicationAddressFormValues.partnerDetails[index]?.passportExpirydate)
+                                                    : null
+                                            }
+                                            onChange={(date) => handleDateChange('passportExpirydate', date, index)}
+                                            slotProps={{
+                                                textField: {
+                                                    size: 'small',
+                                                    fullWidth: true,
+                                                    placeholder: "Passport Expiry Date",
+                                                    error: !!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportExpirydate),
+                                                    helperText: (formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportExpirydate),
+                                                }
+                                            }}
+                                            sx={{ mt: 1 }}
+                                        />
+                                    </LocalizationProvider>
+                                </Grid>
+
+                                <Grid item xs={12} sm>
+                                    <InputLabel shrink={false} htmlFor={`passportDocument-${index}`}>
+                                        <Typography variant='body1'>
+                                            Upload Passport Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span>
+                                        </Typography>
+                                    </InputLabel>
+
+                                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
+                                        <Grid item>
+                                            <Button
+                                                component="label"
+                                                variant="contained"
+                                                startIcon={<CloudUploadIcon />}
+                                            >
+                                                Upload Passport Document
+                                                <VisuallyHiddenInput
+                                                    type="file"
+                                                    accept=".pdf"
+                                                    name={`passportDocument-${index}`}
+                                                    onChange={(e) => handleFileChange(e, index, 'passportDocument')}
+                                                />
+                                            </Button>
+                                        </Grid>
+
+                                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                            {reacord?.files?.passportDocument?.fileName && (
+                                                <Tooltip title={reacord.files.passportDocument.fileName} placement="top">
+                                                    <Typography variant='body2' sx={{
+                                                        display: 'inline-block',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        verticalAlign: 'middle',
+                                                        textAlign: 'center'
+                                                    }}>
+                                                        {reacord.files.passportDocument.fileName}
+                                                    </Typography>
+                                                </Tooltip>
+                                            )}
+                                        </Grid>
+                                    </Grid>
+                                    {(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportDocument) && (
+                                        <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                                            {formErrors.partnerDetails[index].passportDocument}
+                                        </Typography>
+                                    )}
+                                </Grid>
+                            </Grid>
+                        </>
+                    )}
+
+                    {communicationAddressFormValues.partnerDetails[index]?.idCardType === 'voter' && (
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm>
+                                <InputLabel shrink={false} htmlFor={"voterCardNo"}>
+                                    <Typography variant='body1'>Voter’s Identity Card No.<span className="req-asterisk">*</span></Typography>
+                                </InputLabel>
+
+                                <TextField
+                                    id='voterCardNo'
+                                    name='voterCardNo'
+                                    placeholder="Voter’s Identity Card No."
+                                    onChange={(event) => handleInputChange(event, index)}
+                                    fullWidth
+                                    value={communicationAddressFormValues.partnerDetails[index]?.voterCardNo || ''}
+                                    variant="outlined"
+                                    onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Za-z]+$/)}
+                                    error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.voterCardNo)}
+                                    helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.voterCardNo) || ''}
+                                    size="small"
+                                    inputProps={{ maxLength: 30 }}
                                 />
-                            </LocalizationProvider>
+                            </Grid>
+                            <Grid item xs={12} sm>
+                                <InputLabel shrink={false} htmlFor={`idCardDocument-${index}`}>
+                                    <Typography variant='body1'>Upload IdCard Document(Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
+                                </InputLabel>
+
+                                <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
+                                    <Grid item>
+                                        <Button
+                                            component="label"
+                                            variant="contained"
+                                            startIcon={<CloudUploadIcon />}
+                                        >
+                                            Upload ID Card Document
+                                            <VisuallyHiddenInput
+                                                type="file"
+                                                name={`idCardDocument-${index}`}
+                                                onChange={(e) => handleFileChange(e, index, 'idCardDocument')}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        {reacord?.files?.idCardDocument?.fileName && (
+                                            <Tooltip title={reacord.files.idCardDocument.fileName} placement="top">
+                                                <Typography variant='body2' sx={{
+                                                    display: 'inline-block',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    verticalAlign: 'middle',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    {reacord.files.idCardDocument.fileName}
+                                                </Typography>
+                                            </Tooltip>
+                                        )}
+                                    </Grid>
+                                </Grid>
+                                {(formErrors.partnerDetails && formErrors.partnerDetails[index]?.idCardDocument) && (
+                                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                                        {formErrors.partnerDetails[index].idCardDocument}
+                                    </Typography>
+                                )}
+                            </Grid>
                         </Grid>
-
-                        <Grid item xs={12} sm>
-    <InputLabel shrink={false} htmlFor={`passportDocument-${index}`}>
-        <Typography variant='body1'>
-            Upload Passport Document (Only PDF and Max allowed size 5 MB)
-        </Typography>
-    </InputLabel>
-
-    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
-        <Grid item>
-            <Button
-                component="label"
-                variant="contained"
-                startIcon={<CloudUploadIcon />}
-            >
-                Upload Passport Document
-                <VisuallyHiddenInput
-                    type="file"
-                    accept=".pdf"
-                    name={`passportDocument-${index}`}
-                    onChange={(e) => handleFileChange(e, index, 'passportDocument')} // Ensure index is passed
-                />
-            </Button>
-        </Grid>
-
-        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {reacord?.files?.passportDocument?.fileName && (
-                <Tooltip title={reacord.files.passportDocument.fileName} placement="top">
-                    <Typography variant='body2' sx={{
-                        display: 'inline-block',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        verticalAlign: 'middle',
-                        textAlign: 'center'
-                    }}>
-                        {reacord.files.passportDocument.fileName}
-                    </Typography>
-                </Tooltip>
-            )}
-        </Grid>
-        {formErrors?.[index]?.passportDocument && (
-        <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-            {formErrors[index].passportDocument}
-        </Typography>
-    )}
-    </Grid>
-  
-</Grid>
-
-                    </Grid>
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm>
-                            <InputLabel shrink={false} htmlFor={"voterCardNo"}>
-                                <Typography variant='body1'>Voter’s Identity Card No.</Typography>
-                            </InputLabel>
-
-                            <TextField
-                                id='voterCardNo'
-                                required
-                                name='voterCardNo'
-                                placeholder="Voter’s Identity Card No."
-                                onChange={(event) => handleInputChange(event, index)}
-                                fullWidth
-                                value={communicationAddressFormValues.partnerDetails[index]?.voterCardNo || ''}
-                                variant="outlined"
-                                onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Za-z]+$/)}
-                                error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.voterCardNo)}
-                                helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.voterCardNo) || ''}
-                                size="small"
-                                inputProps={{ maxLength: 30 }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm>
-            <InputLabel shrink={false} htmlFor={`idCardDocument-${index}`}>
-                <Typography variant='body1'>Upload IdCard Document(Only PDF and Max allowed size 5 MB)</Typography>
-            </InputLabel>
-
-            <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
-                <Grid item>
-                    <Button
-                        component="label"
-                        variant="contained"
-                        startIcon={<CloudUploadIcon />}
-                    >
-                        Upload ID Card Document
-                        <VisuallyHiddenInput
-                            type="file"
-                            name={`idCardDocument-${index}`}
-                            onChange={(e) => handleFileChange(e, index, 'idCardDocument')} // Pass index and field type
-                        />
-                    </Button>
-                </Grid>
-
-                <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {reacord?.files?.idCardDocument?.fileName && (
-                        <Tooltip title={reacord.files.idCardDocument.fileName} placement="top">
-                            <Typography variant='body2' sx={{
-                                display: 'inline-block',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                verticalAlign: 'middle',
-                                textAlign: 'center'
-                            }}>
-                                {reacord.files.idCardDocument.fileName}
-                            </Typography>
-                        </Tooltip>
                     )}
-                </Grid>
-            </Grid>
-            {formErrors?.[index]?.idCardDocument && (
-        <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-            {formErrors[index].idCardDocument}
-        </Typography>
-    )}
-            </Grid>
-           
-                    </Grid>
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm>
-                            <InputLabel shrink={false} htmlFor={"pancardNo"}>
-                                <Typography variant='body1'>Income Tax PAN No.</Typography>
-                            </InputLabel>
-                            <TextField
-                                required
-                                id='pancardNo'
-                                name='pancardNo'
-                                placeholder="Income Tax PAN No."
-                                onChange={(event) => handleInputChange(event, index)}
-                                fullWidth
-                                value={communicationAddressFormValues.partnerDetails[index]?.pancardNo || ''}
-                                error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.pancardNo)}
-                                helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.pancardNo) || ''}
-                                variant="outlined"
-                                size='small'
-                                onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Za-z]+$/)}
-                                inputProps={{ maxLength: 30 }}
-                            />
+
+                    {communicationAddressFormValues.partnerDetails[index]?.idCardType === 'pan' && (
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm>
+                                <InputLabel shrink={false} htmlFor={"pancardNo"}>
+                                    <Typography variant='body1'>Income Tax PAN No.<span className="req-asterisk">*</span></Typography>
+                                </InputLabel>
+                                <TextField
+                                    id='pancardNo'
+                                    name='pancardNo'
+                                    placeholder="Income Tax PAN No."
+                                    onChange={(event) => handleInputChange(event, index)}
+                                    fullWidth
+                                    value={communicationAddressFormValues.partnerDetails[index]?.pancardNo || ''}
+                                    error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.pancardNo)}
+                                    helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.pancardNo) || ''}
+                                    variant="outlined"
+                                    size='small'
+                                    onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Za-z]+$/)}
+                                    inputProps={{ maxLength: 30 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm>
+                                <InputLabel shrink={false} htmlFor={`panCardDocument-${index}`}>
+                                    <Typography variant='body1'>Upload PAN Card Document(Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
+                                </InputLabel>
+
+                                <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
+                                    <Grid item>
+                                        <Button
+                                            component="label"
+                                            variant="contained"
+                                            startIcon={<CloudUploadIcon />}
+                                        >
+                                            Upload PAN Card Document
+                                            <VisuallyHiddenInput
+                                                type="file"
+                                                name={`panCardDocument-${index}`}
+                                                onChange={(e) => handleFileChange(e, index, 'panCardDocument')}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        {reacord?.files?.panCardDocument?.fileName && (
+                                            <Tooltip title={reacord.files.panCardDocument.fileName} placement="top">
+                                                <Typography variant='body2' sx={{
+                                                    display: 'inline-block',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    verticalAlign: 'middle',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    {reacord.files.panCardDocument.fileName}
+                                                </Typography>
+                                            </Tooltip>
+                                        )}
+                                    </Grid>
+                                </Grid>
+                                {(formErrors.partnerDetails && formErrors.partnerDetails[index]?.panCardDocument) && (
+                                    <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                                        {formErrors.partnerDetails[index].panCardDocument}
+                                    </Typography>
+                                )}
+                            </Grid>
                         </Grid>
-                        <Grid item xs={12} sm>
-            <InputLabel shrink={false} htmlFor={`panCardDocument-${index}`}>
-                <Typography variant='body1'>Upload PAN Card Document(Only PDF and Max allowed size 5 MB)</Typography>
-            </InputLabel>
-
-            <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
-                <Grid item>
-                    <Button
-                        component="label"
-                        variant="contained"
-                        startIcon={<CloudUploadIcon />}
-                    >
-                        Upload PAN Card Document
-                        <VisuallyHiddenInput
-                            type="file"
-                            name={`panCardDocument-${index}`}
-                            onChange={(e) => handleFileChange(e, index, 'panCardDocument')} // Pass index and field type
-                        />
-                    </Button>
-                </Grid>
-
-                <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {reacord?.files?.panCardDocument?.fileName && (
-                        <Tooltip title={reacord.files.panCardDocument.fileName} placement="top">
-                            <Typography variant='body2' sx={{
-                                display: 'inline-block',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                verticalAlign: 'middle',
-                                textAlign: 'center'
-                            }}>
-                                {reacord.files.panCardDocument.fileName}
-                            </Typography>
-                        </Tooltip>
                     )}
-                </Grid>
-            </Grid>
-            {formErrors?.[index]?.panCardDocument && (
-        <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-            {formErrors[index].panCardDocument}
-        </Typography>
-    )}
-            </Grid>
-          
-
-                    </Grid>
 
                 </React.Fragment>
             ))}

@@ -251,7 +251,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
          
      <Grid container sx={{ mt: 1, mb: 1, alignItems: 'center' }}>
     <Grid item xs>
-        <Typography variant='h6' sx={{ mt: 1 }}> Authorized Representative Details(27)</Typography>
+        <Typography variant='h6' sx={{ mt: 1 }}> Authorized Representative Details</Typography>
     </Grid>
 </Grid>
             <Grid container sx={{ mt: 1, mb: 1 }}>
@@ -532,12 +532,11 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
-                        <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Telephone No</Typography>
                     </InputLabel>
                     <TextField
                         id="telephoneNo"
                         margin="dense"
-                        required
                         fullWidth
                         placeholder='Telephone No'
                         name="telephoneNo"
@@ -552,12 +551,11 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="fax">
-                        <Typography variant='body1'>Fax<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Fax</Typography>
                     </InputLabel>
                     <TextField
                         id="fax"
                         margin="dense"
-                        required
                         fullWidth
                         placeholder='Fax'
                         name="fax"

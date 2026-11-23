@@ -618,8 +618,8 @@ const isFieldEnabled = (fieldName) => {
                 >
                   <MenuItem disabled value="">Transaction Type</MenuItem>
                   <MenuItem value="Demand Draft">Demand Draft</MenuItem>
-                  <MenuItem value="Banker's check">Banker's check</MenuItem>
-                  <MenuItem value="UTR">UTR</MenuItem>
+                 <MenuItem value="Banker's check">Banker's check</MenuItem> 
+                 <MenuItem value="UTR">UTR</MenuItem> 
                 </Select>
                 {formErrors.transactionType && <FormHelperText error>{formErrors.transactionType}</FormHelperText>}
               </FormControl>

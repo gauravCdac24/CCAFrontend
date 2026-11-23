@@ -64,6 +64,10 @@ const errorMsg = {
         blank: 'Village is required',
         length: 'Village must be between 3 and 30 characters',
     },
+    officeName: {
+        blank: 'Name of Office is required',
+        length: 'Name of Office must be between 3 and 75 characters',
+    },
     postOffice1: {
         blank: 'Post Office is required',
         length: 'Post Office must be between 3 and 30 characters',
@@ -117,7 +121,8 @@ const AddressDetailsForm = ({handleNext,handleBack,handleFormDataChange}) => {
           addressId:'',
         },
         official: {
-          locationName:'Official',  
+          locationName:'Official',
+          officeName: '',
           blockNo: '',
           village: '',
           postOffice: '',
@@ -313,6 +318,7 @@ const isFieldEnabled = (fieldName) => {
                         },
                         official: {
                             locationName: 'Official',
+                            officeName: official.officeName || '',
                             blockNo: official.blockNo || '',
                             village: official.village || '',
                             postOffice: official.postOffice || '',
@@ -469,11 +475,6 @@ const isFieldEnabled = (fieldName) => {
             errors.pin = errorMsg.pin.format;
         }
     
-        // Validate telephoneNo
-        if (!residential.telephoneNo) {
-            errors.telephoneNo = errorMsg.telephoneNo.blank;
-        }
-    
         // Validate mobile
         if (!residential.mobile) {
             errors.mobile = errorMsg.mobile.blank;
@@ -481,6 +482,13 @@ const isFieldEnabled = (fieldName) => {
     
         // Validate Official Address
         const official = communicationAddressFormValues.official;
+
+        // Validate officeName
+        if (!official.officeName) {
+            errors.officeName = errorMsg.officeName.blank;
+        } else if (official.officeName.length < 3 || official.officeName.length > 75) {
+            errors.officeName = errorMsg.officeName.length;
+        }
     
         // Validate blockNo
         if (!official.blockNo) {
@@ -530,11 +538,6 @@ const isFieldEnabled = (fieldName) => {
             errors.pin1 = errorMsg.pin.blank;
         }
     
-        // Validate telephoneNo
-        if (!official.telephoneNo) {
-            errors.telephoneNo1 = errorMsg.telephoneNo.blank;
-        }
-
         // Address For Communication is mandatory
         if (!communicationAddressFormValues.communicationAddress) {
             errors.communicationAddress = 'Please select Address For Communication';
@@ -614,7 +617,7 @@ const isFieldEnabled = (fieldName) => {
             {/* Residential Address Section */}
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>1. Residential Address (3A)</Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>1. Residential Address<span className="req-asterisk">*</span></Typography>
                 </Grid>
             </Grid>
 
@@ -825,7 +828,7 @@ const isFieldEnabled = (fieldName) => {
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
-                        <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Telephone No</Typography>
                     </InputLabel>
                     <TextField
                         id="residentialtelephoneNo"
@@ -894,7 +897,31 @@ const isFieldEnabled = (fieldName) => {
             {/* Official Address Section */}
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>2. Official Address (3B)</Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>2. Official Address<span className="req-asterisk">*</span></Typography>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+                <Grid item xs={12} sm>
+                    <InputLabel shrink={false} htmlFor="officeName">
+                        <Typography variant='body1'>Name of Office<span className="req-asterisk">*</span></Typography>
+                    </InputLabel>
+                    <TextField
+                        id="officialofficeName"
+                        margin="dense"
+                        required
+                        fullWidth
+                        onKeyDown={(e) => ValidatePattern(e, /^[A-Za-z ]+$/)}
+                        placeholder='Name of Office'
+                        name="officialofficeName"
+                        variant='outlined'
+                        onChange={handleInputChange}
+                        value={communicationAddressFormValues.official.officeName}
+                        error={!!(formErrors.officeName && formErrors.officeName)}
+                        helperText={formErrors?.officeName}
+                        size="small"
+                        inputProps={{ maxLength: 75 }}
+                    />
                 </Grid>
             </Grid>
 
@@ -1103,7 +1130,7 @@ const isFieldEnabled = (fieldName) => {
                 <Grid container spacing={2}>
                     <Grid item xs={12} sm sx={{ml:2}}>
                         <InputLabel shrink={false} htmlFor="telephoneNo">
-                            <Typography variant='body1'>Telephone No<span className="req-asterisk">*</span></Typography>
+                            <Typography variant='body1'>Telephone No</Typography>
                         </InputLabel>
                         <TextField
                             id="officialtelephoneNo"
@@ -1148,7 +1175,7 @@ const isFieldEnabled = (fieldName) => {
                 </Grid>
                 <Grid item xs={12}>
                     <Box display="flex" alignItems="center">
-                        <Typography variant="body1">Address For Communication<span className="req-asterisk">*</span> (4)</Typography>
+                        <Typography variant="body1">Address For Communication<span className="req-asterisk">*</span></Typography>
                         <RadioGroup
                             row
                           value={communicationAddressFormValues.communicationAddress}
