@@ -65,7 +65,7 @@ const getFormStepName = (appTypeMasterId, formKey) => {
 export const getStepSuccessAlert = (appTypeMasterId, formKey, isUpdate = false) => {
     const stepName = getFormStepName(appTypeMasterId, formKey);
     return {
-        messageTitle: `${stepName} Successful`,
+        messageTitle: `${stepName} `,
         messageContent: `${stepName} added successfully.`,
     };
 };

@@ -617,7 +617,7 @@ const isFieldEnabled = (fieldName) => {
             {/* Residential Address Section */}
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>1. Residential Address<span className="req-asterisk">*</span></Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>Residential Address<span className="req-asterisk">*</span></Typography>
                 </Grid>
             </Grid>
 
@@ -826,7 +826,7 @@ const isFieldEnabled = (fieldName) => {
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
                         <Typography variant='body1'>Telephone No</Typography>
                     </InputLabel>
@@ -849,7 +849,7 @@ const isFieldEnabled = (fieldName) => {
                     />
                 </Grid>
 
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="fax">
                         <Typography variant='body1'>Fax</Typography>
                     </InputLabel>
@@ -871,7 +871,7 @@ const isFieldEnabled = (fieldName) => {
                         disabled={!isFieldEnabled("residentialFax")}
                     />
                 </Grid>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="mobile">
                         <Typography variant='body1'>Mobile<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
@@ -897,12 +897,12 @@ const isFieldEnabled = (fieldName) => {
             {/* Official Address Section */}
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>2. Official Address<span className="req-asterisk">*</span></Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>Official Address<span className="req-asterisk">*</span></Typography>
                 </Grid>
             </Grid>
 
             <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={6}>
                     <InputLabel shrink={false} htmlFor="officeName">
                         <Typography variant='body1'>Name of Office<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
@@ -1114,6 +1114,7 @@ const isFieldEnabled = (fieldName) => {
                         id="officialpin"
                         margin="dense"
                         required
+                        fullWidth
                         placeholder='Pin'
                         name="officialpin"
                         variant='outlined'
@@ -1128,7 +1129,7 @@ const isFieldEnabled = (fieldName) => {
                     />
                 </Grid>
                 <Grid container spacing={2}>
-                    <Grid item xs={12} sm sx={{ml:2}}>
+                    <Grid item xs={12} sm={3} sx={{ml:2}}>
                         <InputLabel shrink={false} htmlFor="telephoneNo">
                             <Typography variant='body1'>Telephone No</Typography>
                         </InputLabel>
@@ -1150,7 +1151,7 @@ const isFieldEnabled = (fieldName) => {
                             disabled={!isFieldEnabled("officialTelephoneNo")}
                         />
                     </Grid>
-                    <Grid item xs={12} sm>
+                    <Grid item xs={12} sm={3}>
                         <InputLabel shrink={false} htmlFor="fax">
                             <Typography variant='body1'>Fax</Typography>
                         </InputLabel>

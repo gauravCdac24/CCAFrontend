@@ -545,7 +545,7 @@ return isEnabled;
             </Grid>
 
             <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={6}>
                     <InputLabel shrink={false} htmlFor="blockNo">
                         <Typography variant='body1'>Name Of Organization<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
@@ -821,7 +821,7 @@ return isEnabled;
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
                         <Typography variant='body1'>Telephone No</Typography>
                     </InputLabel>
@@ -842,7 +842,7 @@ return isEnabled;
                     />
                 </Grid>
 
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="fax">
                         <Typography variant='body1'>Fax</Typography>
                     </InputLabel>
@@ -862,7 +862,7 @@ return isEnabled;
                         inputProps={{ maxLength: 12 }}
                     />
                 </Grid>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="webURL">
                         <Typography variant='body1'>Web Page URL</Typography>
                     </InputLabel>
@@ -918,7 +918,7 @@ return isEnabled;
 )}
 </FormControl>
 </Grid>
-<Grid item xs={12} sm={3}>
+<Grid item xs={12} sm={3.5}>
 <InputLabel shrink={false} htmlFor={"firstName"}>
     <Typography variant='body1'>First Name<span className="req-asterisk">*</span></Typography>
 </InputLabel>
