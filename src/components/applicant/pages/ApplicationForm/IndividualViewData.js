@@ -389,6 +389,11 @@ const renderSingleDocView = (docs, title) => {
         }
         return 'No emails provided';
       };
+
+  const form3Details = basicDetailsFormValues3?.indivAdditionalDetails || {};
+  const form3Docs = Array.isArray(basicDetailsFormValues3?.applicationDocument)
+    ? basicDetailsFormValues3.applicationDocument
+    : [];
   return (
         <Box sx={{ width: '100%' }} data-print-root="application-preview">
 
@@ -922,7 +927,6 @@ const renderSingleDocView = (docs, title) => {
   </Typography>
 
   <Grid container spacing={2} sx={{ ml: 1 }}>
-    {/* Passport No */}
     <Grid item sm={6}>
       <Typography variant="body1">
         Passport No.: 
@@ -930,11 +934,10 @@ const renderSingleDocView = (docs, title) => {
     </Grid>
     <Grid item sm={6}>
       <Typography variant="body1">
-       {`${basicDetailsFormValues3.indivAdditionalDetails.passportNo}`}
+       {`${form3Details.passportNo || ''}`}
       </Typography>
     </Grid>
     </Grid>
-    {/* Passport Issuing Authority */}
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
       <Typography variant="body1">
@@ -943,11 +946,10 @@ const renderSingleDocView = (docs, title) => {
     </Grid>
     <Grid item sm={6}>
       <Typography variant="body1">
-     {`${basicDetailsFormValues3.indivAdditionalDetails.passportIssuingAuthority}`}
+     {`${form3Details.passportIssuingAuthority || ''}`}
       </Typography>
     </Grid>
 </Grid>
-    {/* Passport Expiry Date */}
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
       <Typography variant="body1">
@@ -956,36 +958,63 @@ const renderSingleDocView = (docs, title) => {
     </Grid>
     <Grid item sm={6}>
       <Typography variant="body1">
-          {formatDate(basicDetailsFormValues3.indivAdditionalDetails.passportExpiryDate)}
+          {formatDate(form3Details.passportExpiryDate)}
       </Typography>
     </Grid>
     </Grid>
-    
 
-    {/* Passport Document */}
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
-   
         <Typography variant="body1" sx={{ display: 'inline' }}>
           Passport Document:
         </Typography>
-    
     </Grid>
     <Grid item sm={6}>
       <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-        {renderSingleDocView(basicDetailsFormValues3.applicationDocument, 'passportDocument')}
+        {renderSingleDocView(form3Docs, 'passportDocument')}
       </Box>
     </Grid>
   </Grid>
 </Box>
 
+  <Box sx={{ margin: '20px 0' }}>
+  <Typography variant="h6">
+    13. Voter&apos;s Identity Details:
+  </Typography>
 
+  <Grid container spacing={2} sx={{ ml: 1 }}>
+    <Grid item sm={6}>
+      <Typography variant="body1">
+        Voter&apos;s Identity Card No.:
+      </Typography>
+    </Grid>
+    <Grid item sm={6}>
+      <Typography variant="body1">
+       {`${form3Details.voterId || ''}`}
+      </Typography>
+    </Grid>
+  </Grid>
+
+  <Grid container spacing={2} sx={{ ml: 1 }}>
+    <Grid item sm={6}>
+        <Typography variant="body1" sx={{ display: 'inline' }}>
+          ID Card Document:
+        </Typography>
+    </Grid>
+    <Grid item sm={6}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+        {renderSingleDocView(form3Docs, 'idCardDocument')}
+      </Box>
+    </Grid>
+  </Grid>
+</Box>
+
+  <Box sx={{ margin: '20px 0' }}>
   <Typography variant="h6">
     14. Pan Card Details:
   </Typography>
 
   <Grid container spacing={2} sx={{ ml: 1 }}>
-    {/* Pan Card No */}
     <Grid item sm={6}>
       <Typography variant="body1">
         Pan Card No.: 
@@ -993,11 +1022,10 @@ const renderSingleDocView = (docs, title) => {
     </Grid>
     <Grid item sm={6}>
       <Typography variant="body1">
-  {`${basicDetailsFormValues3.indivAdditionalDetails.pan}`}
+  {`${form3Details.pan || ''}`}
       </Typography>
     </Grid>
     </Grid>
-    {/* Pan Card Document */}
     <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
         <Typography variant="body1" sx={{ display: 'inline' }}>
@@ -1005,9 +1033,10 @@ const renderSingleDocView = (docs, title) => {
         </Typography>
     </Grid>
     <Grid item sm={6}>
-        {renderSingleDocView(basicDetailsFormValues3.applicationDocument, 'panDocument')}
+        {renderSingleDocView(form3Docs, ['panCardDocument', 'panDocument'])}
     </Grid>
   </Grid>
+</Box>
 
 
 
@@ -1079,7 +1108,7 @@ const renderSingleDocView = (docs, title) => {
 
   
       <Typography variant="h6">
-        14. Capital in the business or profession <span className="req-asterisk">*</span>Rs:
+        17. Capital in the business or profession <span className="req-asterisk">*</span>Rs:
       </Typography>
     
       <Grid container spacing={2} sx={{ml:1}}>
@@ -1112,7 +1141,7 @@ const renderSingleDocView = (docs, title) => {
             <Box sx={{ width: '100%' }}>
       {/* Bank Details Section */}
       <Typography variant="h6" style={{ marginTop: '10px' }}>
-        29. Bank Details
+        18. Bank Details
       </Typography>
       <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
@@ -1150,12 +1179,10 @@ const renderSingleDocView = (docs, title) => {
 
       {/* Bank Draft Section */}
       <Typography variant="h6" style={{ marginTop: '10px' }}>
-        30. Whether bank draft/pay order for licence fee enclosed: {bankDraft ? 'Y' : 'N'}
+        19. Whether bank draft/pay order for licence fee enclosed: {bankDraft ? 'Y' : 'N'}
       </Typography>
 
-      {bankDraft && (
-        <>
-         <Grid container spacing={2} sx={{ ml: 1 }}>
+      <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
         <Typography variant="body1">Name of Bank:</Typography>
     </Grid>
@@ -1187,13 +1214,10 @@ const renderSingleDocView = (docs, title) => {
         <Typography variant="body1">{bankDraft?.amount || 'N/A'}</Typography>
     </Grid>
 </Grid>
-
-        </>
-      )}
     </Box>
     <Box>
     <Typography variant="h6" gutterBottom style={{ marginTop: '10px' }}>
-            31.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
+            20.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
           </Typography>
     <TableContainer>
     <Table>
@@ -1240,7 +1264,7 @@ const renderSingleDocView = (docs, title) => {
 
 <Box>
 <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}style={{ marginTop: '10px' }}>
-    34. Whether Certification Practice Statement is enclosed * : {cpsDocument ? 'Y' : 'N'}
+    21. Whether Certification Practice Statement is enclosed * : {cpsDocument ? 'Y' : 'N'}
     
     {/* Adding a Box to contain the link */}
     {cpsDocument && (
@@ -1269,7 +1293,7 @@ const renderSingleDocView = (docs, title) => {
     {/* Static Label for Additional Documents */}
     <Grid item xs={12}>
       <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-       35. Document<span className="req-asterisk">*</span>:
+       22. Document<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
 

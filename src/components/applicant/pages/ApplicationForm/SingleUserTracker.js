@@ -170,7 +170,8 @@ export default function SingleUserTracker() {
       status.includes("recommended in principle approval") ||
       status.includes("in principle approval granted") ||
       status.includes("document submitted for license") ||
-      status.includes("bank guarantee proof uploaded")
+      status.includes("bank guarantee proof uploaded") ||
+      status.includes("license details pending cca review")
     ) {
       return 7;
     }
@@ -186,7 +187,8 @@ export default function SingleUserTracker() {
       status.includes("agency selection") ||
       status.includes("approve from cca") ||
       status.includes("nc issued by auditor") ||
-      status.includes("nc action taken by applicant")
+      status.includes("nc action taken by applicant") ||
+      status.includes("pending audit acceptance")
     ) {
       return 5;
     }
