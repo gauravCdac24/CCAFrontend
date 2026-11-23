@@ -201,6 +201,34 @@ const ViewApplicationForm = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allApplicationFormList, userName]);
 
+    const resolveWordDownloadMeta = (activeDoc, fileRes) => {
+        const headerType = String(fileRes?.headers?.["content-type"] || "").split(";")[0].trim();
+        const disposition = String(fileRes?.headers?.["content-disposition"] || "");
+        const dispositionMatch = disposition.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i);
+        const fromHeader = dispositionMatch?.[1]
+            ? decodeURIComponent(dispositionMatch[1].replace(/"/g, "")).trim()
+            : "";
+        // Admin stores Word (.doc/.docx) only — never force a .pdf name.
+        const rawName =
+            fromHeader ||
+            activeDoc?.fileName ||
+            activeDoc?.documentName ||
+            "AuditAcceptanceLetter.docx";
+        const lower = String(rawName).toLowerCase();
+        const isDocx = lower.endsWith(".docx");
+        const isDoc = lower.endsWith(".doc");
+        const fileName = isDocx || isDoc
+            ? rawName
+            : `${String(rawName).replace(/\.[^.]+$/, "") || "AuditAcceptanceLetter"}.docx`;
+        const contentType =
+            (headerType && !headerType.includes("application/pdf") && !headerType.includes("text/"))
+                ? headerType
+                : isDoc
+                    ? "application/msword"
+                    : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        return { fileName, contentType };
+    };
+
     const downloadAuditAcceptanceLetter = async () => {
         try {
             setLoading(true);
@@ -219,18 +247,15 @@ const ViewApplicationForm = () => {
                 activeDoc.auditAcceptanceId,
                 true
             );
-            const blob = new Blob([fileRes.data], {
-                type: fileRes.headers["content-type"] || "application/pdf",
-            });
+            const { fileName, contentType } = resolveWordDownloadMeta(activeDoc, fileRes);
+            const blob = new Blob([fileRes.data], { type: contentType });
             const link = document.createElement("a");
             link.href = window.URL.createObjectURL(blob);
-            link.setAttribute(
-                "download",
-                activeDoc.documentName || "AuditAcceptanceLetter.pdf"
-            );
+            link.setAttribute("download", fileName);
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(link.href);
             await AuditService.markAcceptanceDownloaded(userName);
             await loadAcceptanceLetterStatus();
             getAllApplicationForm();
@@ -748,14 +773,52 @@ const createIndivReport = async (userName) => {
             || hasLicenseAction(actions || [], 'AUDIT_ACCEPTANCE');
     };
 
+    const saveBlobDownload = (data, contentType, fileName) => {
+        const blob = new Blob([data], { type: contentType || 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
+
     const handleDownloadAuditReport = async () => {
         try {
-            const metaRes = await AuditService.getEsignedDocumentId(userName);
-            const data = metaRes?.data || {};
-            const signerKey = String(data.signerKey || '').toUpperCase();
-            const signedDocId = data.auditorSignedDocId
-                || (signerKey !== 'ACCEPTANCE' ? data.signedDocId : null);
-            if (!signedDocId) {
+            // Prefer direct esign-service download using the stored signedDocId.
+            // (audit-service proxy historically 404'd when gateway path omitted /api.)
+            let signedDocId = null;
+            try {
+                const metaRes = await AuditService.getEsignedDocumentId(userName);
+                const data = metaRes?.data || {};
+                const signerKey = String(data.signerKey || '').toUpperCase();
+                signedDocId = data.auditorSignedDocId
+                    || (signerKey !== 'ACCEPTANCE' && signerKey !== 'ACCEPTANCE_REPORT'
+                        ? data.signedDocId
+                        : null);
+            } catch (metaErr) {
+                console.warn('getEsignedDocumentId failed, will try audit-service download:', metaErr);
+            }
+
+            if (signedDocId) {
+                const response = await EsignService.downloadEsignedDocument(signedDocId);
+                const contentType = response.headers?.['content-type'] || 'application/pdf';
+                if (!String(contentType).includes('application/json') && !String(contentType).includes('text/')) {
+                    saveBlobDownload(
+                        response.data,
+                        String(contentType).includes('pdf') ? contentType : 'application/pdf',
+                        'AuditReport.pdf'
+                    );
+                    return;
+                }
+            }
+
+            // Fallback: audit-service endpoint (reads same eSign record + PDF on disk)
+            const fallback = await AuditService.downloadAuditorSignedReport(userName);
+            const fallbackType = fallback.headers?.['content-type'] || 'application/pdf';
+            if (String(fallbackType).includes('application/json') || String(fallbackType).includes('text/')) {
                 showAlert({
                     messageTitle: 'Download Error',
                     messageContent: 'Signed audit report is not available.',
@@ -763,30 +826,15 @@ const createIndivReport = async (userName) => {
                 });
                 return;
             }
-            const response = await EsignService.downloadEsignedDocument(signedDocId);
-            const contentType = response.headers?.['content-type'] || 'application/pdf';
-            if (String(contentType).includes('application/json') || String(contentType).includes('text/')) {
-                showAlert({
-                    messageTitle: 'Download Error',
-                    messageContent: 'Signed audit report is not available.',
-                    confirmText: 'Ok',
-                });
-                return;
-            }
-            const blob = new Blob([response.data], {
-                type: String(contentType).includes('pdf') ? contentType : 'application/pdf',
-            });
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.setAttribute('download', 'AuditReport.pdf');
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode.removeChild(link);
+            saveBlobDownload(fallback.data, fallbackType, 'AuditReport.pdf');
         } catch (error) {
             console.error('Error downloading audit report:', error);
+            const status = error?.response?.status;
             showAlert({
                 messageTitle: 'Download Error',
-                messageContent: 'Failed to download the audit report.',
+                messageContent: status === 404
+                    ? 'Signed audit report is not available. The auditors may not have completed eSign, or the signed file could not be retrieved.'
+                    : 'Failed to download the audit report.',
                 confirmText: 'Ok',
             });
         }

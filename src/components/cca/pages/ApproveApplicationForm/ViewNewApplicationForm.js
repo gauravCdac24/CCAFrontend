@@ -44,141 +44,102 @@ const ViewNewApplicationForm = () => {
 
   //-------------------------
 
-  const prevApplicationTypeListRef = useRef(); // Reference to store previous state
-
-  useEffect(() => {
-    console.log("Updated Application Type List:", allApplicationTypeList);
-  }, [allApplicationTypeList]);
-
-  const getAllApplicationType = () => {
-    ApplicationType.getAllApplicationTypeList()
-      .then((response) => {
-        console.log("Fetched Application Type list:", response.data);
-
-        if (Array.isArray(response.data)) {
-          // Check if the new data is different from the old state
-          if (
-            JSON.stringify(response.data) !==
-            JSON.stringify(allApplicationTypeList)
-          ) {
-            setAllApplicationTypeList(() => {
-              return response.data.map((obj, index) => {
-                const formattedCreated = dateFormatter(obj.created);
-                const formattedUpdated = dateFormatter(obj.updated);
-                obj["id"] = index + 1;
-                obj["created"] = formattedCreated;
-                obj["updated"] = formattedUpdated;
-                return obj;
-              });
-            });
-          } else {
-            console.log("Data has not changed, skipping state update.");
-          }
-        } else {
-          console.error("Response data is not an array:", response.data);
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching Application Type list:", err);
-      })
-      .finally(() => {
-        setAppTypeFound(true);
-      });
+  const resolveApplicationTypeName = (matchedType, applicationType) => {
+    if (matchedType?.appType) return matchedType.appType;
+    if (applicationType === "1") return "Individual";
+    if (applicationType === "2") return "Company";
+    if (applicationType === "3") return "Partnership Firm";
+    if (applicationType === "4") return "Government Organization";
+    return "Unknown Type";
   };
 
-  // Call getAllApplicationType() once when the component is mounted
-  useEffect(() => {
-    getAllApplicationType();
-  }, []);
+  const [licenseDetails, setLicenseDetails] = useState([]);
+  const [allApplicationFormList, setAllApplicationFormList] = useState([]);
 
-  console.log("Fetched allApplicationTypeList list:", allApplicationTypeList);
+  const buildApplicationFormRows = (applications, applicationTypes, licenses) => {
+    const licenseUsername = (Array.isArray(licenses) ? licenses : [])
+      .map((detail) => detail?.userName?.trim())
+      .filter(Boolean);
+    const typeList = Array.isArray(applicationTypes) ? applicationTypes : [];
+    const result = Array.isArray(applications) ? applications : [];
+    const updatedData = [];
 
-  const [licenseDetails, setLicenseDetails] = useState({});
-  const getLicenseDetailsByUsername = () => {
-    // setIsLoading(true);
-    LicenseIssuanceService.getAllLicenseDetails()
-      .then((res) => {
-        setLicenseDetails(res.data);
-      })
-      .catch((err) => {})
-      .finally(() => {
-        // setIsLoading(false);
-      });
+    for (let i = 0; i < result.length; i++) {
+      const uname = result[i]?.applicantUserName;
+      const hasMatchingUsername =
+        licenseUsername.find((application) => application === uname) || "";
+
+      // Exclude applicants who already have a license
+      if (hasMatchingUsername === "") {
+        const matchedType = typeList.find(
+          (type) =>
+            String(type.appTypeMasterId) === String(result[i]?.applicationType)
+        );
+        updatedData.push({
+          id: updatedData.length + 1,
+          applicationInitiatedOn: dateFormatter(
+            result[i]?.applicationInitiatedOn
+          ),
+          updated: dateFormatter(result[i]?.updated),
+          applicationTypeName: resolveApplicationTypeName(
+            matchedType,
+            result[i]?.applicationType
+          ),
+          applicantName: result[i]?.applicantName,
+          applicationCurrentStatus: result[i]?.applicationCurrentStatus,
+          applicantUserName: result[i]?.applicantUserName,
+          intentAppId: result[i]?.intentAppId,
+          applicationType: result[i]?.applicationType,
+        });
+      }
+    }
+
+    return updatedData;
   };
 
-  useEffect(() => {
-    getLicenseDetailsByUsername();
-  }, []);
-
-  const [allApplicationFormList, setAllApplicationFormList] = useState({});
   const getAllApplicationForm = () => {
     setLoading(true);
-    ApplicationReviewCommittee.getAllNewApplications()
-      .then((response) => {
-        const result = response.data;
 
-        const licenseUsername =
-          licenseDetails
-            ?.map((detail) => detail?.userName?.trim())
-            ?.filter(Boolean) || [];
-        console.log("License Username:", licenseUsername);
+    Promise.all([
+      ApplicationType.getAllApplicationTypeList(),
+      LicenseIssuanceService.getAllLicenseDetails(),
+      ApplicationReviewCommittee.getAllNewApplications(),
+    ])
+      .then(([typesResponse, licenseResponse, applicationsResponse]) => {
+        const typesData = Array.isArray(typesResponse?.data)
+          ? typesResponse.data.map((obj, index) => ({
+              ...obj,
+              id: index + 1,
+              created: dateFormatter(obj.created),
+              updated: dateFormatter(obj.updated),
+            }))
+          : [];
+        const licensesData = Array.isArray(licenseResponse?.data)
+          ? licenseResponse.data
+          : [];
+        const applicationsData = Array.isArray(applicationsResponse?.data)
+          ? applicationsResponse.data
+          : [];
 
-        const updatedData = [];
-
-        for (var i = 0; i < result.length; i++) {
-          const uname = result[i]?.applicantUserName;
-          console.log("abc=-->", uname);
-          // Check if any application in response.data matches licenseDetails.username
-          const hasMatchingUsername =
-            licenseUsername.find((application) => application === uname) || "";
-
-          console.log("Has Matching Username:", hasMatchingUsername);
-
-          // Only set data if there is a match
-          if (hasMatchingUsername === "") {
-            const matchedType = allApplicationTypeList.find(
-              (type) =>
-                String(type.appTypeMasterId) === String(result[i]?.applicationType)
-            );
-            const applicationType = matchedType
-              ? matchedType?.appType
-              : (result[i]?.applicationType === "1" ? "Individual" :
-                 result[i]?.applicationType === "2" ? "Company" :
-                 result[i]?.applicationType === "3" ? "Partnership Firm" :
-                 result[i]?.applicationType === "4" ? "Government Organization" : "Unknown Type");
-            const obj = {
-              id: i + 1,
-              applicationInitiatedOn: dateFormatter(
-                result[i]?.applicationInitiatedOn
-              ),
-              updated: dateFormatter(result[i]?.updated),
-              applicationTypeName: applicationType,
-              applicantName: result[i]?.applicantName,
-              applicationCurrentStatus: result[i]?.applicationCurrentStatus,
-              applicantUserName: result[i]?.applicantUserName,
-              intentAppId: result[i]?.intentAppId,
-              applicationType: result[i]?.applicationType,
-            };
-
-            updatedData.push(obj);
-          }
-
-          setAllApplicationFormList(updatedData);
-        }
+        setAllApplicationTypeList(typesData);
+        setLicenseDetails(licensesData);
+        setAppTypeFound(true);
+        setAllApplicationFormList(
+          buildApplicationFormRows(applicationsData, typesData, licensesData)
+        );
       })
       .catch((err) => {
-        // showAlert commented out
+        console.error("Error loading application table data:", err);
+        setAllApplicationFormList([]);
       })
       .finally(() => {
         setLoading(false);
       });
   };
 
-  console.log("Fetched allApplicationFormList list:", allApplicationFormList);
-
   useEffect(() => {
     getAllApplicationForm();
-  }, [allApplicationTypeList]);
+  }, []);
 
   const changeApplicationFormStatus = (id) => {
     setLoading(true);
@@ -779,6 +740,7 @@ const ViewNewApplicationForm = () => {
       <CustomTable
         columns={columns}
         rows={allApplicationFormList}
+        loading={isLoading}
         //rows={allApplicationReviewList}
         hideColumnsForExport={["Action"]}
         pageSizeOptions={[10, 25, 50, 100]}

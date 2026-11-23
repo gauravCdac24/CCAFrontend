@@ -574,6 +574,34 @@ const ViewApplicationForm = () => {
         }
     };
 
+    const resolveWordAcceptanceFileName = (activeDoc, fileRes) => {
+        const disposition = String(fileRes?.headers?.['content-disposition'] || '');
+        const match = disposition.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i);
+        const fromHeader = match?.[1]
+            ? decodeURIComponent(match[1].replace(/"/g, '')).trim()
+            : '';
+        const rawName =
+            fromHeader ||
+            activeDoc?.fileName ||
+            activeDoc?.documentName ||
+            'AuditAcceptanceForm.docx';
+        const lower = String(rawName).toLowerCase();
+        if (lower.endsWith('.doc') || lower.endsWith('.docx')) {
+            return rawName;
+        }
+        return `${String(rawName).replace(/\.[^.]+$/, '') || 'AuditAcceptanceForm'}.docx`;
+    };
+
+    const resolveWordAcceptanceContentType = (fileName, headerType) => {
+        const type = String(headerType || '').split(';')[0].trim();
+        if (type && !type.includes('application/pdf') && !type.includes('text/')) {
+            return type;
+        }
+        return String(fileName).toLowerCase().endsWith('.doc')
+            ? 'application/msword'
+            : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    };
+
     const handleDownloadAuditAcceptanceForm = async () => {
         try {
             const listRes = await AuditAcceptanceService.getAllActiveDocuments();
@@ -588,10 +616,11 @@ const ViewApplicationForm = () => {
             }
             const activeDoc = activeList[0];
             const fileRes = await AuditAcceptanceService.downloadFile(activeDoc.auditAcceptanceId, true);
+            const fileName = resolveWordAcceptanceFileName(activeDoc, fileRes);
             saveDownloadedFile(
                 fileRes.data,
-                fileRes.headers?.['content-type'],
-                activeDoc.documentName || activeDoc.fileName || 'AuditAcceptanceForm.pdf'
+                resolveWordAcceptanceContentType(fileName, fileRes.headers?.['content-type']),
+                fileName
             );
         } catch (error) {
             console.error('Error downloading audit acceptance form:', error);

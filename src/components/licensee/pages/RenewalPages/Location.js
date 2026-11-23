@@ -854,19 +854,27 @@ const [fileName1, setFileName1] = useState('');
 
 
     
-    const handleUpdate = () => {
-        // Ensure to use the editIndex to update the correct item
+    const handleUpdate = (index) => {
+        // Prefer the index captured when Edit was clicked. editIndex from state can be
+        // stale in this onConfirm closure (e.g. after editing PR then DR), which was
+        // writing DR fields onto the PR row and flipping its locationType.
+        const targetIndex = typeof index === "number" ? index : editIndex;
+
         setCommunicationAddressFormValues(prevValues => {
             const updatedList = [...prevValues.LocationDetails];
-            updatedList[editIndex] = editFormValues;  // Apply the changes
+            if (
+                targetIndex == null ||
+                targetIndex < 0 ||
+                targetIndex >= updatedList.length
+            ) {
+                return prevValues;
+            }
+            updatedList[targetIndex] = { ...editFormValues };
             return {
                 ...prevValues,
                 LocationDetails: updatedList
             };
         });
-    
-        // Close the modal or perform additional actions
-        // hideAlert();  // Uncomment if you have a function to hide the alert/modal
     };
     
     const handleFileChange1 = (e) => {

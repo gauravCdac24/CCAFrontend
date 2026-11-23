@@ -11,7 +11,10 @@ import showAlert from '../../../global/common/MessageBox/AlertService';
 import { getStepSuccessAlert, getStepErrorAlert } from '../../../global/util/applicationFormSteps';
 import ValidatePattern from '../../../global/util/ValidatePattern';
 import IntentService from '../../../../service/AdminService/IntentService';
-import ApplicationReview from '../../../../service/NewLicenseService/ApplicationReview';
+import {
+    fetchApplicationReviewDataForEdit,
+    isReviewFieldEnabled,
+} from '../../../global/util/reviewEditableFields';
 
 const errorMsg = {
     blockNo: {
@@ -194,43 +197,22 @@ const AddressDetailsForm = ({handleNext,handleBack,handleFormDataChange}) => {
 
     const[applicationReviewData,setApplicatioReviewData]=useState([])
     useEffect(() => {
+      if (!userName) return;
       setLoading(true);
-      ApplicationReview.getAllApplicationReviewByUserName(userName)
+      fetchApplicationReviewDataForEdit(userName)
           .then((data) => {
-              console.log("data.dtaa===>",data.data)
-              setApplicatioReviewData(data.data);
-              setLoading(false);
+              setApplicatioReviewData(data);
           })
-          .catch(error => {
-              console.error("Error fetching application types:", error);
+          .catch((error) => {
+              console.error("Error fetching application review fields:", error);
+              setApplicatioReviewData([]);
+          })
+          .finally(() => {
               setLoading(false);
           });
   }, [userName]);
 
-console.log("applicationReviewData===>",applicationReviewData)
-
-const isFieldEnabled = (fieldName) => {
-    // Log the applicationReviewData to confirm structure
-    console.log("applicationReviewData:", fieldName);
-  
-    // Enable by default if data is undefined or empty
-    if (!applicationReviewData || applicationReviewData.length === 0) {
-      console.log(`Enabling ${fieldName} by default (data undefined or empty).`);
-      return true;
-    }
-  
-    // Find matching field by name
-    const field = applicationReviewData.find((f) => f.fieldName === fieldName);
-  
-    // Log the field status
-    console.log(`Field found for ${fieldName}:`, field);
-  
-    // Enable if field is "Active", otherwise disable
-    const isEnabled = field ?  field.status === "Active"  : false;
-    console.log(`isFieldEnabled(${fieldName}) returns:`, isEnabled);
-  
-    return isEnabled;
-  };
+const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData, fieldName);
 
 
     const handleInputChange = (event) => {

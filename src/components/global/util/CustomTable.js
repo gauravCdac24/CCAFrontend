@@ -33,8 +33,9 @@ const normalizeColumns = (columns = []) =>
         };
     });
 
-const CustomTable = ({columns, rows, hideColumnsForExport, pageSizeOptions, hidePagination=false, hideToolbar=false, customTitle=''}) =>{
+const CustomTable = ({columns, rows, hideColumnsForExport, pageSizeOptions, hidePagination=false, hideToolbar=false, customTitle='', loading=false}) =>{
     const normalizedColumns = useMemo(() => normalizeColumns(columns), [columns]);
+    const tableRows = Array.isArray(rows) ? rows : [];
 
     return(
         <Box
@@ -46,7 +47,8 @@ const CustomTable = ({columns, rows, hideColumnsForExport, pageSizeOptions, hide
             }}
         >
             <DataGrid
-                rows={rows}
+                loading={loading}
+                rows={tableRows}
                 columns={normalizedColumns}
                 initialState={{
                     pagination: {
@@ -54,7 +56,7 @@ const CustomTable = ({columns, rows, hideColumnsForExport, pageSizeOptions, hide
                     },
                 }}
                 pageSizeOptions={hidePagination ? [10] : pageSizeOptions}
-                slots={{ toolbar: hideToolbar ? undefined : () => <DataGridCustomToolbar columns={normalizedColumns} rows={rows} hideColumnsForExport={hideColumnsForExport} customTitle={customTitle} /> }}
+                slots={{ toolbar: hideToolbar ? undefined : () => <DataGridCustomToolbar columns={normalizedColumns} rows={tableRows} hideColumnsForExport={hideColumnsForExport} customTitle={customTitle} /> }}
                 slotProps={{
                     toolbar: {
                         showQuickFilter: true,
