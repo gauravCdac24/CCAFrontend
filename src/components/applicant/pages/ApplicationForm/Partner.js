@@ -2746,7 +2746,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 <React.Fragment key={index}>
                     <Grid container sx={{ mt: 1, mb: 1, alignItems: 'center' }}>
                         <Grid item xs>
-                            <Typography variant='h6' sx={{ mt: 1 }}>{`${index + 1}. Details of Partners/Members/Directors`}</Typography>
+                            <Typography variant='h6' sx={{ mt: 1 }}>{communicationAddressFormValues.partnerDetails.length > 1 ? `${index + 1}. Details of Partners/Members/Directors` : 'Details of Partners/Members/Directors'}</Typography>
                         </Grid>
                         <Grid item xs={1} sm={0.5} sx={{ display: 'flex', justifyContent: 'flex-start' }}>
                             {communicationAddressFormValues.partnerDetails.length > 1 && index === communicationAddressFormValues.partnerDetails.length - 1 && communicationAddressFormValues.partnerDetails.length < MAX_EMAIL_IDS ? (
@@ -3422,14 +3422,15 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 </Grid>
 
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
+                        <Grid item xs={12} sm>
                             <InputLabel shrink={false} htmlFor={`idCardType-${index}`}>
                                 <Typography variant='body1'>ID Card Details<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <FormControl
                                 variant="outlined"
                                 size="small"
-                                sx={{ width: '100%', mt: 1 }}
+                                fullWidth
+                                margin="dense"
                                 error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.idCardType)}
                             >
                                 <Select
@@ -3455,6 +3456,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 )}
                             </FormControl>
                         </Grid>
+                        <Grid item xs={12} sm sx={{ display: { xs: 'none', sm: 'block' } }} />
                     </Grid>
 
                     {communicationAddressFormValues.partnerDetails[index]?.idCardType === 'passport' && (
@@ -3523,12 +3525,12 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                                 textField: {
                                                     size: 'small',
                                                     fullWidth: true,
+                                                    margin: 'dense',
                                                     placeholder: "Passport Expiry Date",
                                                     error: !!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportExpirydate),
                                                     helperText: (formErrors.partnerDetails && formErrors.partnerDetails[index]?.passportExpirydate),
                                                 }
                                             }}
-                                            sx={{ mt: 1 }}
                                         />
                                     </LocalizationProvider>
                                 </Grid>
@@ -3540,14 +3542,14 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                         </Typography>
                                     </InputLabel>
 
-                                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
+                                    <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
                                         <Grid item>
                                             <Button
                                                 component="label"
                                                 variant="contained"
                                                 startIcon={<CloudUploadIcon />}
                                             >
-                                                Upload Passport Document
+                                                Upload file
                                                 <VisuallyHiddenInput
                                                     type="file"
                                                     accept=".pdf"
@@ -3557,15 +3559,13 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                             </Button>
                                         </Grid>
 
-                                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                                             {reacord?.files?.passportDocument?.fileName && (
                                                 <Tooltip title={reacord.files.passportDocument.fileName} placement="top">
                                                     <Typography variant='body2' sx={{
-                                                        display: 'inline-block',
                                                         whiteSpace: 'nowrap',
                                                         overflow: 'hidden',
                                                         textOverflow: 'ellipsis',
-                                                        verticalAlign: 'middle',
                                                         textAlign: 'center'
                                                     }}>
                                                         {reacord.files.passportDocument.fileName}
@@ -3603,22 +3603,23 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                     error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.voterCardNo)}
                                     helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.voterCardNo) || ''}
                                     size="small"
+                                    margin="dense"
                                     inputProps={{ maxLength: 30 }}
                                 />
                             </Grid>
                             <Grid item xs={12} sm>
                                 <InputLabel shrink={false} htmlFor={`idCardDocument-${index}`}>
-                                    <Typography variant='body1'>Upload IdCard Document(Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
+                                    <Typography variant='body1'>Upload ID Card Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                                 </InputLabel>
 
-                                <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
+                                <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
                                     <Grid item>
                                         <Button
                                             component="label"
                                             variant="contained"
                                             startIcon={<CloudUploadIcon />}
                                         >
-                                            Upload ID Card Document
+                                            Upload file
                                             <VisuallyHiddenInput
                                                 type="file"
                                                 accept=".pdf,application/pdf"
@@ -3628,15 +3629,13 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                         </Button>
                                     </Grid>
 
-                                    <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                                         {(reacord?.files?.idCardDocument?.fileName || reacord?.voterCardDocument) && (
                                             <Tooltip title={reacord?.files?.idCardDocument?.fileName || reacord?.voterCardDocument} placement="top">
                                                 <Typography variant='body2' sx={{
-                                                    display: 'inline-block',
                                                     whiteSpace: 'nowrap',
                                                     overflow: 'hidden',
                                                     textOverflow: 'ellipsis',
-                                                    verticalAlign: 'middle',
                                                     textAlign: 'center'
                                                 }}>
                                                     {reacord?.files?.idCardDocument?.fileName || reacord?.voterCardDocument}
@@ -3671,23 +3670,24 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                     helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.pancardNo) || ''}
                                     variant="outlined"
                                     size='small'
+                                    margin="dense"
                                     onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Za-z]+$/)}
                                     inputProps={{ maxLength: 30 }}
                                 />
                             </Grid>
                             <Grid item xs={12} sm>
                                 <InputLabel shrink={false} htmlFor={`panCardDocument-${index}`}>
-                                    <Typography variant='body1'>Upload PAN Card Document(Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
+                                    <Typography variant='body1'>Upload Pan Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                                 </InputLabel>
 
-                                <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
+                                <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
                                     <Grid item>
                                         <Button
                                             component="label"
                                             variant="contained"
                                             startIcon={<CloudUploadIcon />}
                                         >
-                                            Upload PAN Card Document
+                                            Upload file
                                             <VisuallyHiddenInput
                                                 type="file"
                                                 name={`panCardDocument-${index}`}
@@ -3696,15 +3696,13 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                         </Button>
                                     </Grid>
 
-                                    <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                                         {reacord?.files?.panCardDocument?.fileName && (
                                             <Tooltip title={reacord.files.panCardDocument.fileName} placement="top">
                                                 <Typography variant='body2' sx={{
-                                                    display: 'inline-block',
                                                     whiteSpace: 'nowrap',
                                                     overflow: 'hidden',
                                                     textOverflow: 'ellipsis',
-                                                    verticalAlign: 'middle',
                                                     textAlign: 'center'
                                                 }}>
                                                     {reacord.files.panCardDocument.fileName}
