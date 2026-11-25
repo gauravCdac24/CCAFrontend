@@ -195,7 +195,7 @@ const FirmDeclarization = ({ handlePreview, handleNext, handleBack,data  }) => {
                     onChange={(event) => handleCheckboxChange(event, filteredItem.undertakingId)}  // Pass undertakingId to handleCheckboxChange
                   />
                 }
-                label={`${index + 1}. ${filteredItem.undertakingsTitle}`}  // Dynamically use the title
+                label={filteredItem.undertakingsTitle}
               />
             </Grid>
           ))

@@ -548,13 +548,19 @@ if (!basicDetailsFormValues.file3) {
     return (
         <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleFormSubmit}>
             <Grid container>
-                <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Income Tax PAN No.</b></Typography>
+                <Grid item sx={{ mt: 1, mb: 1 }}>
+                    {/* <Typography variant='h7'><b>Financial Details</b></Typography> */}
                 </Grid>
             </Grid>
-            <Grid container spacing={2}>
+            <Grid container>
+                <Grid item sx={{ mt: 2, mb: 1 }}>
+                    {/*<br/><Typography variant='h7'> <b>Income Tax PAN No.</b><span className="req-asterisk">*</span></Typography>*/}
+                    <Typography variant='h7'><b>Financial Details</b></Typography>
+                </Grid>
+            </Grid>
+            <Grid container spacing={2} alignItems="flex-end">
                 <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"incomTaxPanNo"}>
+                    <InputLabel shrink={false} htmlFor={"incomTaxPanNo"} sx={{ minHeight: 40, display: 'flex', alignItems: 'flex-end' }}>
                         <Typography variant='body1'>Income Tax PAN No.<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
@@ -566,20 +572,20 @@ if (!basicDetailsFormValues.file3) {
                         variant="outlined"
                         value={basicDetailsFormValues.incomTaxPanNo}
                         size='small'
+                        margin='dense'
                         error={!!(formErrors.incomTaxPanNo && formErrors.incomTaxPanNo)}
                         helperText={formErrors?.incomTaxPanNo}
                         inputProps={{ maxLength: 10 }}
-                        disabled={!isFieldEnabled("")}
                         onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Z]+$/)}
                         onChange={handleInputChanges}
                     />
                 </Grid>
                 <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"pdffile"}>
+                    <InputLabel shrink={false} htmlFor={"pdffile"} sx={{ minHeight: 40, display: 'flex', alignItems: 'flex-end' }}>
                         <Typography variant='body1'>Upload Pan Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
+                    <Grid container alignItems="center" direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 0.5, minHeight: 40 }}>
                         <Grid item >
                             <Button
                                 component="label"
@@ -626,14 +632,14 @@ if (!basicDetailsFormValues.file3) {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Turnover in the last Financial Year</b></Typography>
+                    {/* <Typography variant='h7'> <b>Turnover in the last Financial Year</b></Typography> */}
                 </Grid>
             </Grid>
 
-            <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} sm>
+            <Grid container spacing={2} alignItems="flex-end">
+                <Grid item xs={12} sm={6}>
                     <InputLabel shrink={false} htmlFor={"turnOver"}>
-                        <Typography variant='body1'>Turnover in the last Financial Year<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Turnover in the last Financial Year<span className="req-asterisk">*</span> Rs.</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -652,25 +658,21 @@ if (!basicDetailsFormValues.file3) {
                         onChange={handleInputChange}
                         disabled={!isFieldEnabled("turnover")}
                     />
-                </Grid>
-                <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"output"}>
-                        <Typography variant='body1' style={{ whiteSpace: 'nowrap' }}>
-                            <strong>Rs.</strong> {output}{/* Displaying the output value */}
-                        </Typography>
-                    </InputLabel>
+                    <Typography variant='body1' sx={{ mt: 0.5 }}>
+                        <strong>Rs.</strong> {output}
+                    </Typography>
                 </Grid>
             </Grid>
 
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Net Worth</b></Typography>
+                    {/* <Typography variant='h7'> <b>Net Worth</b></Typography> */}
                 </Grid>
             </Grid>
-            <Grid container spacing={2} alignItems="center">
+            <Grid container spacing={2} alignItems="flex-end">
                 <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"netWorth"}>
-                        <Typography variant='body1'>Net Worth<span className="req-asterisk">*</span>Rs.</Typography>
+                    <InputLabel shrink={false} htmlFor={"netWorth"} sx={{ minHeight: 40, display: 'flex', alignItems: 'flex-end' }}>
+                        <Typography variant='body1'>Net Worth<span className="req-asterisk">*</span> Rs.</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -688,20 +690,16 @@ if (!basicDetailsFormValues.file3) {
                         onChange={handleInputChange1}
                         //disabled={!isFieldEnabled("turnover")}
                     />
+                    <Typography variant='body1' sx={{ mt: 0.5 }}>
+                        <strong>Rs.</strong> {output1}
+                    </Typography>
                 </Grid>
                 <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"output"}>
-                        <Typography variant='body1' style={{ whiteSpace: 'nowrap' }}>
-                            <strong>Rs.</strong> {output1}
-                        </Typography>
-                    </InputLabel>
-                </Grid>
-                <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"netWorthDoc"}>
+                    <InputLabel shrink={false} htmlFor={"netWorthDoc"} sx={{ minHeight: 40, display: 'flex', alignItems: 'flex-end' }}>
                         <Typography variant='body1'>Upload Net Worth Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
+                    <Grid container alignItems="center" direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 0.5, minHeight: 40 }}>
                         <Grid item >
                             <Button
                                 component="label"
@@ -747,13 +745,13 @@ if (!basicDetailsFormValues.file3) {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Paid up Capital</b></Typography>
+                    {/* <Typography variant='h7'> <b>Paid up Capital</b></Typography> */}
                 </Grid>
             </Grid>
-            <Grid container spacing={2} alignItems="center">
+            <Grid container spacing={2} alignItems="flex-end">
                 <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"paidUpCapital"}>
-                        <Typography variant='body1'>Paid up Capital<span className="req-asterisk">*</span>Rs.</Typography>
+                    <InputLabel shrink={false} htmlFor={"paidUpCapital"} sx={{ minHeight: 40, display: 'flex', alignItems: 'flex-end' }}>
+                        <Typography variant='body1'>Paid up Capital<span className="req-asterisk">*</span> Rs.</Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -771,20 +769,16 @@ if (!basicDetailsFormValues.file3) {
                         helperText={formErrors?.paidUpCapital}
                         onChange={handleInputChange2}
                     />
+                    <Typography variant='body1' sx={{ mt: 0.5 }}>
+                        <strong>Rs.</strong> {output2}
+                    </Typography>
                 </Grid>
                 <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"output"}>
-                        <Typography variant='body1' style={{ whiteSpace: 'nowrap' }}>
-                            <strong>Rs.</strong> {output2}
-                        </Typography>
-                    </InputLabel>
-                </Grid>
-                <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"paidUpCapDoc"}>
+                    <InputLabel shrink={false} htmlFor={"paidUpCapDoc"} sx={{ minHeight: 40, display: 'flex', alignItems: 'flex-end' }}>
                         <Typography variant='body1'>Upload Paid up Capital Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px' }}>
+                    <Grid container alignItems="center" direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 0.5, minHeight: 40 }}>
                         <Grid item >
                             <Button
                                 component="label"
@@ -829,17 +823,17 @@ if (!basicDetailsFormValues.file3) {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Insurence Details<span className="req-asterisk">*</span></b></Typography>
+                    <Typography variant='h7'> <b>Insurance Details<span className="req-asterisk"></span></b></Typography>
                 </Grid>
             </Grid>
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+            <Grid container spacing={2} alignItems="flex-end">
+                <Grid item xs={12} sm={6}>
                     <InputLabel shrink={false} htmlFor={"policyNo"}>
-                        <Typography variant='body1' >Insurence Policy No.<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1' >Insurance Policy No.<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         required
-                        placeholder="Insurence Policy No."
+                        placeholder="Insurance Policy No."
                         fullWidth
                         variant="outlined"
                         size='small'
@@ -855,7 +849,7 @@ if (!basicDetailsFormValues.file3) {
                         margin='dense'
                     />
                 </Grid>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={6}>
                     <InputLabel shrink={false} htmlFor={"insurerCompany"}>
                         <Typography variant='body1'>Insurer Company<span className="req-asterisk">*</span></Typography>
                     </InputLabel>

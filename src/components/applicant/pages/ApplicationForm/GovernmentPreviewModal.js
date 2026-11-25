@@ -134,6 +134,29 @@ const [basicDetailsFormValues2, setBasicDetailsFormValues2] = useState({})
 }, [userName]);
 console.log(basicDetailsFormValues2)
 
+const [financialDetailsFormValues, setFinancialDetailsFormValues] = useState({
+  indivAdditionalDetails: {},
+  applicationDocument: [],
+});
+useEffect(() => {
+  if (!userName) return;
+  setLoading(true);
+  ApplicationForm.getApplicationForm3ByUsername(userName)
+    .then((response) => {
+      const { indivAdditionalDetails, applicationDocument } = response.data || {};
+      setFinancialDetailsFormValues({
+        indivAdditionalDetails: indivAdditionalDetails || {},
+        applicationDocument: Array.isArray(applicationDocument) ? applicationDocument : [],
+      });
+    })
+    .catch((err) => {
+      console.error(err);
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+}, [userName]);
+
 const [basicDetailsFormValues7, setBasicDetailsFormValues7] = useState({ })
     // get second application form by userName
     useEffect(() => {
@@ -447,7 +470,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     
           {/* Organisation Details Section */}
           <Typography variant="h6" style={{ marginTop: '10px' }}>
-            28. Particulars of Organisation: <span className="req-asterisk">*</span>
+            1. Particulars of Organisation: <span className="req-asterisk">*</span>
           </Typography>
           
           <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -625,11 +648,45 @@ const handleDownload = async (appDocId, documentTitle) => {
       </Typography>
     </Grid>
   </Grid>
+
+          <Typography variant="h6" style={{ marginTop: '10px' }}>
+            2. Financial Details
+          </Typography>
+          <Grid container spacing={2} sx={{ ml: 1 }}>
+            <Grid item sm={6}><Typography variant="body1">ISP Name:</Typography></Grid>
+            <Grid item sm={6}>
+              <Typography variant="body1">{financialDetailsFormValues?.indivAdditionalDetails?.ispName || 'N/A'}</Typography>
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} sx={{ ml: 1 }}>
+            <Grid item sm={6}><Typography variant="body1">ISP’s Website Address:</Typography></Grid>
+            <Grid item sm={6}>
+              <Typography variant="body1">{financialDetailsFormValues?.indivAdditionalDetails?.ispWebsite || 'N/A'}</Typography>
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} sx={{ ml: 1 }}>
+            <Grid item sm={6}><Typography variant="body1">ISP Username:</Typography></Grid>
+            <Grid item sm={6}>
+              <Typography variant="body1">{financialDetailsFormValues?.indivAdditionalDetails?.ispUsername || 'N/A'}</Typography>
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} sx={{ ml: 1 }}>
+            <Grid item sm={6}><Typography variant="body1">Personal Web page URL address:</Typography></Grid>
+            <Grid item sm={6}>
+              <Typography variant="body1">{financialDetailsFormValues?.indivAdditionalDetails?.personalWebPage || 'N/A'}</Typography>
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} sx={{ ml: 1 }}>
+            <Grid item sm={6}><Typography variant="body1">Capital in the business or profession (Rs):</Typography></Grid>
+            <Grid item sm={6}>
+              <Typography variant="body1">{financialDetailsFormValues?.indivAdditionalDetails?.indivCapital || 'N/A'}</Typography>
+            </Grid>
+          </Grid>
          
           <Box sx={{ width: '100%' }}>
       {/* Bank Details Section */}
       <Typography variant="h6" style={{ marginTop: '10px' }}>
-        29. Bank Details
+        3. Bank Details
       </Typography>
       <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
@@ -667,7 +724,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 
       {/* Bank Draft Section */}
       <Typography variant="h6" style={{ marginTop: '10px' }}>
-        30. Whether bank draft/pay order for licence fee enclosed: {bankDraft ? 'Y' : 'N'}
+        4. Whether bank draft/pay order for licence fee enclosed: {bankDraft ? 'Y' : 'N'}
       </Typography>
 
       {bankDraft && (
@@ -710,7 +767,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     </Box>
     <Box>
     <Typography variant="h6" gutterBottom style={{ marginTop: '10px' }}>
-            31.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
+            5.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
           </Typography>
     <TableContainer>
     <Table>
@@ -755,7 +812,7 @@ const handleDownload = async (appDocId, documentTitle) => {
   </Box>
   <Box style={{ marginTop: '10px' }}>
   <Typography variant="h6" sx={{ display: 'inline'}} >
-    32. Public Key @: 
+    6. Public Key @: 
   </Typography>
 
   <Grid container spacing={2} sx={{ ml: 1 }}>
@@ -773,7 +830,7 @@ const handleDownload = async (appDocId, documentTitle) => {
 
 <Box>
 <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}style={{ marginTop: '10px' }}>
-    34. Whether Certification Practice Statement is enclosed * : {cpsDocument ? 'Y' : 'N'}
+    7. Whether Certification Practice Statement is enclosed * : {cpsDocument ? 'Y' : 'N'}
     
     {/* Adding a Box to contain the link */}
     {cpsDocument && (
@@ -801,7 +858,7 @@ const handleDownload = async (appDocId, documentTitle) => {
     {/* Static Label for Additional Documents */}
     <Grid item xs={12}>
       <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-       35. Document<span className="req-asterisk">*</span>:
+       8. Document<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
 
@@ -863,7 +920,7 @@ const handleDownload = async (appDocId, documentTitle) => {
             <Grid item xs={12}>
               <Box>
                 <Typography variant="body1"sx={{ lineHeight: 1.5, letterSpacing: '0.5px' }}>
-                  { "1. Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both."}
+                  { "Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both."}
                 </Typography>
               </Box>
             </Grid>

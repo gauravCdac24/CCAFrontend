@@ -1376,7 +1376,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
       <Grid container spacing={2} sx={{ mt: 0.1 }}>
         <Grid item xs={12} sm={3}>
           <InputLabel shrink={false} htmlFor="locationType">
-            <Typography variant="body1">Location Type<span className="req-asterisk">*</span></Typography>
+            <Typography variant="body1"><b>Location Type</b><span className="req-asterisk">*</span></Typography>
           </InputLabel>
           <FormControl
             variant="outlined"

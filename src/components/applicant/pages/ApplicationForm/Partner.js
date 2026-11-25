@@ -1861,8 +1861,8 @@ const errorMsg = {
         length: 'designation name must be between 3 and 50 characters',
     },
     emailId: {
-        blank: 'Please enter the emailId',
-        format: 'Please Enter the valid emailId',
+        blank: 'Please enter the Email Address',
+        format: 'Please enter a valid Email Address',
     },
     passportNo: 'Please enter the Passport Number.',
     passportIssuingAuthority: 'Please enter the Passport Issuing Authority.',
@@ -2049,11 +2049,11 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             }
 
             // Validate email
-            // if (!partner.email) {
-            //     errors.partnerDetails[index].email = errorMsg.emailId.blank;
-            // } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partner.email)) {
-            //     errors.partnerDetails[index].email = errorMsg.emailId.format;
-            // }
+            if (!partner.email) {
+                errors.partnerDetails[index].email = errorMsg.emailId.blank;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partner.email)) {
+                errors.partnerDetails[index].email = errorMsg.emailId.format;
+            }
 
             // ID Card Details — same pattern as individual (select one type)
             if (!partner.idCardType) {
@@ -2093,22 +2093,26 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 errors.partnerDetails[index].webURL = errorMsg.webURL.format;
             }
 
-             // Validate city
+             // Validate nationality
              if (!partner.nationality) {
                 errors.partnerDetails[index].nationality = errorMsg.nationality;
             }
 
-
-            // Validate files
-            // if (!partner.file1) {
-            //     errors.partnerDetails[index].file1 = errorMsg.file1;
-            // }
-            // if (!partner.file2) {
-            //     errors.partnerDetails[index].file2 = errorMsg.file2;
-            // }
-            // if (!partner.file3) {
-            //     errors.partnerDetails[index].file3 = errorMsg.file3;
-            // }
+            // Visa fields required only when nationality is set and not Indian
+            if (partner.nationality && partner.nationality !== 'Indian') {
+                if (!partner.visaType) {
+                    errors.partnerDetails[index].visaType = 'Please enter the Visa Type.';
+                }
+                if (!partner.visaNumber) {
+                    errors.partnerDetails[index].visaNumber = 'Please enter the Visa Number.';
+                }
+                if (!partner.visaIssueDate) {
+                    errors.partnerDetails[index].visaIssueDate = 'Please enter the Visa Issue Date.';
+                }
+                if (!partner.visaExpiryDate) {
+                    errors.partnerDetails[index].visaExpiryDate = 'Please enter the Visa Expiry Date.';
+                }
+            }
 
             console.log('After Validation:', errors.partnerDetails[index]);
 
@@ -2117,11 +2121,11 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             }
         });
 
-        // Filter out any empty objects from partnerDetails
-        errors.partnerDetails = errors.partnerDetails.filter(obj => Object.keys(obj).length !== 0);
-        console.log(errors.partnerDetails.length)
-        // If there are no errors in partnerDetails, remove it from the errors object
-        if (errors.partnerDetails.length === 0) {
+        // Keep partner error indexes aligned with partnerDetails (do not filter/reindex)
+        const hasPartnerErrors = errors.partnerDetails.some(
+            (partnerErr) => partnerErr && Object.keys(partnerErr).length > 0
+        );
+        if (!hasPartnerErrors) {
             delete errors.partnerDetails;
         }
 
@@ -2173,6 +2177,11 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             [name]: value
         };
     
+        // Keep location ids as strings so District Select matches after save/reload
+        if (name === 'country' || name === 'state' || name === 'city') {
+            updatedPartner[name] = value != null && value !== '' ? String(value) : '';
+        }
+
         // Handle country change
         if (name === "country") {
             const filteredStates = states.filter(state => state.countryId.countryId === parseInt(value) && state.status === 'Active');
@@ -2297,54 +2306,73 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     const [fileName, setFileName] = useState('');
 
     const handleFileChange = (event, index, field) => {
-        const file = event.target.files[0]; // Get the uploaded file
+        const file = event.target.files[0];
         let errorMessage = '';
-    
+
         if (file) {
-            // Check file type
-            if (!allowedFileTypes.includes(file.type)) {
+            const isPdf = allowedFileTypes.includes(file.type)
+                || (!file.type && /\.pdf$/i.test(file.name || ''));
+            if (!isPdf) {
                 errorMessage = 'Only PDF files are allowed';
             }
-    
-            // Check file size (limit to 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 errorMessage = 'File size must be less than 5MB';
             }
-    
-            // If there's an error, set it for this specific field and index, then stop further execution
+
             if (errorMessage) {
-                setFormErrors(prevErrors => ({
-                    ...prevErrors,
-                    [index]: {
-                        ...(prevErrors?.[index] || {}),
-                        [field]: errorMessage
-                    }
-                }));
+                setFormErrors((prevErrors) => {
+                    const partnerErrors = Array.isArray(prevErrors.partnerDetails)
+                        ? [...prevErrors.partnerDetails]
+                        : [];
+                    partnerErrors[index] = {
+                        ...(partnerErrors[index] || {}),
+                        [field]: errorMessage,
+                    };
+                    return { ...prevErrors, partnerDetails: partnerErrors };
+                });
                 return;
             }
-    
-            // Clear the error for this field and index if validation passed
-            setFormErrors(prevErrors => ({
-                ...prevErrors,
-                [index]: {
-                    ...(prevErrors?.[index] || {}),
-                    [field]: '' // Clear specific error
+
+            setFormErrors((prevErrors) => {
+                const partnerErrors = Array.isArray(prevErrors.partnerDetails)
+                    ? [...prevErrors.partnerDetails]
+                    : [];
+                if (partnerErrors[index]) {
+                    const next = { ...partnerErrors[index] };
+                    delete next[field];
+                    partnerErrors[index] = next;
                 }
-            }));
-    
-            // Create a shallow copy of the partnerDetails array
-            const updatedPartnerDetails = [...communicationAddressFormValues.partnerDetails];
-    
-            // Update the specific file field in the files object
-            updatedPartnerDetails[index].files[field] = {
-                fileName: file.name,
-                fileObject: file
+                return { ...prevErrors, partnerDetails: partnerErrors };
+            });
+
+            // Keep DTO document string in sync so reload/update can show the saved name
+            const documentFieldMap = {
+                passportDocument: 'passportDocument',
+                idCardDocument: 'voterCardDocument',
+                panCardDocument: 'pancardDocument',
             };
-    
-            // Update the communicationAddressFormValues state with the updated partnerDetails
-            setCommunicationAddressFormValues(prevValues => ({
+            const documentField = documentFieldMap[field];
+
+            setCommunicationAddressFormValues((prevValues) => ({
                 ...prevValues,
-                partnerDetails: updatedPartnerDetails
+                partnerDetails: prevValues.partnerDetails.map((partner, i) => {
+                    if (i !== index) return partner;
+                    return {
+                        ...partner,
+                        files: {
+                            ...(partner.files || {
+                                passportDocument: null,
+                                idCardDocument: null,
+                                panCardDocument: null,
+                            }),
+                            [field]: {
+                                fileName: file.name,
+                                fileObject: file,
+                            },
+                        },
+                        ...(documentField ? { [documentField]: file.name } : {}),
+                    };
+                }),
             }));
         }
     };
@@ -2410,6 +2438,11 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 nationality:'',
                 webURL: '',
                 userName:userName,
+                partnerDetailId: '',
+                addressId: '',
+                passportDocument: '',
+                voterCardDocument: '',
+                pancardDocument: '',
                 files: {
                     passportDocument: null,
                     idCardDocument: null,
@@ -2477,11 +2510,17 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                         } else {
     
                         // Map each partner detail and corresponding address
-                        const updatedPartnerDetails = appFirmApplication.map((partner) => {
-                            // Find the matching address from addressDTOs based on the addressId
+                        const updatedPartnerDetails = appFirmApplication.map((partner, partnerIndex) => {
+                            // Match by decrypted addressId; fall back to same index (GET returns addresses in partner order)
+                            let decryptedAddressId = '';
+                            try {
+                                decryptedAddressId = partner.addressId ? String(decrypt(partner.addressId) || '') : '';
+                            } catch (e) {
+                                decryptedAddressId = '';
+                            }
                             const correspondingAddress = addressDTOs.find(
-                                (address) => address.addressId === decrypt(partner.addressId)
-                            ) || {};
+                                (address) => String(address.addressId) === decryptedAddressId
+                            ) || addressDTOs[partnerIndex] || {};
     
                             console.log("abc1244456===>", correspondingAddress);
     
@@ -2532,12 +2571,20 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 village: correspondingAddress.village || '',
                                 postOffice: correspondingAddress.postOffice || '',
                                 subDivision: correspondingAddress.subDivision || '',
-                                country: correspondingAddress.country || '',
-                                city: correspondingAddress.city || '',
-                                state: correspondingAddress.state || '',
+                                country: correspondingAddress.country != null && correspondingAddress.country !== ''
+                                    ? String(correspondingAddress.country)
+                                    : '',
+                                city: correspondingAddress.city != null && correspondingAddress.city !== ''
+                                    ? String(correspondingAddress.city)
+                                    : '',
+                                state: correspondingAddress.state != null && correspondingAddress.state !== ''
+                                    ? String(correspondingAddress.state)
+                                    : '',
                                 pin: correspondingAddress.pin || '',
-                                partnerDetailId:String(partner.partnerDetailId)|| '',
-                                addressId:correspondingAddress.addressId||'',
+                                partnerDetailId: partner.partnerDetailId != null && partner.partnerDetailId !== ''
+                                    ? String(partner.partnerDetailId)
+                                    : '',
+                                addressId: correspondingAddress.addressId || '',
                                 userName:userName,
 
                             };
@@ -2587,74 +2634,80 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
     
     const [isLoading, setLoading] = useState(false);
 
-    const handleFormSubmit = (event) => {
-        event.preventDefault();
-        setLoading(true); // Start loading state
-    
-        // Validate the form
-        const errors = validateForm();
-        if (Object.keys(errors).length === 0) {
-            console.log('Form is valid, proceed with submission.');
-    
-            // Prepare FormData
-            const formData = new FormData();
-    
-            // Append partnerDetails JSON without UI-only fields (backend DTO rejects unknown props like idCardType)
-            const partnersForSubmit = communicationAddressFormValues.partnerDetails.map((partner) => {
-                const {
-                    idCardType,
-                    visaType,
-                    visaNumber,
-                    visaIssueDate,
-                    visaExpiryDate,
-                    ...rest
-                } = partner;
-                return rest;
-            });
-           formData.append('partnerDetails', JSON.stringify(partnersForSubmit));
-    
-            // Loop through partnerDetails array to append each partner's files
-            communicationAddressFormValues.partnerDetails.forEach((partner, index) => {
-                const fileKeys = ['passportDocument', 'idCardDocument', 'panCardDocument'];
-    
-                // Append file fields if they exist
-                fileKeys.forEach(fileKey => {
-                    if (partner.files && partner.files[fileKey]) { // Check if partner.files and specific fileKey exist
-                        const file = partner.files[fileKey].fileObject; 
-                        console.log("Attempting to append file for key: " + fileKey);
-                
-                        if (file && file instanceof File) {
-                            // Log the details of the file being appended
-                            console.log(`Appending file: ${file.name} for key: ${fileKey}`);
-                            formData.append(`files[${fileKey}][${index}]`, file); // Append with key indicating the file type
-                        } else {
-                            console.warn(`No file found for ${fileKey} in partner ${index}`);
-                        }
-                    } else {
-                        console.warn(`No files found for ${fileKey} in partner ${index}`);
-                    }
-                });
-            });
-    
-            formData.forEach((value, key) => {
-                if (value instanceof File) {
-                    // If the value is a file, log its details
-                    console.log(`${key}: [File] ${value.name} (${value.size} bytes)`);
-                } else {
-                    // Otherwise, log the value directly
-                    console.log(`${key}: ${value}`);
+    const buildPartnerFormData = (partners) => {
+        const formData = new FormData();
+
+        // Strip UI-only / multipart fields so Jackson can deserialize PartnerDetailsDTO
+        const partnersForSubmit = partners.map((partner) => {
+            const {
+                idCardType,
+                visaType,
+                visaNumber,
+                visaIssueDate,
+                visaExpiryDate,
+                files,
+                ...rest
+            } = partner;
+
+            const passportExpirydate = rest.passportExpirydate
+                && dayjs(rest.passportExpirydate).isValid()
+                ? dayjs(rest.passportExpirydate).format('YYYY-MM-DD')
+                : (rest.passportExpirydate || '');
+
+            return {
+                ...rest,
+                passportExpirydate,
+                country: rest.country != null && rest.country !== '' ? String(rest.country) : '',
+                state: rest.state != null && rest.state !== '' ? String(rest.state) : '',
+                city: rest.city != null && rest.city !== '' ? String(rest.city) : '',
+                passportDocument: typeof rest.passportDocument === 'string' ? rest.passportDocument : '',
+                voterCardDocument: typeof rest.voterCardDocument === 'string' ? rest.voterCardDocument : '',
+                pancardDocument: typeof rest.pancardDocument === 'string' ? rest.pancardDocument : '',
+                userName: rest.userName || userName || '',
+                partnerDetailId: rest.partnerDetailId ? String(rest.partnerDetailId) : null,
+                addressId: rest.addressId ? String(rest.addressId) : null,
+            };
+        });
+
+        formData.append('partnerDetails', JSON.stringify(partnersForSubmit));
+
+        partners.forEach((partner, index) => {
+            ['passportDocument', 'idCardDocument', 'panCardDocument'].forEach((fileKey) => {
+                const file = partner.files?.[fileKey]?.fileObject;
+                if (file instanceof File) {
+                    formData.append(`files[${fileKey}][${index}]`, file);
                 }
             });
-            // Simulate API call to handle form submission
-            const requestMethod = communicationAddressFormValues.partnerDetails[0]?.partnerDetailId ? FirmApplicationForm.updateFirmApplication3: FirmApplicationForm.addNewFirmApplication3;
-    
-            requestMethod(formData) // Passing the FormData to the request
-                .then((response) => {
-                    // Handling the response
+        });
+
+        return formData;
+    };
+
+    const handleFormSubmit = (event) => {
+        event.preventDefault();
+        setLoading(true);
+
+        const errors = validateForm();
+        if (Object.keys(errors).length === 0) {
+            const allPartners = communicationAddressFormValues.partnerDetails || [];
+            // Update path requires partnerDetailId; new 2nd/3rd partners must use add
+            const existingPartners = allPartners.filter((p) => p.partnerDetailId);
+            const newPartners = allPartners.filter((p) => !p.partnerDetailId);
+
+            const requests = [];
+            if (existingPartners.length > 0) {
+                requests.push(FirmApplicationForm.updateFirmApplication3(buildPartnerFormData(existingPartners)));
+            }
+            if (newPartners.length > 0) {
+                requests.push(FirmApplicationForm.addNewFirmApplication3(buildPartnerFormData(newPartners)));
+            }
+
+            Promise.all(requests)
+                .then(() => {
                     const { messageTitle, messageContent } = getStepSuccessAlert(
                         appTypeMasterId,
                         'partner',
-                        !!communicationAddressFormValues.partnerDetails[0]?.partnerDetailId,
+                        existingPartners.length > 0,
                     );
                     showAlert({
                         messageTitle,
@@ -2672,13 +2725,16 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     });
                 })
                 .finally(() => {
-                    setLoading(false); // Stop loading state
+                    setLoading(false);
                 });
-    
         } else {
-            console.log('Validation errors:', errors);
-            setFormErrors(errors); // Set the errors to display in the UI
-            setLoading(false); // Stop loading state if validation fails
+            setFormErrors(errors);
+            showAlert({
+                messageTitle: 'Validation Error',
+                messageContent: 'Please fill all required (*) fields for each Partner/Member/Director before continuing.',
+                confirmText: 'Ok',
+            });
+            setLoading(false);
         }
     };
     
@@ -2690,7 +2746,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 <React.Fragment key={index}>
                     <Grid container sx={{ mt: 1, mb: 1, alignItems: 'center' }}>
                         <Grid item xs>
-                            <Typography variant='h6' sx={{ mt: 1 }}>{communicationAddressFormValues.partnerDetails.length > 1 ? `${index + 1}. ` : ''} Details of Partners/Members/Directors</Typography>
+                            <Typography variant='h6' sx={{ mt: 1 }}>{`${index + 1}. Details of Partners/Members/Directors`}</Typography>
                         </Grid>
                         <Grid item xs={1} sm={0.5} sx={{ display: 'flex', justifyContent: 'flex-start' }}>
                             {communicationAddressFormValues.partnerDetails.length > 1 && index === communicationAddressFormValues.partnerDetails.length - 1 && communicationAddressFormValues.partnerDetails.length < MAX_EMAIL_IDS ? (
@@ -2965,7 +3021,9 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 name="country"
                 displayEmpty
                 required
-                value={communicationAddressFormValues.partnerDetails[index]?.country || ''}
+                value={communicationAddressFormValues.partnerDetails[index]?.country != null && communicationAddressFormValues.partnerDetails[index]?.country !== ''
+                    ? String(communicationAddressFormValues.partnerDetails[index].country)
+                    : ''}
                 onChange={(event) => handleInputChange(event, index)}
                 error={
                     Boolean(formErrors.partnerDetails && formErrors.partnerDetails[index]?.country)
@@ -2975,7 +3033,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     Select Country
                 </MenuItem>
                 {countries.filter((country) => country.status === 'Active' || String(country.countryId) === String(communicationAddressFormValues.partnerDetails[index]?.country)).map(country => (
-                    <MenuItem key={country.countryId} value={country.countryId}>
+                    <MenuItem key={country.countryId} value={String(country.countryId)}>
                         {country.countryName}
                     </MenuItem>
                 ))}
@@ -2988,7 +3046,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
         </FormControl>
     </Grid>
 
-    {/* State Dropdown */}
+    {/* State Dropdown — options per partner (2nd/3rd must not depend on partner 1 filters) */}
     <Grid item xs={12} sm={3}>
         <InputLabel shrink={false} htmlFor="state">
             <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
@@ -2999,7 +3057,9 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 name="state"
                 required
                 displayEmpty
-                value={communicationAddressFormValues.partnerDetails[index]?.state || ''}
+                value={communicationAddressFormValues.partnerDetails[index]?.state != null && communicationAddressFormValues.partnerDetails[index]?.state !== ''
+                    ? String(communicationAddressFormValues.partnerDetails[index].state)
+                    : ''}
                 onChange={(event) => handleInputChange(event, index)}
                 error={
                     Boolean(formErrors.partnerDetails && formErrors.partnerDetails[index]?.state)
@@ -3008,11 +3068,17 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 <MenuItem disabled value="">
                     Select State/Province
                 </MenuItem>
-                {filteredState.map(state => (
-                    <MenuItem key={state.stateId} value={state.stateId}>
-                        {state.stateName}
-                    </MenuItem>
-                ))}
+                {states
+                    .filter((state) =>
+                        (state.status === 'Active'
+                            && state.countryId?.countryId === parseInt(communicationAddressFormValues.partnerDetails[index]?.country, 10))
+                        || String(state.stateId) === String(communicationAddressFormValues.partnerDetails[index]?.state)
+                    )
+                    .map((state) => (
+                        <MenuItem key={state.stateId} value={String(state.stateId)}>
+                            {state.stateName}
+                        </MenuItem>
+                    ))}
             </Select>
             {(formErrors.partnerDetails && formErrors.partnerDetails[index]?.state) && (
                 <FormHelperText error sx={{ ml: 0 }}>
@@ -3022,7 +3088,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
         </FormControl>
     </Grid>
 
-    {/* City Dropdown */}
+    {/* City/District Dropdown — options from this partner's state so 2/3 districts show after save */}
     <Grid item xs={12} sm={3}>
         <InputLabel shrink={false} htmlFor="city">
             <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
@@ -3033,7 +3099,9 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 name="city"
                 required
                 displayEmpty
-                value={communicationAddressFormValues.partnerDetails[index]?.city || ''}
+                value={communicationAddressFormValues.partnerDetails[index]?.city != null && communicationAddressFormValues.partnerDetails[index]?.city !== ''
+                    ? String(communicationAddressFormValues.partnerDetails[index].city)
+                    : ''}
                 onChange={(event) => handleInputChange(event, index)}
                 error={
                     Boolean(formErrors.partnerDetails && formErrors.partnerDetails[index]?.city)
@@ -3042,11 +3110,16 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 <MenuItem disabled value="">
                     Select District
                 </MenuItem>
-                {filteredCitie.map(city => (
-                    <MenuItem key={city.cityId} value={city.cityId}>
-                        {city.cityName}
-                    </MenuItem>
-                ))}
+                {cities
+                    .filter((city) =>
+                        city.stateId?.stateId === parseInt(communicationAddressFormValues.partnerDetails[index]?.state, 10)
+                        || String(city.cityId) === String(communicationAddressFormValues.partnerDetails[index]?.city)
+                    )
+                    .map((city) => (
+                        <MenuItem key={city.cityId} value={String(city.cityId)}>
+                            {city.cityName}
+                        </MenuItem>
+                    ))}
             </Select>
             {(formErrors.partnerDetails && formErrors.partnerDetails[index]?.city) && (
                 <FormHelperText error sx={{ ml: 0 }}>
@@ -3081,7 +3154,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 </Grid>
 
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm>
+                        <Grid item xs={12} sm={3}>
                             <InputLabel shrink={false} htmlFor="telephoneNo">
                                 <Typography variant='body1'>Telephone No</Typography>
                             </InputLabel>
@@ -3102,7 +3175,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                             />
                         </Grid>
 
-                        <Grid item xs={12} sm>
+                        <Grid item xs={12} sm={3}>
                             <InputLabel shrink={false} htmlFor="fax">
                                 <Typography variant='body1'>Fax</Typography>
                             </InputLabel>
@@ -3122,7 +3195,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 inputProps={{ maxLength: 12 }}
                             />
                         </Grid>
-                        <Grid item xs={12} sm>
+                        <Grid item xs={12} sm={3}>
                             <InputLabel shrink={false} htmlFor="mobile">
                                 <Typography variant='body1'>Mobile<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
@@ -3143,12 +3216,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 inputProps={{ maxLength: 10 }}
                             />
                         </Grid>
-                    </Grid>
-                    {/* Official Address Section */}
-                    <Grid container spacing={2} sx={{ mt: 0.1 }}>
-                      
-
-                        <Grid item xs={12} sm>
+                        <Grid item xs={12} sm={3}>
                             <InputLabel shrink={false} htmlFor="emailId">
                                 <Typography variant='body1'>Email Address<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
@@ -3169,26 +3237,28 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 inputProps={{ maxLength: 30 }}
                             />
                         </Grid>
-                        <Grid item xs={12} sm>
+                    </Grid>
+                    {/* Official Address Section */}
+                    <Grid container spacing={2} sx={{ mt: 0.1 }}>
+                        <Grid item xs={12} sm={3}>
                             <InputLabel shrink={false} htmlFor="webURL">
-                                <Typography variant='body1'>Web Page URL Address</Typography>
+                                <Typography variant='body1'>Web Page URL </Typography>
                             </InputLabel>
                             <TextField
                                 id="webURL"
                                 margin="dense"
                                 required
                                 fullWidth
-                                placeholder='URL Address'
+                                placeholder='https://www.example.com'
                                 name="webURL"
                                 variant='outlined'
                                 onChange={(event) => handleInputChange(event, index)}
                                 value={communicationAddressFormValues.partnerDetails[index]?.webURL || ''}
                                 size="small"
-
                                 inputProps={{ maxLength: 30 }}
                             />
                         </Grid>
-                        <Grid item xs={12} sm>
+                        <Grid item xs={12} sm={3}>
   <InputLabel shrink={false} htmlFor="nationality">
     <Typography variant='body1'>Nationality<span className="req-asterisk">*</span></Typography>
   </InputLabel>
@@ -3241,8 +3311,11 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
   </FormControl>
 </Grid>
 </Grid>
-{/* Conditionally render Visa fields if nationality is not Indian */}
-{communicationAddressFormValues.partnerDetails?.[index]?.nationality !== 'Indian' && (
+{/* Visa fields only when nationality is selected and not Indian */}
+{(() => {
+  const partnerNationality = communicationAddressFormValues.partnerDetails?.[index]?.nationality;
+  return partnerNationality && partnerNationality !== 'Indian';
+})() && (
   <>
      <Grid container spacing={2}>
     <Grid item xs={12} sm>
@@ -3257,6 +3330,8 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
         fullWidth
         variant="outlined"
         size="small"
+        error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.visaType)}
+        helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.visaType) || ''}
       />
     </Grid>
 
@@ -3272,6 +3347,8 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
         fullWidth
         variant="outlined"
         size="small"
+        error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.visaNumber)}
+        helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.visaNumber) || ''}
       />
     </Grid>
     </Grid>
@@ -3293,8 +3370,8 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     size: 'small',
                     fullWidth: true,
                     placeholder: "Visa Issue Date ",
-                     error: !!formErrors.dob,
-                        helperText: formErrors.dob || ''
+                    error: !!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.visaIssueDate),
+                    helperText: (formErrors.partnerDetails && formErrors.partnerDetails[index]?.visaIssueDate) || ''
                 }
             }}
             sx={{ mt: 1 }}
@@ -3319,8 +3396,8 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                 size: 'small',
                 fullWidth: true,
                 placeholder: "Visa Expiry Date ",
-                 error: !!formErrors.dob,
-                    helperText: formErrors.dob || ''
+                error: !!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.visaExpiryDate),
+                helperText: (formErrors.partnerDetails && formErrors.partnerDetails[index]?.visaExpiryDate) || ''
             }
         }}
         sx={{ mt: 1 }}
@@ -3345,7 +3422,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 </Grid>
 
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm={4}>
+                        <Grid item xs={12} sm={6}>
                             <InputLabel shrink={false} htmlFor={`idCardType-${index}`}>
                                 <Typography variant='body1'>ID Card Details<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
@@ -3544,6 +3621,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                             Upload ID Card Document
                                             <VisuallyHiddenInput
                                                 type="file"
+                                                accept=".pdf,application/pdf"
                                                 name={`idCardDocument-${index}`}
                                                 onChange={(e) => handleFileChange(e, index, 'idCardDocument')}
                                             />
@@ -3551,8 +3629,8 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                     </Grid>
 
                                     <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                        {reacord?.files?.idCardDocument?.fileName && (
-                                            <Tooltip title={reacord.files.idCardDocument.fileName} placement="top">
+                                        {(reacord?.files?.idCardDocument?.fileName || reacord?.voterCardDocument) && (
+                                            <Tooltip title={reacord?.files?.idCardDocument?.fileName || reacord?.voterCardDocument} placement="top">
                                                 <Typography variant='body2' sx={{
                                                     display: 'inline-block',
                                                     whiteSpace: 'nowrap',
@@ -3561,7 +3639,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                                     verticalAlign: 'middle',
                                                     textAlign: 'center'
                                                 }}>
-                                                    {reacord.files.idCardDocument.fileName}
+                                                    {reacord?.files?.idCardDocument?.fileName || reacord?.voterCardDocument}
                                                 </Typography>
                                             </Tooltip>
                                         )}

@@ -1844,7 +1844,6 @@ const PersonalDetailsForm = ({ handleNext, handleFormDataChange }) => {
     const userName = useSelector((state)=>state.jwtAuthentication.username);
     const appTypeMasterId= useSelector((state)=>state.licenseApplication.applicationType);
     const [selectedOption, setSelectedOption] = useState('no');
-    const [intentNameLocked, setIntentNameLocked] = useState(false);
     const [basicDetailsFormValues, setBasicDetailsFormValues] = useState({
         emailId: [{ emailId: '', indivEmailId:'' }],
         salutation: '',
@@ -1971,27 +1970,6 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
 
                 setKnownByOtherName(isKnownByOtherName);
                 setSelectedOption(isKnownByOtherName ? 'yes' : 'no');
-
-                try {
-                    const intentResponse = await IntentService.getIntentByUserName(userName);
-                    if (isCancelled) {
-                        return;
-                    }
-                    const intentData = intentResponse.data || {};
-                    setBasicDetailsFormValues((prevState) => ({
-                        ...prevState,
-                        salutation: prevState.salutation || intentData.salutation || '',
-                        firstName: prevState.firstName || intentData.firstName || '',
-                        middleName: prevState.middleName || intentData.middleName || '',
-                        lastName: prevState.lastName || intentData.lastName || '',
-                    }));
-                    setIntentNameLocked(Boolean(
-                        intentData.salutation || intentData.firstName || intentData.middleName || intentData.lastName
-                    ));
-                } catch (intentError) {
-                    console.error('Error fetching intent details:', intentError);
-                    setIntentNameLocked(false);
-                }
             } catch {
                 try {
                     const intentResponse = await IntentService.getIntentByUserName(userName);
@@ -2006,18 +1984,10 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
                         emailId: intentEmail
                             ? [{ emailId: intentEmail, indivEmailId: '' }]
                             : [{ emailId: '', indivEmailId: '' }],
-                        salutation: intentData.salutation || '',
-                        firstName: intentData.firstName || '',
-                        middleName: intentData.middleName || '',
-                        lastName: intentData.lastName || '',
                         userName,
                     }));
-                    setIntentNameLocked(Boolean(
-                        intentData.salutation || intentData.firstName || intentData.middleName || intentData.lastName
-                    ));
                 } catch (error) {
                     console.error('Error fetching intent details:', error);
-                    setIntentNameLocked(false);
                 }
             } finally {
                 if (!isCancelled) {
@@ -2347,14 +2317,14 @@ console.log(basicDetailsFormValues.intentAppId)
                     <InputLabel shrink={false} htmlFor={"salutation"}>
                         <Typography variant='body1' >Salutation<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
-                    <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }} disabled={intentNameLocked || !isFieldEnabled("salutation")}>
+                    <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }} disabled={!isFieldEnabled("salutation")}>
                         <Select defaultValue="" id="salutation"
                             displayEmpty
                             name="salutation"
                            
                             onChange={handleInputChange}
                             value={basicDetailsFormValues.salutation}
-                            disabled={intentNameLocked || !isFieldEnabled("salutation")}
+                            disabled={!isFieldEnabled("salutation")}
                             error={Boolean(formErrors.salutation)}>
                             <MenuItem disabled value="">
                                 Salutation
@@ -2386,7 +2356,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         error={!!(formErrors.firstName && formErrors.firstName)}
                         helperText={formErrors?.firstName}
                         size="small"
-                        disabled={intentNameLocked || !isFieldEnabled("firstName")}
+                        disabled={!isFieldEnabled("firstName")}
                         inputProps={{ maxLength: 30,minLength:3 }}
                     />
                 </Grid>
@@ -2408,7 +2378,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         error={!!(formErrors.middleName && formErrors.middleName)}
                         helperText={formErrors?.middleName}
                         inputProps={{ maxLength: 30 }}
-                        disabled={intentNameLocked || !isFieldEnabled("middleName")}
+                        disabled={!isFieldEnabled("middleName")}
                     />
                 </Grid>
                 <Grid item xs={12} sm>
@@ -2430,7 +2400,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         helperText={formErrors?.lastName}
                         size="small"
                         inputProps={{ maxLength: 45 }}
-                        disabled={intentNameLocked || !isFieldEnabled("lastName")}
+                        disabled={!isFieldEnabled("lastName")}
                     />
                 </Grid>
                 </Grid>

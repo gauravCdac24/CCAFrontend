@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Grid, TextField, FormControl, InputLabel,Button, Select, MenuItem, Typography, IconButton ,FormControlLabel,Radio,RadioGroup, FormHelperText, InputAdornment} from '@mui/material';
+import { Box, Grid, TextField, FormControl, InputLabel,Button, Select, MenuItem, Typography, IconButton ,FormControlLabel,Radio,RadioGroup, FormHelperText} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import StateService from '../../../../service/AdminService/StateService';
@@ -528,7 +528,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                 </Grid>
                 <Grid item xs={12} sm>
     <InputLabel shrink={false} htmlFor="incorporationDate">
-        <Typography variant='body1'>Date Of Incorporation/Agreement/Partnership<span className="req-asterisk">*</span></Typography>
+        <Typography variant='body1'>Date of Incorporation/Agreement/Partnership<span className="req-asterisk">*</span></Typography>
     </InputLabel>
     <LocalizationProvider dateAdapter={AdapterDayjs}>
         <DatePicker
@@ -845,24 +845,16 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
         margin="dense"
         required
         fullWidth
-        placeholder='Web Page Url'
+        placeholder='https://www.example.com'
         name="webPageURL"
         variant='outlined'
         disabled={!isFieldEnabled("webPageURL")}
         onChange={handleInputChange}
-        value={communicationAddressFormValues.webPageURL.replace(/^https:\/\//, '')} 
+        value={communicationAddressFormValues.webPageURL || ''}
         error={!!(formErrors.webPageURL && formErrors.webPageURL)}
         helperText={formErrors?.webPageURL}
         size="small"
-        InputProps={{
-            startAdornment: (
-                <InputAdornment position="start"sx={{ml:1}}>
-                    https://
-                </InputAdornment>
-            ),
-            maxLength: 100 ,
-        }}
-        onKeyDown={(e) => validatePattern(e, /^[A-Za-z0-9.-]+$/)} 
+        inputProps={{ maxLength: 100 }}
     />
 </Grid>
        
@@ -870,7 +862,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="noOfBranch">
-                        <Typography variant='body1'>No. Of Branch<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>No. of Branch<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="noOfBranch"
@@ -893,7 +885,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="naturesOfBusiness">
-                        <Typography variant='body1'>Nature Of Business<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='body1'>Nature of Business<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="naturesOfBusiness"

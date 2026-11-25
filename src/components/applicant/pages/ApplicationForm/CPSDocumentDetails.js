@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, TextField, Typography, InputLabel, Box, Button, Tooltip, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, FormHelperText, Link } from '@mui/material';
-import DownloadIcon from '@mui/icons-material/Download';
 import IconButton from '@mui/material/IconButton';
 import dayjs from 'dayjs';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -671,31 +670,33 @@ const specificDocs = documents
         <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleFormSubmit}>
             {/* Credit Card Details */}
 
-            <Grid container>
-                <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'><b>CPS Template<span className="req-asterisk">*</span></b></Typography>
-                </Grid>
-            </Grid>
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm>
-                    <Button
-                        onClick={handleDownload}
-                        component="label"
-                        variant="contained"
-                        sx={{ margin: 1 }}
-                        startIcon={<DownloadIcon />}
-                    >
-                        Download CPS Template
-                    </Button>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} sm={3}>
+                    <Typography variant='h7' sx={{ mt: 5 }}>
+                        <b>CPS Document<span className="req-asterisk">*</span></b>
+                    </Typography>
                 </Grid>
 
-                <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"pdffile"}>
-                        <Typography variant='body1'>Upload CPS Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
-                    </InputLabel>
+                <Grid item xs={12} sm={7}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <InputLabel shrink={false} htmlFor={"pdffile"}>
+                            <Typography variant='body1'>Upload CPS Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
+                        </InputLabel>
+                        <Link
+                            href="#"
+                            variant="body2"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleDownload();
+                            }}
+                            sx={{ whiteSpace: 'nowrap' }}
+                        >
+                            CPS Template
+                        </Link>
+                    </Box>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
-                        <Grid item >
+                    <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
+                        <Grid item>
                             <Button
                                 component="label"
                                 variant="contained"
@@ -713,7 +714,7 @@ const specificDocs = documents
                             </Button>
 
                         </Grid>
-                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                             {fileName && (
                                 <Tooltip title={fileName} placement="top">
                                     <Typography variant='body2' sx={{
@@ -781,7 +782,7 @@ const specificDocs = documents
                                 </Grid>
 
                                 {/* File Name Display */}
-                                <Grid item xs={12} sm={2} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
+                                <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                                     {fileNames[index] && (
                                         <Tooltip title={fileNames[index]} placement="top">
                                             <Typography variant='body2' sx={{
@@ -795,10 +796,20 @@ const specificDocs = documents
                                         </Tooltip>
                                     )}
                                 </Grid>
-
-                                {/* Download Link */}
-
                             </Grid>
+
+                            {/* Download Link - below upload box, right aligned */}
+                            {basicDetailsFormValues?.additionalsFile[index]?.appDocId && (
+                                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                                    <Link
+                                        href="#"
+                                        variant="body2"
+                                        onClick={() => handleDownloadClick(basicDetailsFormValues?.additionalsFile[index]?.appDocId, `${item}Document`)}
+                                    >
+                                        Download
+                                    </Link>
+                                </Box>
+                            )}
 
                             {/* Error Message */}
                             {fileErrors[index] && (
@@ -807,19 +818,6 @@ const specificDocs = documents
                                 </Typography>
                             )}
                         </Grid>
-
-                        {basicDetailsFormValues?.additionalsFile[index]?.appDocId && (
-                            <Grid item>
-                                <Link
-                                    href="#"
-                                    variant="body2"
-                                    onClick={() => handleDownloadClick(basicDetailsFormValues?.additionalsFile[index]?.appDocId, `${item}Document`)}
-                                    sx={{ ml: 2 }}
-                                >
-                                    Download
-                                </Link>
-                            </Grid>
-                        )}
 
                     </Grid>
                 ))}
@@ -881,11 +879,11 @@ const specificDocs = documents
                                     <Grid item xs={12} sm={5}>
                                         <InputLabel shrink={false} htmlFor={`additionalFile-${index}`}>
                                             <Typography variant='body1'>
-                                                {basicDetailsFormValues.additionalFile.length > 1 ? `${index + 1}. ` : ''} Upload Additional Document (Only PDF and Max allowed size 5 MB)
+                                                {basicDetailsFormValues.additionalFile.length > 1 ? `${index + 1}. ` : ''} Upload Additional Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span>
                                             </Typography>
                                         </InputLabel>
 
-                                        <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
+                                        <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
                                             <Grid item>
                                                 <Button
                                                     component="label"
@@ -902,15 +900,13 @@ const specificDocs = documents
                                                     />
                                                 </Button>
                                             </Grid>
-                                            <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                            <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                                                 {record.fileName && (
                                                     <Tooltip title={record.fileName} placement="top">
                                                         <Typography variant='body2' sx={{
-                                                            display: 'inline-block',
                                                             whiteSpace: 'nowrap',
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis',
-                                                            verticalAlign: 'middle',
                                                             textAlign: 'center'
                                                         }}>
                                                             {record.fileName}

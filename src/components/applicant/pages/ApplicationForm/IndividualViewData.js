@@ -356,9 +356,12 @@ const handleDownload = async (appDocId, documentTitle, event) => {
   }
 };
 
-const renderSingleDocView = (docs, title) => {
+const renderSingleDocView = (docs, title, hasRelatedData = true) => {
+  if (!hasRelatedData) {
+    return null;
+  }
   const doc = getLatestApplicationDoc(docs, title);
-  if (!doc) {
+  if (!doc?.appDocId) {
     return null;
   }
   return (
@@ -971,7 +974,7 @@ const renderSingleDocView = (docs, title) => {
     </Grid>
     <Grid item sm={6}>
       <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-        {renderSingleDocView(form3Docs, 'passportDocument')}
+        {renderSingleDocView(form3Docs, 'passportDocument', Boolean(form3Details.passportNo))}
       </Box>
     </Grid>
   </Grid>
@@ -1003,7 +1006,11 @@ const renderSingleDocView = (docs, title) => {
     </Grid>
     <Grid item sm={6}>
       <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-        {renderSingleDocView(form3Docs, 'idCardDocument')}
+        {renderSingleDocView(
+          form3Docs,
+          ['idCardDocument', 'IdCardDocument', 'voterDocument'],
+          Boolean(form3Details.voterId || form3Details.voterIdNo)
+        )}
       </Box>
     </Grid>
   </Grid>
@@ -1033,7 +1040,7 @@ const renderSingleDocView = (docs, title) => {
         </Typography>
     </Grid>
     <Grid item sm={6}>
-        {renderSingleDocView(form3Docs, ['panCardDocument', 'panDocument'])}
+        {renderSingleDocView(form3Docs, ['panCardDocument', 'panDocument'], Boolean(form3Details.pan))}
     </Grid>
   </Grid>
 </Box>
@@ -1131,7 +1138,11 @@ const renderSingleDocView = (docs, title) => {
       
     </Grid>
     <Grid item sm={6}>
-      {renderSingleDocView(basicDetailsFormValues3.applicationDocument, 'capitalDocument')}
+      {renderSingleDocView(
+        basicDetailsFormValues3.applicationDocument,
+        'capitalDocument',
+        Boolean(form3Details.indivCapital)
+      )}
     </Grid>
   </Grid>
 
@@ -1361,7 +1372,7 @@ const renderSingleDocView = (docs, title) => {
             <Grid item xs={12}>
               <Box>
                 <Typography variant="body1">
-                  { "1. Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both."}
+                  { "Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both."}
                 </Typography>
               </Box>
             </Grid>

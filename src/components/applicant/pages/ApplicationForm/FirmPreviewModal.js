@@ -9,6 +9,7 @@ import CityService from '../../../../service/AdminService/CityService';
 import CountryService from '../../../../service/AdminService/CountryService';
 import showAlert from '../../../global/common/MessageBox/AlertService';
 import { getLatestApplicationDoc, openApplicationDocument } from '../../../global/util/viewApplicationDocument';
+import { decrypt } from '../../../global/util/EncryptDecrypt';
 
 const FirmPreviewModal = ({checkedState,data}) => {
    
@@ -185,48 +186,55 @@ useEffect(() => {
       .then((response) => {
         console.log(response.data);
 
-        const filteredAppLocations = response.data.filteredAppLocations || [];
+        const appFirmApplications = Array.isArray(response.data?.appFirmApplications)
+          ? response.data.appFirmApplications
+          : [];
+        const addressDTOs = Array.isArray(response.data?.addressDTOs)
+          ? response.data.addressDTOs
+          : [];
 
-        // Mapping over the filteredAppLocations to extract addressDTO and appFirmApplication
-        const updatedLocations = filteredAppLocations.map(location => {
-          const matchingAddressDTO = location.addressDTOs?.find(
-            (addressDTO) => addressDTO.addressId === location.addressId
-          );
-
-          const matchingAppFirmApplication = location.appFirmApplication?.find(
-            (firmApp) => firmApp.addressId === location.addressId
-          );
+        const appFirmApplicationData = appFirmApplications.map((partner) => {
+          let decryptedAddressId = '';
+          try {
+            decryptedAddressId = partner.addressId ? decrypt(partner.addressId) : '';
+          } catch (e) {
+            decryptedAddressId = '';
+          }
+          const correspondingAddress = addressDTOs.find(
+            (address) => String(address.addressId) === String(decryptedAddressId)
+          ) || {};
 
           return {
-            ...location,
-            addressDTO: matchingAddressDTO || {}, // Set empty object if no match found
-            appFirmApplication: matchingAppFirmApplication || {}, // Set empty object if no match found
+            partnerDetailId: partner.partnerDetailId,
+            salutation: partner.salutation,
+            firstName: partner.firstName,
+            middleName: partner.middleName,
+            lastName: partner.lastName,
+            telephoneNo: partner.telephoneNo,
+            mobileNo: partner.mobileNo,
+            fax: partner.fax,
+            emailId: partner.emailId,
+            passportNo: partner.passportNo,
+            passportIssuingAuthority: partner.passportIssuingAuthority,
+            passportExpiryDate: partner.passportExpiryDate,
+            voterIdCard: partner.voterIdCard,
+            pan: partner.pan,
+            nationality: partner.nationality,
+            personalWebPage: partner.personalWebPage,
+            blockNo: correspondingAddress.blockNo || '',
+            village: correspondingAddress.village || '',
+            postOffice: correspondingAddress.postOffice || '',
+            subDivision: correspondingAddress.subDivision || '',
+            country: correspondingAddress.country || '',
+            state: correspondingAddress.state || '',
+            city: correspondingAddress.city || '',
+            pin: correspondingAddress.pin || '',
           };
         });
 
-        // Extract appFirmApplication details
-        const appFirmApplicationData = updatedLocations.map(location => ({
-          partnerDetailId: location.appFirmApplication.partnerDetailId,
-          salutation: location.appFirmApplication.salutation,
-          firstName: location.appFirmApplication.firstName,
-          middleName: location.appFirmApplication.middleName,
-          lastName: location.appFirmApplication.lastName,
-          telephoneNo: location.appFirmApplication.telephoneNo,
-          mobileNo: location.appFirmApplication.mobileNo,
-          fax: location.appFirmApplication.fax,
-          emailId: location.appFirmApplication.emailId,
-          passportNo: location.appFirmApplication.passportNo,
-          nationality: location.appFirmApplication.nationality,
-          personalWebPage: location.appFirmApplication.personalWebPage,
-        }));
-
-        // Set the state with both filteredAppLocations and appFirmApplication
-        setFilteredAppLocations(updatedLocations);
-
+        setFilteredAppLocations(appFirmApplicationData);
         setBasicDetailsFormValues7({
-       
-          filteredAppLocations: updatedLocations,
-          appFirmApplication: appFirmApplicationData, // Include the extracted appFirmApplication data
+          appFirmApplication: appFirmApplicationData,
         });
       })
       .catch((err) => {
@@ -523,17 +531,17 @@ const handleDownload = async (appDocId, documentTitle, event) => {
 </Box>
 
 <Box display="flex" alignItems="center">
-  <Typography variant="h6" style={{ marginRight: '8px' ,marginTop:'10px'}}>18. Registration Number<span className="req-asterisk">*</span>:</Typography>
+  <Typography variant="h6" style={{ marginRight: '8px' ,marginTop:'10px'}}>1. Registration Number<span className="req-asterisk">*</span>:</Typography>
   <Typography variant="body1" style={{ marginRight: '8px' ,marginTop:'10px'}}>{basicDetailsFormValues?.firmApplication?.registrationNo || 'N/A'}</Typography>
 </Box>
 <Box display="flex" alignItems="center">
-  <Typography variant="h6" style={{ marginRight: '8px' ,marginTop:'10px'}}>19. Date of Incorporation/Agreement/Partnership <span className="req-asterisk">*</span>:</Typography>
+  <Typography variant="h6" style={{ marginRight: '8px' ,marginTop:'10px'}}>2. Date of Incorporation/Agreement/Partnership <span className="req-asterisk">*</span>:</Typography>
   <Typography variant="body1" style={{ marginRight: '8px' ,marginTop:'10px'}}>{formatDate(basicDetailsFormValues?.firmApplication?.incorporationDate || 'N/A')}</Typography>
 </Box>
 
 
           <Box >
-             <Typography variant="h6" style={{ marginTop:'10px'}} >20.  Particulars of Business, if any:<span className="req-asterisk">*</span></Typography>
+             <Typography variant="h6" style={{ marginTop:'10px'}} >3.  Particulars of Business, if any:<span className="req-asterisk">*</span></Typography>
              <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
         <Typography variant="body1">Name of Office:</Typography>
@@ -669,7 +677,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
       <Grid container spacing={2}>
         {/* Income Tax PAN No */}
         <Grid item sm={6}>
-          <Typography variant="h6"style={{ marginTop:'10px'}}>21. Income Tax PAN No.:<span className="req-asterisk">*</span></Typography>
+          <Typography variant="h6"style={{ marginTop:'10px'}}>4. Income Tax PAN No.:<span className="req-asterisk">*</span></Typography>
         </Grid>
         <Grid item sm={6}>
           <Typography variant="body1" style={{ marginTop:'10px'}}>{basicDetailsFormValues2.pan}</Typography>
@@ -679,7 +687,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
       <Grid container spacing={2}>
         {/* Turnover in the last financial year */}
         <Grid item sm={8}>
-          <Typography variant="h6"style={{ marginTop:'10px'}}>22. Turnover in the last financial year (Rs):<span className="req-asterisk">*</span></Typography>
+          <Typography variant="h6"style={{ marginTop:'10px'}}>5. Turnover in the last financial year (Rs):<span className="req-asterisk">*</span></Typography>
         </Grid>
         <Grid item sm={4}>
           <Typography variant="body1" style={{ marginTop:'10px'}}>{basicDetailsFormValues2.firmTurnover}</Typography>
@@ -689,7 +697,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
       <Grid container spacing={2}>
         {/* Net Worth */}
         <Grid item sm={5}>
-          <Typography variant="h6" style={{ marginTop:'10px'}}>23. Net Worth (Rs):<span className="req-asterisk">*</span></Typography>
+          <Typography variant="h6" style={{ marginTop:'10px'}}>6. Net Worth (Rs):<span className="req-asterisk">*</span></Typography>
         </Grid>
         <Grid item sm={6} container alignItems="center">
         <Grid item sm={5}>
@@ -730,7 +738,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
       <Grid container spacing={2} >
         {/* Paid Up Capital */}
         <Grid item sm={5} >
-          <Typography variant="h6" style={{ marginTop:'10px'}}>24. Paid Up Capital (Rs):<span className="req-asterisk">*</span></Typography>
+          <Typography variant="h6" style={{ marginTop:'10px'}}>7. Paid Up Capital (Rs):<span className="req-asterisk">*</span></Typography>
         </Grid>
         <Grid item sm={6} container alignItems="center">
           <Grid item sm={5}>
@@ -770,7 +778,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
       {/* <Grid container spacing={2} sx={{ ml: 1 }}> */}
         {/* Insurance Details */}
        
-          <Typography variant="h6" style={{ marginTop:'10px'}}>25. Insurance Details:</Typography>
+          <Typography variant="h6" style={{ marginTop:'10px'}}>8. Insurance Details:</Typography>
           <Grid container spacing={2} sx={{ ml: 1 }} >
         <Grid item sm={6}>
           <Typography variant="body1">Insurance Policy No.<span className="req-asterisk">*</span>:</Typography>
@@ -788,12 +796,133 @@ const handleDownload = async (appDocId, documentTitle, event) => {
         </Grid>
       </Grid>
     </Box>
-          
+
+          <Typography variant="h6" style={{ marginTop:'10px'}}>
+            9. Names, Addresses etc. of Partners/Members/Directors<span className="req-asterisk">*</span>
+          </Typography>
+          <Grid container spacing={2} sx={{ ml: 1 }}>
+            <Grid item sm={6}>
+              <Typography variant="body1">No. of Partners/Members/Directors:</Typography>
+            </Grid>
+            <Grid item sm={6}>
+              <Typography variant="body1">
+                {(basicDetailsFormValues7?.appFirmApplication || []).length || 0}
+              </Typography>
+            </Grid>
+          </Grid>
+
+          {(basicDetailsFormValues7?.appFirmApplication || []).map((partner, index) => (
+            <Box key={partner.partnerDetailId || index} sx={{ width: '100%' }}>
+              <Typography variant="h6" style={{ marginTop:'10px'}}>
+                {`${index + 1}. Details of Partners/Members/Directors`}
+              </Typography>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Salutation:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.salutation || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">First Name:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.firstName || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Middle Name:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.middleName || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Last Name:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.lastName || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Flat/Door/Block No.:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.blockNo || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Name of Premises/Building/Village:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.village || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Road/Street/Lane/Post Office:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.postOffice || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Area/Locality/Taluka/Sub-Division:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.subDivision || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Country:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{getCountryNameById(partner.country) || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">State/Union Territory:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{getStateNameById(partner.state) || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Town/City/District:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{getCityNameById(partner.city) || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Pin:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.pin || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Telephone No.:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.telephoneNo || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Mobile Phone No.:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.mobileNo || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Fax:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.fax || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Nationality:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.nationality || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Passport No.:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.passportNo || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Passport Issuing Authority:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.passportIssuingAuthority || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Passport Expiry Date:</Typography></Grid>
+                <Grid item sm={6}>
+                  <Typography variant="body1">
+                    {partner.passportExpiryDate
+                      ? (typeof partner.passportExpiryDate === 'string'
+                          ? partner.passportExpiryDate
+                          : new Date(partner.passportExpiryDate).toLocaleDateString('en-GB'))
+                      : 'N/A'}
+                  </Typography>
+                </Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Voter’s Identity Card No.:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.voterIdCard || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Income Tax PAN No.:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.pan || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">E-mail Address:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.emailId || 'N/A'}</Typography></Grid>
+              </Grid>
+              <Grid container spacing={2} sx={{ ml: 1 }}>
+                <Grid item sm={6}><Typography variant="body1">Personal Web page URL:</Typography></Grid>
+                <Grid item sm={6}><Typography variant="body1">{partner.personalWebPage || 'N/A'}</Typography></Grid>
+              </Grid>
+            </Box>
+          ))}
 
           {basicDetailsFormValues8.map((data, index) => (
         <Grid item xs={12} sm={6} md={4} key={index}>
          
-         <Typography variant="h6" style={{ marginTop:'10px'}}>27. Authorized Representative<span className="req-asterisk">*</span></Typography>
+         <Typography variant="h6" style={{ marginTop:'10px'}}>10. Authorized Representative<span className="req-asterisk">*</span></Typography>
           <Grid container spacing={2} sx={{ ml: 1 }}>
         <Grid item sm={6}>
           <Typography variant="body1">Name:</Typography>
@@ -911,7 +1040,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
        <Box sx={{ width: '100%' }}>
       {/* Bank Details Section */}
       <Typography variant="h6" style={{ marginTop: '10px' }}>
-        29. Bank Details
+        11. Bank Details
       </Typography>
       <Grid container spacing={2} sx={{ ml: 1 }}>
     <Grid item sm={6}>
@@ -949,7 +1078,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
 
       {/* Bank Draft Section */}
       <Typography variant="h6" style={{ marginTop: '10px' }}>
-        30. Whether bank draft/pay order for licence fee enclosed: {bankDraft ? 'Y' : 'N'}
+        12. Whether bank draft/pay order for licence fee enclosed: {bankDraft ? 'Y' : 'N'}
       </Typography>
 
       {bankDraft && (
@@ -992,7 +1121,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
     </Box>
     <Box>
     <Typography variant="h6" gutterBottom style={{ marginTop: '10px' }}>
-            31.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
+            13.  Location of facility in India for generation of Digital Signature Certificate <span className="req-asterisk">*</span>
           </Typography>
     <TableContainer>
     <Table>
@@ -1037,7 +1166,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
   </Box>
 <Box>
 <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}style={{ marginTop: '10px' }}>
-    34. Whether Certification Practice Statement is enclosed * : {cpsDocument ? 'Y' : 'N'}
+    14. Whether Certification Practice Statement is enclosed * : {cpsDocument ? 'Y' : 'N'}
     
     {/* Adding a Box to contain the link */}
     {cpsDocument && (
@@ -1069,7 +1198,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
     {/* Static Label for Additional Documents */}
     <Grid item xs={12}>
       <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-       35. Document<span className="req-asterisk">*</span>:
+       15. Document<span className="req-asterisk">*</span>:
       </Typography>
     </Grid>
 
@@ -1139,7 +1268,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
             <Grid item xs={12}>
               <Box>
                 <Typography variant="body1">
-                  1. Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both.
+                  Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both.
                 </Typography>
               </Box>
             </Grid>

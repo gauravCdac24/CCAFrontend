@@ -3119,14 +3119,14 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                 margin="dense"
                                 required
                                 fullWidth
-                                placeholder='URL Address'
+                                placeholder='https://www.example.com/'
                                 name="webURL"
                                 variant='outlined'
                                 onChange={(event) => handleInputChange(event, index)}
                                 value={communicationAddressFormValues.partnerDetails[index]?.webURL || ''}
                                 size="small"
 
-                                inputProps={{ maxLength: 30 }}
+                                inputProps={{ maxLength: 100 }}
                             />
                         </Grid>
                         <Grid item xs={12} sm>

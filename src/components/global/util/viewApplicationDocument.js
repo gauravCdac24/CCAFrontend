@@ -50,14 +50,22 @@ export const getLatestApplicationDoc = (docs, titles) => {
     return null;
   }
 
-  const matched = docs.filter((doc) => titleList.includes(doc?.documentTitle));
+  const normalizedTitles = titleList.map((title) => String(title).toLowerCase());
+  const matched = docs.filter((doc) => {
+    if (!doc?.appDocId) {
+      return false;
+    }
+    const docTitle = String(doc?.documentTitle || '').toLowerCase();
+    return normalizedTitles.includes(docTitle);
+  });
   if (matched.length === 0) {
     return null;
   }
 
   const active = matched.filter(
-    (doc) => !doc.status || String(doc.status).toLowerCase() === 'active'
+    (doc) => !doc.status || String(doc.status).trim().toLowerCase() === 'active'
   );
+  // Prefer Active; if none, keep latest matched (field gating hides unrelated leftovers).
   const pool = active.length > 0 ? active : matched;
 
   return pool

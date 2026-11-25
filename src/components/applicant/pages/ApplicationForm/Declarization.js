@@ -173,7 +173,7 @@ console.log(allUndertakingList)
                     onChange={(event) => handleCheckboxChange(event, filteredItem.undertakingId)}  // Pass undertakingId to handleCheckboxChange
                   />
                 }
-                label={`${index + 1}. ${filteredItem.undertakingsTitle}`}  // Dynamically use the title
+                label={filteredItem.undertakingsTitle}  // Dynamically use the title
               />
             </Grid>
           ))

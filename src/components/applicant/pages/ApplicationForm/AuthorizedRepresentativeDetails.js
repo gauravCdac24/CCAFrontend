@@ -530,7 +530,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
                         <Typography variant='body1'>Telephone No</Typography>
                     </InputLabel>
@@ -549,7 +549,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
                     />
                 </Grid>
 
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="fax">
                         <Typography variant='body1'>Fax</Typography>
                     </InputLabel>
@@ -567,7 +567,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
                         inputProps={{ maxLength: 15 }}
                     />
                 </Grid>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="natureOfBusiness">
                         <Typography variant='body1'>Nature of Business<span className="req-asterisk">*</span></Typography>
                     </InputLabel>

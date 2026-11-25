@@ -28,10 +28,10 @@ const ORDINALS = {
 
 const FORM_STEP_NAMES = {
     personalDetails: 'Personal Details',
-    addressDetails: 'Contact Details',
+    addressDetails: 'Address Details',
     financialDetails: 'Financial Details',
     firmDetails: 'Firm Details',
-    incomeTaxDocumentDetails: 'Contact Details',
+    incomeTaxDocumentDetails: 'Financial Details',
     partner: 'Details Of Partners',
     authorizedRepresentative: 'Authorized Representative Details',
     organizationalDetails: 'Organization Details',
@@ -58,6 +58,10 @@ export const getFormStepLabel = (appTypeMasterId, formKey) => {
 const getFormStepName = (appTypeMasterId, formKey) => {
     if (formKey === 'additionalDetails' && resolveAppType(appTypeMasterId) === 4) {
         return 'Bank Details';
+    }
+    // Individual: this step (passport/ISP/capital) uses Contact Details messaging
+    if (formKey === 'financialDetails' && resolveAppType(appTypeMasterId) === 1) {
+        return 'Contact Details';
     }
     return FORM_STEP_NAMES[formKey] || getFormStepLabel(appTypeMasterId, formKey);
 };

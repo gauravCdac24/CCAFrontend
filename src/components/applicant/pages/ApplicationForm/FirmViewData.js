@@ -1139,7 +1139,7 @@ const handleDownload = async (appDocId, documentTitle, event) => {
             <Grid item xs={12}>
               <Box>
                 <Typography variant="body1">
-                  1. Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both.
+                  Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both.
                 </Typography>
               </Box>
             </Grid>

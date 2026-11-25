@@ -115,8 +115,8 @@ const AddApplicationForm = () => {
             case 1:
                 return [
                     'Personal Details',
+                    'Address Details',
                     'Contact Details',
-                    'Financial Details',
                     'Additional Details',
                     'Location of Facility',
                     'CPS & Additional Document',
@@ -127,7 +127,7 @@ const AddApplicationForm = () => {
             case 3:
                 return [
                     'Firm Details',
-                    'Contact Details',
+                    'Financial Details',
                     'Details Of Partners',
                     'Authorized Representative Details',
                     'Additional Details',

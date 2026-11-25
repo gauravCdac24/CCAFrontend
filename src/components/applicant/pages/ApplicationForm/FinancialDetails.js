@@ -182,10 +182,16 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
                     const { indivAdditionalDetails, applicationDocument } = response.data;
     
                     // Extract document files based on titles
-                    const passportDoc = applicationDocument.find(doc => doc.documentTitle === 'passportDocument') || {};
-                    const voterDoc = applicationDocument.find(doc => doc.documentTitle === 'idCardDocument') || {};
-                    const panDoc = applicationDocument.find(doc => doc.documentTitle === 'panCardDocument') || {};
-                    const capitalDoc = applicationDocument.find(doc => doc.documentTitle === 'capitalDocument') || {};
+                    const findDocByTitle = (titles) => {
+                        const titleSet = (Array.isArray(titles) ? titles : [titles]).map((t) => String(t).toLowerCase());
+                        return applicationDocument.find((doc) =>
+                            titleSet.includes(String(doc?.documentTitle || '').toLowerCase())
+                        ) || {};
+                    };
+                    const passportDoc = findDocByTitle('passportDocument');
+                    const voterDoc = findDocByTitle(['idCardDocument', 'IdCardDocument', 'voterDocument']);
+                    const panDoc = findDocByTitle(['panCardDocument', 'panDocument']);
+                    const capitalDoc = findDocByTitle('capitalDocument');
                     // Prefer saved field values over leftover documents from a previous ID type
                     const hasPassportData = Boolean(
                         indivAdditionalDetails.passportNo
@@ -789,32 +795,34 @@ const handleFileChange4 = (e) => {
                         <Typography variant='h7' sx={{ mt: 1, mb: 1 }} ><b>Credit Card Details</b></Typography>
                     </Grid>
                 </Grid>
-                <Grid item xs={12} sm={4}>
-
-                    <InputLabel shrink={false} htmlFor={"creditcardtype"}> <Typography variant='body1' >Credit Card Type</Typography></InputLabel>
-                    <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
-                        <Select defaultValue="" id="creditcardtype"
+                <Grid item xs={12} sm>
+                    <InputLabel shrink={false} htmlFor={"creditcardtype"}>
+                        <Typography variant='body1'>Credit Card Type</Typography>
+                    </InputLabel>
+                    <FormControl variant="outlined" size="small" fullWidth margin="dense" error={!!formErrors.creditcardtype}>
+                        <Select
+                            defaultValue=""
+                            id="creditcardtype"
                             displayEmpty
                             name="creditcardtype"
                             onChange={handleChange}
                             value={basicDetailsFormValues.creditcardtype}
-                            error={!!formErrors.creditcardtype}
                             disabled={!isFieldEnabled("creditCardType")}
-                            sx={{
-                                width: { xs: '100%', sm: '162px' },
-                            }}>
+                        >
                             <MenuItem disabled value="">
                                 Credit Card Type
                             </MenuItem>
                             {CardType.map((item, index) => (
                                 <MenuItem key={index} value={item}>{item}</MenuItem>
                             ))}
-                          
                         </Select>
                         {formErrors.creditcardtype && <FormHelperText sx={{ ml: 0 }} error>{formErrors.creditcardtype}</FormHelperText>}
                     </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm sx={{ display: { xs: 'none', sm: 'block' } }} />
+            </Grid>
+            <Grid container spacing={2} sx={{ mt: 0 }}>
+                <Grid item xs={12} sm={6}>
                     <InputLabel shrink={false} htmlFor={"creditCardNo"}>
                         <Typography variant='body1'>Credit Card No.</Typography>
                     </InputLabel>
@@ -835,7 +843,9 @@ const handleFileChange4 = (e) => {
                         disabled={!isFieldEnabled("creditCardNo")}
                     />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+            </Grid>
+            <Grid container spacing={2} sx={{ mt: 0 }}>
+                <Grid item xs={12} sm={6}>
                     <InputLabel shrink={false} htmlFor={"issuedBy"}>
                         <Typography variant='body1'>Issued By</Typography>
                     </InputLabel>
@@ -871,11 +881,11 @@ const handleFileChange4 = (e) => {
             </Grid>
             {showIdCardDropdown && (
                 <Grid container spacing={2}>
-                    <Grid item xs={12} sm={4}>
+                    <Grid item xs={12} sm>
                         <InputLabel shrink={false} htmlFor="idCardType">
                             <Typography variant='body1'>ID Card Details<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
-                        <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }} error={!!formErrors.idCardType}>
+                        <FormControl variant="outlined" size="small" fullWidth margin="dense" error={!!formErrors.idCardType}>
                             <Select
                                 id="idCardType"
                                 displayEmpty
@@ -896,6 +906,7 @@ const handleFileChange4 = (e) => {
                             {formErrors.idCardType && <FormHelperText sx={{ ml: 0 }} error>{formErrors.idCardType}</FormHelperText>}
                         </FormControl>
                     </Grid>
+                    <Grid item xs={12} sm sx={{ display: { xs: 'none', sm: 'block' } }} />
                 </Grid>
             )}
             {showPassportFields && (
@@ -943,95 +954,96 @@ const handleFileChange4 = (e) => {
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
-    <Grid item xs={12} sm>
-        <InputLabel shrink={false} htmlFor={"passportExpiryDate"}>
-            <Typography variant='body1'>Passport Expiry Date{showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
-        </InputLabel>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DatePicker
-                id="passportExpiryDate"
-                disablePast
-                minDate={dayjs().add(1, 'day')}
-                name="passportExpiryDate"
-                disabled={!isFieldEnabled("passportExpiryDate")}
-                onChange={(date) => handleDateChange('passportExpiryDate', date)}
-                value={
-                    basicDetailsFormValues.passportDetails.passportExpiryDate
-                    && dayjs(basicDetailsFormValues.passportDetails.passportExpiryDate).isValid()
-                        ? dayjs(basicDetailsFormValues.passportDetails.passportExpiryDate)
-                        : null
-                }
-                slotProps={{
-                    textField: {
-                        size: 'small',
-                        fullWidth: true,
-                        placeholder: "Passport Expiry Date",
-                        error: !!formErrors.passportExpiryDate,
-                        helperText: formErrors.passportExpiryDate || ''
-                    }
-                }}
-                sx={{ mt: 1 }}
-            />
-        </LocalizationProvider>
-    </Grid>
+                <Grid item xs={12} sm>
+                    <InputLabel shrink={false} htmlFor={"passportExpiryDate"}>
+                        <Typography variant='body1'>Passport Expiry Date{showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
+                    </InputLabel>
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DatePicker
+                            id="passportExpiryDate"
+                            disablePast
+                            minDate={dayjs().add(1, 'day')}
+                            name="passportExpiryDate"
+                            disabled={!isFieldEnabled("passportExpiryDate")}
+                            onChange={(date) => handleDateChange('passportExpiryDate', date)}
+                            value={
+                                basicDetailsFormValues.passportDetails.passportExpiryDate
+                                && dayjs(basicDetailsFormValues.passportDetails.passportExpiryDate).isValid()
+                                    ? dayjs(basicDetailsFormValues.passportDetails.passportExpiryDate)
+                                    : null
+                            }
+                            slotProps={{
+                                textField: {
+                                    size: 'small',
+                                    fullWidth: true,
+                                    margin: 'dense',
+                                    placeholder: "Passport Expiry Date",
+                                    error: !!formErrors.passportExpiryDate,
+                                    helperText: formErrors.passportExpiryDate || ''
+                                }
+                            }}
+                        />
+                    </LocalizationProvider>
+                </Grid>
+                <Grid item xs={12} sm>
+                    <InputLabel shrink={false} htmlFor={"pdffile"}>
+                        <Typography variant='body1'>Upload Passport Document (Only PDF and Max allowed size 5 MB){showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
+                    </InputLabel>
 
-    <Grid item xs={12} sm>
-        <InputLabel shrink={false} htmlFor={"pdffile"}>
-            <Typography variant='body1'>Upload Passport Document (Only PDF and Max allowed size 5 MB){showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
-        </InputLabel>
+                    <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
+                        <Grid item>
+                            <Button
+                                component="label"
+                                variant="contained"
+                                startIcon={<CloudUploadIcon />}
+                            >
+                                Upload file
+                                <VisuallyHiddenInput
+                                    key={fileInputKey1}
+                                    type="file"
+                                    name="file1"
+                                    disabled={!isFieldEnabled("file1")}
+                                    error={!!(formErrors.file1 && formErrors.file1)}
+                                    helperText={formErrors?.file1}
+                                    onChange={handleFileChange1}
+                                />
+                            </Button>
+                        </Grid>
 
-        <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
-            <Grid item >
-                <Button
-                    component="label"
-                    variant="contained"
-                    startIcon={<CloudUploadIcon />}
-                >
-                    Upload file
-                    <VisuallyHiddenInput
-                        key={fileInputKey1}
-                        type="file"
-                        name="file1"
-                        disabled={!isFieldEnabled("file1")}
-                        error={!!(formErrors.file1 && formErrors.file1)}
-                        helperText={formErrors?.file1}
-                        onChange={handleFileChange1}
-                    />
-                </Button>
+                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
+                            {fileName1 && (
+                                <Tooltip title={fileName1} placement="top">
+                                    <Typography variant='body2'
+                                        sx={{
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            textAlign: 'center'
+                                        }}>
+                                        {fileName1}
+                                    </Typography>
+                                </Tooltip>
+                            )}
+                        </Grid>
+                    </Grid>
+
+                    {basicDetailsFormValues?.passportDetails?.appDocId && (
+                        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Link
+                                href="#"
+                                variant="body2"
+                                onClick={() => handleDownloadClick(basicDetailsFormValues?.passportDetails?.appDocId, "passportDocument")}
+                            >
+                                Download
+                            </Link>
+                        </Box>
+                    )}
+
+                    {formErrors.file1 && (
+                        <FormHelperText error>{formErrors.file1}</FormHelperText>
+                    )}
+                </Grid>
             </Grid>
-
-            <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {fileName1 && (
-                    <Tooltip title={fileName1} placement="top">
-                        <Typography variant='body2'
-                            sx={{
-                                display: 'inline-block',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                verticalAlign: 'middle',
-                                textAlign: 'center'
-                            }}>
-                            {fileName1}
-                        </Typography>
-                    </Tooltip>
-                )}
-            </Grid>
-        </Grid>
-
-        {formErrors.file1 && (
-            <FormHelperText error>{formErrors.file1}</FormHelperText>
-        )}
-    </Grid>
-
-    {basicDetailsFormValues?.passportDetails?.appDocId && (
-        <Grid item xs="auto" sx={{ display: 'flex', alignItems: 'center' }}>
-                <Link href="#" variant="outlined"
-                  onClick={() => handleDownloadClick(basicDetailsFormValues?.passportDetails?.appDocId,"passportDocument")}
-                >Download</Link>
-        </Grid>
-    )}
-</Grid>
             </>
             )}
 
@@ -1064,8 +1076,8 @@ const handleFileChange4 = (e) => {
                         <Typography variant='body1'>Upload ID Card Document (Only PDF and Max allowed size 5 MB){showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
                     </InputLabel>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
-                        <Grid item >
+                    <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
+                        <Grid item>
                             <Button
                                 component="label"
                                 variant="contained"
@@ -1082,17 +1094,14 @@ const handleFileChange4 = (e) => {
                                     onChange={handleFileChange2}
                                 />
                             </Button>
-
                         </Grid>
-                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                             {fileName2 && (
                                 <Tooltip title={fileName2} placement="top">
                                     <Typography variant='body2' sx={{
-                                        display: 'inline-block',
                                         whiteSpace: 'nowrap',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
-                                        verticalAlign: 'middle',
                                         textAlign: 'center'
                                     }}>
                                         {fileName2}
@@ -1102,17 +1111,22 @@ const handleFileChange4 = (e) => {
                         </Grid>
                     </Grid>
 
+                    {basicDetailsFormValues?.CardDetails?.appDocId && (
+                        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Link
+                                href="#"
+                                variant="body2"
+                                onClick={() => handleDownloadClick(basicDetailsFormValues?.CardDetails?.appDocId, "idCardDocument")}
+                            >
+                                Download
+                            </Link>
+                        </Box>
+                    )}
+
                     {formErrors.file2 && (
-                                        <FormHelperText error>{formErrors.file2}</FormHelperText>
-                                    )}
+                        <FormHelperText error>{formErrors.file2}</FormHelperText>
+                    )}
                 </Grid>
-                {basicDetailsFormValues?.CardDetails?.appDocId && (
-        <Grid item xs="auto" sx={{ display: 'flex', alignItems: 'center' }}>
-                <Link href="#" variant="outlined"
-                  onClick={() => handleDownloadClick(basicDetailsFormValues?.CardDetails?.appDocId,"voterDocument")}
-                >Download</Link>
-        </Grid>
-    )}
             </Grid>
             )}
             {showPanFields && (
@@ -1143,8 +1157,8 @@ const handleFileChange4 = (e) => {
                         <Typography variant='body1'>Upload Pan Document (Only PDF and Max allowed size 5 MB){showIdCardDropdown && <span className="req-asterisk">*</span>}</Typography>
                     </InputLabel>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
-                        <Grid item >
+                    <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
+                        <Grid item>
                             <Button
                                 component="label"
                                 variant="contained"
@@ -1159,17 +1173,14 @@ const handleFileChange4 = (e) => {
                                     onChange={handleFileChange3}
                                 />
                             </Button>
-
                         </Grid>
-                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                             {fileName3 && (
                                 <Tooltip title={fileName3} placement="top">
                                     <Typography variant='body2' sx={{
-                                        display: 'inline-block',
                                         whiteSpace: 'nowrap',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
-                                        verticalAlign: 'middle',
                                         textAlign: 'center'
                                     }}>
                                         {fileName3}
@@ -1179,28 +1190,31 @@ const handleFileChange4 = (e) => {
                         </Grid>
                     </Grid>
 
+                    {basicDetailsFormValues?.PanCardDetails?.appDocId && (
+                        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Link
+                                href="#"
+                                variant="body2"
+                                onClick={() => handleDownloadClick(basicDetailsFormValues?.PanCardDetails?.appDocId, "panDocument")}
+                            >
+                                Download
+                            </Link>
+                        </Box>
+                    )}
+
                     {formErrors.file3 && (
-                                        <FormHelperText error>{formErrors.file3}</FormHelperText>
-                                    )}
+                        <FormHelperText error>{formErrors.file3}</FormHelperText>
+                    )}
                 </Grid>
-
-                {basicDetailsFormValues?.PanCardDetails?.appDocId && (
-        <Grid item xs="auto" sx={{ display: 'flex', alignItems: 'center' }}>
-                <Link href="#" variant="outlined"
-                 onClick={() => handleDownloadClick(basicDetailsFormValues?.PanCardDetails?.appDocId,"panDocument")}
-                >Download</Link>
-        </Grid>
-    )}
-
             </Grid>
             )}
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7' ><b>ISP Details<span className="req-asterisk">*</span></b></Typography>
+                    <Typography variant='h7' ><b>ISP Details</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor={"ispName"}>
                         <Typography variant='body1'>ISP Name<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
@@ -1221,7 +1235,7 @@ const handleFileChange4 = (e) => {
                         inputProps={{ maxLength: 75 }}
                     />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor={"ispWebsiteAddress"}>
                         <Typography variant='body1'>ISP’s Website Address</Typography>
                     </InputLabel>
@@ -1242,7 +1256,7 @@ const handleFileChange4 = (e) => {
                         inputProps={{ maxLength: 100 }}
                     />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor={"ispUserName"}>
                         <Typography variant='body1'>ISP Username</Typography>
                     </InputLabel>
@@ -1265,7 +1279,7 @@ const handleFileChange4 = (e) => {
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
-                <Grid item xs={12} sm={12}>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor={"webPageURL"}>
                         <Typography variant='body1'><b>Web Page URL</b></Typography>
                     </InputLabel>
@@ -1288,13 +1302,13 @@ const handleFileChange4 = (e) => {
             </Grid>
             <Grid container>
                 <Grid item sx={{ mt: 2, mb: 1 }}>
-                    <Typography variant='h7'> <b>Business Capital<span className="req-asterisk">*</span></b></Typography>
+                    <Typography variant='h7'> <b>Business Capital</b></Typography>
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
-                    <InputLabel shrink={false} htmlFor={"salutation"}>
-                        <Typography variant='body1' >Capital in the business or profession<span className="req-asterisk">*</span></Typography>
+                    <InputLabel shrink={false} htmlFor={"capital"}>
+                        <Typography variant='body1'>Capital in the business or profession<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         required
@@ -1316,11 +1330,11 @@ const handleFileChange4 = (e) => {
                 </Grid>
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor={"pdffile"}>
-                        <Typography variant='body1'>Upload Document<span className="req-asterisk">*</span>(Only PDF and Max allowed size 5 MB)</Typography>
+                        <Typography variant='body1'>Upload Document (Only PDF and Max allowed size 5 MB)<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
 
-                    <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>
-                        <Grid item >
+                    <Grid container alignItems="center" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1, p: 1 }}>
+                        <Grid item>
                             <Button
                                 component="label"
                                 variant="contained"
@@ -1335,17 +1349,14 @@ const handleFileChange4 = (e) => {
                                     onChange={handleFileChange4}
                                 />
                             </Button>
-
                         </Grid>
-                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Grid item xs sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 2 }}>
                             {fileName4 && (
                                 <Tooltip title={fileName4} placement="top">
                                     <Typography variant='body2' sx={{
-                                        display: 'inline-block',
                                         whiteSpace: 'nowrap',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
-                                        verticalAlign: 'middle',
                                         textAlign: 'center'
                                     }}>
                                         {fileName4}
@@ -1354,24 +1365,23 @@ const handleFileChange4 = (e) => {
                             )}
                         </Grid>
                     </Grid>
-                    {formErrors.file4 && (
-                                        <FormHelperText error>{formErrors.file4}</FormHelperText>
-                                    )}
 
-                </Grid>
-                {basicDetailsFormValues?.ProfessionalDetails?.appDocId && (
-                        <Grid item xs="auto" sx={{ display: 'flex', alignItems: 'center' }}>
+                    {basicDetailsFormValues?.ProfessionalDetails?.appDocId && (
+                        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
                             <Link
                                 href="#"
-                                variant="outlined"
-                                onClick={() => handleDownloadClick(basicDetailsFormValues?.ProfessionalDetails?.appDocId,"capitalDocument")}
+                                variant="body2"
+                                onClick={() => handleDownloadClick(basicDetailsFormValues?.ProfessionalDetails?.appDocId, "capitalDocument")}
                             >
                                 Download
                             </Link>
-                        </Grid>
+                        </Box>
                     )}
 
-
+                    {formErrors.file4 && (
+                        <FormHelperText error>{formErrors.file4}</FormHelperText>
+                    )}
+                </Grid>
             </Grid>
             <Box sx={{ display: 'flex', justifyContent:'space-between', mt: 3 ,ml:1}}>
             <Button

@@ -8,6 +8,7 @@ import CountryService from '../../../../service/AdminService/CountryService';
 import StateService from '../../../../service/AdminService/StateService';
 import showAlert from '../../../global/common/MessageBox/AlertService';
 import { getFinalSubmissionSuccessAlert, getFinalSubmissionErrorAlert } from '../../../global/util/applicationFormSteps';
+import { getLatestApplicationDoc } from '../../../global/util/viewApplicationDocument';
 
 const IndivSubmitPreview = forwardRef(({allUndertakingsList}, ref)  => {
    
@@ -470,6 +471,31 @@ const handleDownloads = async (appDocId, documentTitle) => {
   const form3Docs = Array.isArray(basicDetailsFormValues3?.applicationDocument)
     ? basicDetailsFormValues3.applicationDocument
     : [];
+
+  const renderSingleDocView = (docs, titles, hasRelatedData = true) => {
+    if (!hasRelatedData) {
+      return null;
+    }
+    const doc = getLatestApplicationDoc(docs, titles);
+    if (!doc?.appDocId) {
+      return null;
+    }
+    return (
+      <Box
+        sx={{ display: 'flex', alignItems: 'center', ml: 1 }}
+        data-app-doc-id={doc.appDocId}
+        data-doc-title={doc.documentTitle || (Array.isArray(titles) ? titles[0] : titles)}
+      >
+        <Link
+          onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
+          sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          View
+        </Link>
+      </Box>
+    );
+  };
+
   return (
         <Box sx={{ width: '100%' }}>
 
@@ -1037,18 +1063,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
     </Grid>
     <Grid item sm={6}>
       <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-        {form3Docs
-          .filter(doc => doc.documentTitle === "passportDocument")
-          .map((doc, index) => (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-              <Link
-                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-                View
-            </Link>
-            </Box>
-          ))}
+        {renderSingleDocView(form3Docs, 'passportDocument', Boolean(form3Details.passportNo))}
       </Box>
     </Grid>
   </Grid>
@@ -1080,18 +1095,11 @@ const handleDownloads = async (appDocId, documentTitle) => {
     </Grid>
     <Grid item sm={6}>
       <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-        {form3Docs
-          .filter(doc => doc.documentTitle === "idCardDocument")
-          .map((doc, index) => (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-              <Link
-                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-                View
-            </Link>
-            </Box>
-          ))}
+        {renderSingleDocView(
+          form3Docs,
+          ['idCardDocument', 'IdCardDocument', 'voterDocument'],
+          Boolean(form3Details.voterId || form3Details.voterIdNo)
+        )}
       </Box>
     </Grid>
   </Grid>
@@ -1121,18 +1129,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
         </Typography>
     </Grid>
     <Grid item sm={6}>
-        {form3Docs
-          .filter(doc => doc.documentTitle === "panCardDocument" || doc.documentTitle === "panDocument")
-          .map((doc, index) => (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-              <Link
-                onClick={() => handleDownload(doc.appDocId, doc.documentTitle)}
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-                View
-            </Link>
-            </Box>
-          ))}
+        {renderSingleDocView(form3Docs, ['panCardDocument', 'panDocument'], Boolean(form3Details.pan))}
     </Grid>
   </Grid>
 </Box>
@@ -1230,18 +1227,11 @@ const handleDownloads = async (appDocId, documentTitle) => {
       
     </Grid>
     <Grid item sm={6}>
-      {basicDetailsFormValues3.applicationDocument
-        .filter(doc => doc.documentTitle === "capitalDocument") // Filter for capitalDocument
-        .map((doc, index) => (
-          <Box key={index} sx={{ display: 'inline', marginLeft: '8px' }}>
-              <Link
-                onClick={() => handleDownload(cpsDocument.appDocId, cpsDocument.documentTitle)} // Change the handler function if needed
-                sx={{ color: 'red', cursor: 'pointer', textDecoration: 'underline' }} // Set text color to red and underline
-            >
-                View
-            </Link>
-          </Box>
-        ))}
+      {renderSingleDocView(
+        form3Docs,
+        'capitalDocument',
+        Boolean(form3Details.indivCapital)
+      )}
     </Grid>
   </Grid>
 
@@ -1452,7 +1442,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
             <Grid item xs={12}>
               <Box>
                 <Typography variant="body1">
-                  { "1. Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both."}
+                  { "Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both."}
                 </Typography>
               </Box>
             </Grid>

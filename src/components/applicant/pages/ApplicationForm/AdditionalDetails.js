@@ -444,11 +444,12 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
 
   return (
     <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleFormSubmit}>
+      <br/>
       <Grid container spacing={2}>
         <Grid container spacing={2}>
           <Grid container>
             <Grid item>
-              <Typography variant='h7' sx={{ mt: 1, mb: 1 }}><b>Bank Details<span className="req-asterisk">*</span></b></Typography>
+              <Typography variant='h7' sx={{ mt: 1, mb: 1 }}><b>Bank Details</b></Typography>
             </Grid>
           </Grid>
 

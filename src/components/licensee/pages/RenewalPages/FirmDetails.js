@@ -864,24 +864,34 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
         margin="dense"
         required
         fullWidth
-        placeholder='Web Page Url'
+        placeholder='www.example.com/'
         name="webPageURL"
         variant='outlined'
         disabled={!isFieldEnabled("webPageURL")}
-        onChange={handleInputChange}
-        value={communicationAddressFormValues.webPageURL.replace(/^https:\/\//, '')} 
+        onChange={(e) => {
+            const raw = e.target.value.replace(/^https?:\/\//i, '');
+            handleInputChange({
+                ...e,
+                target: {
+                    ...e.target,
+                    name: 'webPageURL',
+                    value: raw ? `https://${raw}` : '',
+                },
+            });
+        }}
+        value={(communicationAddressFormValues.webPageURL || '').replace(/^https?:\/\//i, '')}
         error={!!(formErrors.webPageURL && formErrors.webPageURL)}
         helperText={formErrors?.webPageURL}
         size="small"
         InputProps={{
             startAdornment: (
-                <InputAdornment position="start"sx={{ml:1}}>
+                <InputAdornment position="start" sx={{ ml: 1 }}>
                     https://
                 </InputAdornment>
             ),
-            maxLength: 100 ,
         }}
-        onKeyDown={(e) => validatePattern(e, /^[A-Za-z0-9.-]+$/)} 
+        inputProps={{ maxLength: 100 }}
+        onKeyDown={(e) => validatePattern(e, /^[A-Za-z0-9.\/-]+$/)} 
     />
 </Grid>
 
