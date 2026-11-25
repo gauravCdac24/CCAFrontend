@@ -599,7 +599,7 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
             {/* Residential Address Section */}
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>Residential Address<span className="req-asterisk">*</span></Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>Residential Address</Typography>
                 </Grid>
             </Grid>
 
@@ -879,7 +879,7 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
             {/* Official Address Section */}
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>Official Address<span className="req-asterisk">*</span></Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>Official Address</Typography>
                 </Grid>
             </Grid>
 

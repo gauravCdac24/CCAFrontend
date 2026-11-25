@@ -34,6 +34,7 @@ const errorMsg = {
         format: "Please enter valid middle name."
     },
     lastName:{
+        blank: "Last Name/Surname cannot be empty.",
         length: "The length must be between 3 and 45 characters.",
         format: "Please enter valid last name."
     },
@@ -325,8 +326,9 @@ const IntentRegistration = () => {
             errors.middleName = errorMsg.middleName.format;
         }
 
-        if(!intentFormValues.lastName){}
-        else if (intentFormValues.lastName && (intentFormValues.lastName.length < 3 || intentFormValues.lastName.length > 45)) {
+        if(!intentFormValues.lastName){
+            errors.lastName = errorMsg.lastName.blank;
+        } else if (intentFormValues.lastName.length < 3 || intentFormValues.lastName.length > 45) {
             errors.lastName = errorMsg.lastName.length;
         }else if(!/^[A-Za-z]+$/.test(intentFormValues.lastName)){
             errors.lastName = errorMsg.lastName.format;
@@ -477,7 +479,7 @@ const IntentRegistration = () => {
 
                         <Grid container sx={{mt: 1, mb: 1}}>
                                 <Grid item >
-                                    <Typography variant='h6'>{uniCodeObj !==null ? "1. Unique Code": "Unique Code *"}</Typography>
+                                    <Typography variant='h6'>{uniCodeObj !==null ? "Unique Code": "Unique Code *"}</Typography>
                                 </Grid>
                             </Grid>
 
@@ -518,7 +520,7 @@ const IntentRegistration = () => {
 
                             <Grid container sx={{mt: 1, mb: 1}}>
                                 <Grid item >
-                                    <Typography variant='h6'>2. Personal Details</Typography>
+                                    <Typography variant='h6'>Personal Details</Typography>
                                 </Grid>
                             </Grid>
 
@@ -527,7 +529,7 @@ const IntentRegistration = () => {
                                 <Grid item xs={12} sm>
 
                                     <InputLabel shrink={false} htmlFor={"salutation"}>
-                                        <Typography variant='body1'>Salutation*</Typography>
+                                        <Typography variant='body1'>Salutation<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
 
                                     <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
@@ -567,7 +569,7 @@ const IntentRegistration = () => {
 
                                 <Grid item xs={12} sm>
                                     <InputLabel shrink={false} htmlFor={"firstName"}>
-                                        <Typography variant='body1'>First Name*</Typography>
+                                        <Typography variant='body1'>First Name<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="firstName"
@@ -614,14 +616,14 @@ const IntentRegistration = () => {
                                 
                                 <Grid item xs={12} sm>
                                     <InputLabel shrink={false} htmlFor={"lastName"}>
-                                        <Typography variant='body1'>Last Name</Typography>
+                                        <Typography variant='body1'>Last Name/Surname<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="lastName"
                                         margin="dense"
                                         required
                                         fullWidth
-                                        placeholder='Last Name'
+                                        placeholder='Last Name/Surname'
                                         name="lastName"
                                         variant='outlined'
                                         error={!!formErrors.lastName}
@@ -642,7 +644,7 @@ const IntentRegistration = () => {
 
                             <Grid item xs={12} sm >
                                     <InputLabel shrink={false} htmlFor={"mobile"}>
-                                        <Typography variant='body1'>Mobile Number*</Typography>
+                                        <Typography variant='body1'>Mobile Number<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="mobile"
@@ -665,7 +667,7 @@ const IntentRegistration = () => {
 
                                 <Grid item xs={12} sm>
                                     <InputLabel shrink={false} htmlFor={"emailId"}>
-                                        <Typography variant='body1'>Email Id*</Typography>
+                                        <Typography variant='body1'>Email Address<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="emailId"
@@ -690,7 +692,7 @@ const IntentRegistration = () => {
 
                             <Grid container sx={{mt: 1, mb: 1}}>
                                 <Grid item >
-                                    <Typography variant='h6'>3. Address</Typography>
+                                    <Typography variant='h6'>Address</Typography>
                                 </Grid>
                             </Grid>
 
@@ -698,7 +700,7 @@ const IntentRegistration = () => {
 
                             <Grid item xs={12} sm>
                                     <InputLabel shrink={false} htmlFor={"blockNo"}>
-                                        <Typography variant='body1'>Flat/Door/Block No*</Typography>
+                                        <Typography variant='body1'>Flat/Door/Block No<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="blockNo"
@@ -720,7 +722,7 @@ const IntentRegistration = () => {
 
                                 <Grid item xs={12} sm>
                                     <InputLabel shrink={false} htmlFor={"village"}>
-                                        <Typography variant='body1'>Name of Premises/Building/Village*</Typography>
+                                        <Typography variant='body1'>Name of Premises/Building/Village<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="village"
@@ -747,7 +749,7 @@ const IntentRegistration = () => {
 
                             <Grid item xs={12} sm>
                                     <InputLabel shrink={false} htmlFor={"postOffice"}>
-                                        <Typography variant='body1'>Road/Street/Lane/Post Office*</Typography>
+                                        <Typography variant='body1'>Road/Street/Lane/Post Office<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="postOffice"
@@ -769,7 +771,7 @@ const IntentRegistration = () => {
 
                                 <Grid item xs={12} sm>
                                     <InputLabel shrink={false} htmlFor={"subDivision"}>
-                                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division*</Typography>
+                                        <Typography variant='body1'>Area/Locality/Taluka/Sub-Division<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="subDivision"
@@ -796,7 +798,7 @@ const IntentRegistration = () => {
                             <Grid container spacing={2} sx={{ mt: 0.1 }}>
                         <Grid item xs={12} sm={3} >
                             <InputLabel shrink={false} htmlFor="country">
-                                <Typography variant='body1'>Country*</Typography>
+                                <Typography variant='body1'>Country<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
                                 <Select
@@ -827,7 +829,7 @@ const IntentRegistration = () => {
                         </Grid>
                         <Grid item xs={12} sm={3} >
                             <InputLabel shrink={false} htmlFor="state">
-                                <Typography variant='body1'>State/Province*</Typography>
+                                <Typography variant='body1'>State/Province<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
                                 <Select
@@ -858,7 +860,7 @@ const IntentRegistration = () => {
                         </Grid>
                         <Grid item xs={12} sm={3} >
                             <InputLabel shrink={false} htmlFor="district">
-                                <Typography variant='body1'>District*</Typography>
+                                <Typography variant='body1'>District<span className="req-asterisk">*</span></Typography>
                             </InputLabel>
                             <FormControl variant="outlined" fullWidth size="small" sx={{ width: '100%', mt: 1 }}>
                                 <Select
@@ -890,7 +892,7 @@ const IntentRegistration = () => {
                         </Grid>
                                 <Grid item xs={12} sm={3} >
                                     <InputLabel shrink={false} htmlFor={"pin"}>
-                                        <Typography variant='body1'>Pin*</Typography>
+                                        <Typography variant='body1'>Pin<span className="req-asterisk">*</span></Typography>
                                     </InputLabel>
                                     <TextField
                                         id="pin"

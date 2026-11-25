@@ -1844,6 +1844,7 @@ const PersonalDetailsForm = ({ handleNext, handleFormDataChange }) => {
     const userName = useSelector((state)=>state.jwtAuthentication.username);
     const appTypeMasterId= useSelector((state)=>state.licenseApplication.applicationType);
     const [selectedOption, setSelectedOption] = useState('no');
+    const [intentNameLocked, setIntentNameLocked] = useState(false);
     const [basicDetailsFormValues, setBasicDetailsFormValues] = useState({
         emailId: [{ emailId: '', indivEmailId:'' }],
         salutation: '',
@@ -1970,6 +1971,27 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
 
                 setKnownByOtherName(isKnownByOtherName);
                 setSelectedOption(isKnownByOtherName ? 'yes' : 'no');
+
+                try {
+                    const intentResponse = await IntentService.getIntentByUserName(userName);
+                    if (isCancelled) {
+                        return;
+                    }
+                    const intentData = intentResponse.data || {};
+                    setBasicDetailsFormValues((prevState) => ({
+                        ...prevState,
+                        salutation: prevState.salutation || intentData.salutation || '',
+                        firstName: prevState.firstName || intentData.firstName || '',
+                        middleName: prevState.middleName || intentData.middleName || '',
+                        lastName: prevState.lastName || intentData.lastName || '',
+                    }));
+                    setIntentNameLocked(Boolean(
+                        intentData.salutation || intentData.firstName || intentData.middleName || intentData.lastName
+                    ));
+                } catch (intentError) {
+                    console.error('Error fetching intent details:', intentError);
+                    setIntentNameLocked(false);
+                }
             } catch {
                 try {
                     const intentResponse = await IntentService.getIntentByUserName(userName);
@@ -1977,16 +1999,25 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
                         return;
                     }
 
-                    const intentEmail = intentResponse.data?.emailId || '';
+                    const intentData = intentResponse.data || {};
+                    const intentEmail = intentData.emailId || '';
                     setBasicDetailsFormValues((prevState) => ({
                         ...prevState,
                         emailId: intentEmail
                             ? [{ emailId: intentEmail, indivEmailId: '' }]
                             : [{ emailId: '', indivEmailId: '' }],
+                        salutation: intentData.salutation || '',
+                        firstName: intentData.firstName || '',
+                        middleName: intentData.middleName || '',
+                        lastName: intentData.lastName || '',
                         userName,
                     }));
+                    setIntentNameLocked(Boolean(
+                        intentData.salutation || intentData.firstName || intentData.middleName || intentData.lastName
+                    ));
                 } catch (error) {
                     console.error('Error fetching intent details:', error);
+                    setIntentNameLocked(false);
                 }
             } finally {
                 if (!isCancelled) {
@@ -2308,7 +2339,7 @@ console.log(basicDetailsFormValues.intentAppId)
             <Grid container spacing={2}>
                 <Grid container>
                     <Grid item >
-                        <Typography variant='h7' sx={{ mt: 1, mb: 1, fontWeight: 'bold' }}>Full Name<span className="req-asterisk">*</span></Typography>
+                        <Typography variant='h7' sx={{ mt: 1, mb: 1, fontWeight: 'bold' }}>Full Name</Typography>
                     </Grid>
                 </Grid>
                 <Grid item xs={12} sm>
@@ -2316,13 +2347,14 @@ console.log(basicDetailsFormValues.intentAppId)
                     <InputLabel shrink={false} htmlFor={"salutation"}>
                         <Typography variant='body1' >Salutation<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
-                    <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
+                    <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }} disabled={intentNameLocked || !isFieldEnabled("salutation")}>
                         <Select defaultValue="" id="salutation"
                             displayEmpty
                             name="salutation"
                            
                             onChange={handleInputChange}
                             value={basicDetailsFormValues.salutation}
+                            disabled={intentNameLocked || !isFieldEnabled("salutation")}
                             error={Boolean(formErrors.salutation)}>
                             <MenuItem disabled value="">
                                 Salutation
@@ -2354,7 +2386,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         error={!!(formErrors.firstName && formErrors.firstName)}
                         helperText={formErrors?.firstName}
                         size="small"
-                        disabled={!isFieldEnabled("firstName")}
+                        disabled={intentNameLocked || !isFieldEnabled("firstName")}
                         inputProps={{ maxLength: 30,minLength:3 }}
                     />
                 </Grid>
@@ -2376,7 +2408,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         error={!!(formErrors.middleName && formErrors.middleName)}
                         helperText={formErrors?.middleName}
                         inputProps={{ maxLength: 30 }}
-                        disabled={!isFieldEnabled("middleName")}
+                        disabled={intentNameLocked || !isFieldEnabled("middleName")}
                     />
                 </Grid>
                 <Grid item xs={12} sm>
@@ -2398,7 +2430,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         helperText={formErrors?.lastName}
                         size="small"
                         inputProps={{ maxLength: 45 }}
-                        disabled={!isFieldEnabled("lastName")}
+                        disabled={intentNameLocked || !isFieldEnabled("lastName")}
                     />
                 </Grid>
                 </Grid>
@@ -2503,7 +2535,7 @@ console.log(basicDetailsFormValues.intentAppId)
                         <React.Fragment key={index}>
                             <Grid item xs={12} sm={3.5} sx={{ mt: 2 }}>
                                 <InputLabel shrink={false} htmlFor={`email-${index}`}>
-                                    <Typography variant='body1' sx={{ fontWeight: 'bold' }}>{basicDetailsFormValues.emailId.length > 1 ? `${index + 1}. ` : ''} Email<span className="req-asterisk">*</span></Typography>
+                                    <Typography variant='body1' sx={{ fontWeight: 'bold' }}>{basicDetailsFormValues.emailId.length > 1 ? `${index + 1}. ` : ''} Email Address</Typography>
                                 </InputLabel>
                                 <TextField
                                     id={`email-${index}`}
@@ -2552,7 +2584,7 @@ console.log(basicDetailsFormValues.intentAppId)
                     {/* Date of Birth Field */}
                     <Grid item xs={12} sm>
                         <InputLabel shrink={false} htmlFor={"dob"}>
-                            <Typography variant='body1' sx={{ fontWeight: 'bold' }}>Date Of Birth<span className="req-asterisk">*</span></Typography>
+                            <Typography variant='body1' sx={{ fontWeight: 'bold' }}>Date of Birth</Typography>
                         </InputLabel>
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DatePicker
@@ -2580,7 +2612,7 @@ console.log(basicDetailsFormValues.intentAppId)
                     {/* Gender Field */}
                     <Grid item xs={12} sm>
                         <InputLabel shrink={false} htmlFor={"gender"}>
-                            <Typography variant='body1' sx={{ fontWeight: 'bold' }}>Gender<span className="req-asterisk">*</span></Typography>
+                            <Typography variant='body1' sx={{ fontWeight: 'bold' }}>Gender</Typography>
                         </InputLabel>
                         <FormControl variant="outlined" size="small" sx={{ width: '100%', mt: 1 }}>
                             <Select
@@ -2610,7 +2642,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid container spacing={2} sx={{ mt: 2 }}>
                 <Grid item xs={12}>
-                    <Typography variant="h7" sx={{ mb: 1, fontWeight: 'bold' }}>Father's Name<span className="req-asterisk">*</span></Typography>
+                    <Typography variant="h7" sx={{ mb: 1, fontWeight: 'bold' }}>Father's Name</Typography>
                 </Grid>
                 <Grid item xs={12} sm>
 
@@ -2706,7 +2738,7 @@ console.log(basicDetailsFormValues.intentAppId)
                 </Grid>
                 <Grid item xs={12} sm={6} sx={{ mt: 2, ml: -2 }}>
       <InputLabel shrink={false} htmlFor={"nationality"}>
-        <Typography variant='body1' sx={{ fontWeight: 'bold' }}>Nationality<span className="req-asterisk">*</span></Typography>
+        <Typography variant='body1' sx={{ fontWeight: 'bold' }}>Nationality</Typography>
       </InputLabel>
 
       <FormControl sx={{ mt: 1, width: '100%' }}>

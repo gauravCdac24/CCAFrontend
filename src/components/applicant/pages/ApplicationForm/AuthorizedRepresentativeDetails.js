@@ -256,7 +256,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
 </Grid>
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>a. Full Name</Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>Full Name</Typography>
                 </Grid>
             </Grid>
 
@@ -345,7 +345,7 @@ console.log("commication=====>"+JSON.stringify(communicationAddressFormValues))
             </Grid>
             <Grid container sx={{ mt: 1, mb: 1 }}>
                 <Grid item>
-                    <Typography variant='h6' sx={{ mt: 1 }}>b. Address</Typography>
+                    <Typography variant='h6' sx={{ mt: 1 }}>Address</Typography>
                 </Grid>
             </Grid>
 

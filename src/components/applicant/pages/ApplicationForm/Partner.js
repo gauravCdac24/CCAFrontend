@@ -2755,7 +2755,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     </Grid>
                     <Grid container sx={{ mt: 1, mb: 1 }}>
                         <Grid item>
-                            <Typography variant='h6' sx={{ mt: 1 }}>a. Full Name</Typography>
+                            <Typography variant='h6' sx={{ mt: 1 }}>Full Name</Typography>
                         </Grid>
                     </Grid>
 
@@ -2857,7 +2857,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                     </Grid>
                     <Grid container sx={{ mt: 1, mb: 1 }}>
                         <Grid item>
-                            <Typography variant='h6' sx={{ mt: 1 }}>b. Address</Typography>
+                            <Typography variant='h6' sx={{ mt: 1 }}>Address</Typography>
                         </Grid>
                     </Grid>
 
@@ -3333,7 +3333,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
 
 <Grid container sx={{ mt: 1, mb: 1 }}>
     <Grid item>
-        <Typography variant='h6' sx={{ mt: 1 }}>C. Id Card Details</Typography>
+        <Typography variant='h6' sx={{ mt: 1 }}>ID Card Details</Typography>
     </Grid>
     <Grid item sx={{ mt: 1, mb: 1, ml: 2 }}>
         {formErrors.partnerDetails && formErrors.partnerDetails[index] && formErrors.partnerDetails[index].general && (

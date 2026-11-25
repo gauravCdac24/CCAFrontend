@@ -186,40 +186,51 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
                     const voterDoc = applicationDocument.find(doc => doc.documentTitle === 'idCardDocument') || {};
                     const panDoc = applicationDocument.find(doc => doc.documentTitle === 'panCardDocument') || {};
                     const capitalDoc = applicationDocument.find(doc => doc.documentTitle === 'capitalDocument') || {};
-                    const hasPassport = Boolean(
+                    // Prefer saved field values over leftover documents from a previous ID type
+                    const hasPassportData = Boolean(
                         indivAdditionalDetails.passportNo
                         || indivAdditionalDetails.passportIssuingAuthority
                         || indivAdditionalDetails.passportExpiryDate
-                        || passportDoc.appDocId
-                        || passportDoc.fileName
                     );
-                    const hasVoter = Boolean(indivAdditionalDetails.voterId || voterDoc.appDocId || voterDoc.fileName);
-                    const hasPan = Boolean(indivAdditionalDetails.pan || panDoc.appDocId || panDoc.fileName);
-                    const idCardType = hasPassport ? 'passport' : hasVoter ? 'voter' : hasPan ? 'pan' : '';
+                    const hasVoterData = Boolean(indivAdditionalDetails.voterId);
+                    const hasPanData = Boolean(indivAdditionalDetails.pan);
+                    const idCardType = hasPassportData
+                        ? 'passport'
+                        : hasVoterData
+                            ? 'voter'
+                            : hasPanData
+                                ? 'pan'
+                                : (passportDoc.appDocId || passportDoc.fileName)
+                                    ? 'passport'
+                                    : (voterDoc.appDocId || voterDoc.fileName)
+                                        ? 'voter'
+                                        : (panDoc.appDocId || panDoc.fileName)
+                                            ? 'pan'
+                                            : '';
     
                     // Set the form values
                     setBasicDetailsFormValues({
                         idCardType,
-                        passportDetails: {
+                        passportDetails: idCardType === 'passport' ? {
                             passportName: 'Passport',
                             passportNo: indivAdditionalDetails.passportNo || '',
                             passportIssuingAuthority: indivAdditionalDetails.passportIssuingAuthority || '',
                             passportExpiryDate: indivAdditionalDetails.passportExpiryDate || null,
-                            file1: passportDoc.fileName || '', // Set file name for passport
-                            appDocId:passportDoc.appDocId || '',
-                        },
-                        CardDetails: {
+                            file1: passportDoc.fileName || '',
+                            appDocId: passportDoc.appDocId || '',
+                        } : { ...emptyPassportDetails },
+                        CardDetails: idCardType === 'voter' ? {
                             voterCardName: 'VoterCard',
                             voterIdNo: indivAdditionalDetails.voterId || '',
                             file2: voterDoc.fileName || '',
-                            appDocId:voterDoc.appDocId || '',
-                        },
-                        PanCardDetails: {
+                            appDocId: voterDoc.appDocId || '',
+                        } : { ...emptyVoterDetails },
+                        PanCardDetails: idCardType === 'pan' ? {
                             panCardName: 'PanCard',
                             incomeTaxPanNo: indivAdditionalDetails.pan || '',
                             file3: panDoc.fileName || '',
-                            appDocId:panDoc.appDocId || '',
-                        },
+                            appDocId: panDoc.appDocId || '',
+                        } : { ...emptyPanDetails },
                         ProfessionalDetails: {
                             capitalName: 'Capital',
                             capital: indivAdditionalDetails.indivCapital || '',
@@ -236,10 +247,10 @@ const isFieldEnabled = (fieldName) => isReviewFieldEnabled(applicationReviewData
                         indivAdditionalDetailsId:indivAdditionalDetails.indivAdditionalDetailsId || '',
                     });
     
-                    // Set the file name display for passport document
-                    setFileName1(passportDoc.fileName || '');
-                    setFileName2(voterDoc.fileName || '');
-                    setFileName3(panDoc.fileName || '');
+                    // Show only the selected ID card document name
+                    setFileName1(idCardType === 'passport' ? (passportDoc.fileName || '') : '');
+                    setFileName2(idCardType === 'voter' ? (voterDoc.fileName || '') : '');
+                    setFileName3(idCardType === 'pan' ? (panDoc.fileName || '') : '');
                     setFileName4(capitalDoc.fileName || '');
                 })
                 .catch((err) => {
@@ -553,50 +564,26 @@ const handleFileChange4 = (e) => {
 
     const validateForm = (basicDetailsFormValues) => {
         const errors = {};
-        const useIdCardDropdown = Number(appTypeMasterId) !== 4;
-
-        if (useIdCardDropdown) {
-            if (!basicDetailsFormValues.idCardType) {
-                errors.idCardType = errorMessages.idCardType;
-            } else if (basicDetailsFormValues.idCardType === 'passport') {
-                const passportDetails = basicDetailsFormValues.passportDetails;
-                if (!passportDetails.passportNo) errors.passportNo = errorMessages.passportNo;
-                if (!passportDetails.passportIssuingAuthority) errors.passportIssuingAuthority = errorMessages.passportIssuingAuthority;
-                if (!passportDetails.passportExpiryDate || !dayjs(passportDetails.passportExpiryDate).isValid()) {
-                    errors.passportExpiryDate = errorMessages.passportExpiryDate.required;
-                } else if (!dayjs(passportDetails.passportExpiryDate).isAfter(dayjs(), 'day')) {
-                    errors.passportExpiryDate = errorMessages.passportExpiryDate.past;
-                }
-                if (!hasIdDocument(passportDetails.file1, passportDetails.appDocId)) errors.file1 = errorMessages.file1;
-            } else if (basicDetailsFormValues.idCardType === 'voter') {
-                const cardDetails = basicDetailsFormValues.CardDetails;
-                if (!cardDetails.voterIdNo) errors.voterIdNo = errorMessages.voterIdNo;
-                if (!hasIdDocument(cardDetails.file2, cardDetails.appDocId)) errors.file2 = errorMessages.file2;
-            } else if (basicDetailsFormValues.idCardType === 'pan') {
-                const panCardDetails = basicDetailsFormValues.PanCardDetails;
-                if (!panCardDetails.incomeTaxPanNo) errors.incomeTaxPanNo = errorMessages.incomeTaxPanNo;
-                if (!hasIdDocument(panCardDetails.file3, panCardDetails.appDocId)) errors.file3 = errorMessages.file3;
+        if (!basicDetailsFormValues.idCardType) {
+            errors.idCardType = errorMessages.idCardType;
+        } else if (basicDetailsFormValues.idCardType === 'passport') {
+            const passportDetails = basicDetailsFormValues.passportDetails;
+            if (!passportDetails.passportNo) errors.passportNo = errorMessages.passportNo;
+            if (!passportDetails.passportIssuingAuthority) errors.passportIssuingAuthority = errorMessages.passportIssuingAuthority;
+            if (!passportDetails.passportExpiryDate || !dayjs(passportDetails.passportExpiryDate).isValid()) {
+                errors.passportExpiryDate = errorMessages.passportExpiryDate.required;
+            } else if (!dayjs(passportDetails.passportExpiryDate).isAfter(dayjs(), 'day')) {
+                errors.passportExpiryDate = errorMessages.passportExpiryDate.past;
             }
-        } else {
+            if (!hasIdDocument(passportDetails.file1, passportDetails.appDocId)) errors.file1 = errorMessages.file1;
+        } else if (basicDetailsFormValues.idCardType === 'voter') {
             const cardDetails = basicDetailsFormValues.CardDetails;
+            if (!cardDetails.voterIdNo) errors.voterIdNo = errorMessages.voterIdNo;
+            if (!hasIdDocument(cardDetails.file2, cardDetails.appDocId)) errors.file2 = errorMessages.file2;
+        } else if (basicDetailsFormValues.idCardType === 'pan') {
             const panCardDetails = basicDetailsFormValues.PanCardDetails;
-            const professionalDetails = basicDetailsFormValues.ProfessionalDetails;
-            const isCardDetailsEmpty = !cardDetails.appDocId && !cardDetails.voterIdNo && !cardDetails.file2;
-            const isPanCardDetailsEmpty = !panCardDetails.appDocId && !panCardDetails.incomeTaxPanNo && !panCardDetails.file3;
-            const isProfessionalDetailsEmpty = !professionalDetails.appDocId && !professionalDetails.capital && !professionalDetails.file4;
-
-            if (isCardDetailsEmpty && isPanCardDetailsEmpty && isProfessionalDetailsEmpty) {
-                errors.general = errorMessages.atLeastOne;
-            }
-
-            const passportExpiry = basicDetailsFormValues.passportDetails?.passportExpiryDate;
-            if (passportExpiry) {
-                if (!dayjs(passportExpiry).isValid()) {
-                    errors.passportExpiryDate = errorMessages.passportExpiryDate.required;
-                } else if (!dayjs(passportExpiry).isAfter(dayjs(), 'day')) {
-                    errors.passportExpiryDate = errorMessages.passportExpiryDate.past;
-                }
-            }
+            if (!panCardDetails.incomeTaxPanNo) errors.incomeTaxPanNo = errorMessages.incomeTaxPanNo;
+            if (!hasIdDocument(panCardDetails.file3, panCardDetails.appDocId)) errors.file3 = errorMessages.file3;
         }
         
       
@@ -624,8 +611,9 @@ const handleFileChange4 = (e) => {
         // Validate Professional Details
         if (!basicDetailsFormValues.ProfessionalDetails.capital) errors.capital = errorMessages.capital;
     
-        //
-        if (!basicDetailsFormValues.ProfessionalDetails.file4) errors.file4 = errorMessages.file4;
+        if (!hasIdDocument(basicDetailsFormValues.ProfessionalDetails.file4, basicDetailsFormValues.ProfessionalDetails.appDocId)) {
+            errors.file4 = errorMessages.file4;
+        }
     
         return errors;
     };
@@ -662,15 +650,14 @@ const handleFileChange4 = (e) => {
     formData.append('useName', userName);
     formData.append('indivAdditionalDetailsId', basicDetailsFormValues.indivAdditionalDetailsId);
 
-    const useIdCardDropdown = Number(appTypeMasterId) !== 4;
     const selectedIdCard = basicDetailsFormValues.idCardType;
-    const passportDetails = !useIdCardDropdown || selectedIdCard === 'passport'
+    const passportDetails = selectedIdCard === 'passport'
         ? basicDetailsFormValues.passportDetails
         : emptyPassportDetails;
-    const voterDetails = !useIdCardDropdown || selectedIdCard === 'voter'
+    const voterDetails = selectedIdCard === 'voter'
         ? basicDetailsFormValues.CardDetails
         : emptyVoterDetails;
-    const panDetails = !useIdCardDropdown || selectedIdCard === 'pan'
+    const panDetails = selectedIdCard === 'pan'
         ? basicDetailsFormValues.PanCardDetails
         : emptyPanDetails;
 
@@ -708,13 +695,16 @@ const handleFileChange4 = (e) => {
     }
 
     // Append nested professional details
-    formData.append('capitalappDocId', basicDetailsFormValues.ProfessionalDetails.appDocId);
+    formData.append('capitalappDocId', basicDetailsFormValues.ProfessionalDetails.appDocId || '');
     formData.append('capitalName', basicDetailsFormValues.ProfessionalDetails.capitalName);
     formData.append('userName', basicDetailsFormValues.useName);
     formData.append('capital', basicDetailsFormValues.ProfessionalDetails.capital);
-    if (basicDetailsFormValues.ProfessionalDetails.file4) {
-        formData.append('file4', basicDetailsFormValues.ProfessionalDetails.file4);
-        formData.append('fileName4',basicDetailsFormValues.ProfessionalDetails.file4)
+    const capitalFile = basicDetailsFormValues.ProfessionalDetails.file4;
+    if (capitalFile instanceof File) {
+        formData.append('file4', capitalFile);
+        formData.append('fileName4', capitalFile.name);
+    } else if (typeof capitalFile === 'string' && capitalFile.trim()) {
+        formData.append('fileName4', capitalFile);
     }
     console.log(formData)
             // No errors, proceed with form submission
@@ -785,11 +775,11 @@ const handleFileChange4 = (e) => {
             }
         };
 
-    const showIdCardDropdown = Number(appTypeMasterId) !== 4;
+    const showIdCardDropdown = true;
     const selectedIdCard = basicDetailsFormValues.idCardType;
-    const showPassportFields = !showIdCardDropdown || selectedIdCard === 'passport';
-    const showVoterFields = !showIdCardDropdown || selectedIdCard === 'voter';
-    const showPanFields = !showIdCardDropdown || selectedIdCard === 'pan';
+    const showPassportFields = selectedIdCard === 'passport';
+    const showVoterFields = selectedIdCard === 'voter';
+    const showPanFields = selectedIdCard === 'pan';
 
     return (
         <Box component="form" noValidate sx={{ mt: 2, p: 2 }} onSubmit={handleFormSubmit}>
@@ -1275,7 +1265,7 @@ const handleFileChange4 = (e) => {
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={12}>
                     <InputLabel shrink={false} htmlFor={"webPageURL"}>
                         <Typography variant='body1'><b>Web Page URL</b></Typography>
                     </InputLabel>

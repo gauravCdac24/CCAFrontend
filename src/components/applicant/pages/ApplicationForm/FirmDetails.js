@@ -78,6 +78,9 @@ length: 'Block No must be between 3 and 75 characters',
         blank: "Please enter the date of Partenership.",
         format: "Please enter a valid Partenership."
     },
+    naturesOfBusiness: {
+        blank: 'Nature Of Business is required',
+    },
    
 };
 
@@ -337,6 +340,10 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
         } else if  (values.officeName.length < 3 || values.officeName.length > 75) {
              errors.officeName = errorMsg.officeName.length;
          }
+
+        if (!values.naturesOfBusiness || !String(values.naturesOfBusiness).trim()) {
+            errors.naturesOfBusiness = errorMsg.naturesOfBusiness.blank;
+        }
     
         return errors;
     };
@@ -557,7 +564,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                 </Grid>
           
                 <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={6}>
                     <InputLabel shrink={false} htmlFor="officeName">
                         <Typography variant='body1'>Name of Office<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
@@ -785,7 +792,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                 </Grid>
             </Grid>
             <Grid container spacing={2}>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="telephoneNo">
                         <Typography variant='body1'>Telephone No</Typography>
                     </InputLabel>
@@ -807,7 +814,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                     />
                 </Grid>
 
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
                     <InputLabel shrink={false} htmlFor="fax">
                         <Typography variant='body1'>Fax</Typography>
                     </InputLabel>
@@ -829,7 +836,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                         inputProps={{ maxLength: 12 }}
                     />
                 </Grid>
-                <Grid item xs={12} sm>
+                <Grid item xs={12} sm={3}>
     <InputLabel shrink={false} htmlFor="webPageURL">
         <Typography variant='body1'>Web Page URL</Typography>
     </InputLabel>
@@ -858,9 +865,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
         onKeyDown={(e) => validatePattern(e, /^[A-Za-z0-9.-]+$/)} 
     />
 </Grid>
-
-
-                
+       
             </Grid>
             <Grid container spacing={2}>
                 <Grid item xs={12} sm>
@@ -888,7 +893,7 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
 
                 <Grid item xs={12} sm>
                     <InputLabel shrink={false} htmlFor="naturesOfBusiness">
-                        <Typography variant='body1'>Nature Of Business</Typography>
+                        <Typography variant='body1'>Nature Of Business<span className="req-asterisk">*</span></Typography>
                     </InputLabel>
                     <TextField
                         id="naturesOfBusiness"
@@ -901,6 +906,8 @@ console.log("------------------->"+JSON.stringify(applicationTypeData))
                         disabled={!isFieldEnabled("natureOfBusiness")}
                         onChange={handleInputChange}
                         value={communicationAddressFormValues.naturesOfBusiness}
+                        error={!!formErrors.naturesOfBusiness}
+                        helperText={formErrors.naturesOfBusiness || ''}
                         size="small"
                         onKeyDown={(e) => validatePattern(e, /^[A-Za-z ]+$/)}
                         inputProps={{ maxLength: 35 }}
