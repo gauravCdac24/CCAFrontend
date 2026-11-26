@@ -116,7 +116,7 @@ const AddApplicationForm = () => {
                 return [
                     'Personal Details',
                     'Address Details',
-                    'Contact Details',
+                    'Financial Details',
                     'Additional Details',
                     'Location of Facility',
                     'CPS & Additional Document',

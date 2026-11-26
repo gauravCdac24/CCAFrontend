@@ -631,15 +631,6 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
       errors.pin = errorMsg.pin.format;
     }
 
-    const type = typeToValidate || communicationAddressFormValues.locationType;
-    if (
-      (type === "PR" || type === "DR") &&
-      !communicationAddressFormValues.certificationDocument &&
-      !fileName1
-    ) {
-      errors.file1 = errorMsg.file1.blank;
-    }
-
     // Return errors object
     return errors;
   };
@@ -1227,8 +1218,7 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
       entry.city &&
       entry.pin &&
       entry.companyName &&
-      entry.certificationLevel &&
-      (entry.certificationDocument || entry.certificateName)
+      entry.certificationLevel
     );
   };
 
@@ -1474,14 +1464,14 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <InputLabel shrink={false} htmlFor="village">
-                <Typography variant="body1">Name Of Company<span className="req-asterisk">*</span></Typography>
+                <Typography variant="body1">Name of Company<span className="req-asterisk">*</span></Typography>
               </InputLabel>
               <TextField
                 id="companyName"
                 margin="dense"
                 required
                 fullWidth
-                placeholder="Name Of Company"
+                placeholder="Name of Company"
                 name="companyName"
                 variant="outlined"
                 onChange={handleInputChange}
@@ -1765,9 +1755,6 @@ const [communicationAddress, setCommunicationAddress] = useState(["residential",
                 <Typography variant="body1">
                   Upload Certificate Document (Only PDF and Max allowed size 5
                   MB)
-                  {(locationType === "PR" || locationType === "DR") && (
-                    <span className="req-asterisk">*</span>
-                  )}
                 </Typography>
               </InputLabel>
 

@@ -68,7 +68,18 @@ const isSameCertFamily = (a, b) => {
 };
 
 const getAuditorDisplayName = (auditor) =>
-    `${auditor?.firstName || ''} ${auditor?.lastName || ''}`.trim();
+    `${auditor?.firstName || ''} ${auditor?.middleName || ''} ${auditor?.lastName || ''}`
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const getActiveAuditors = (auditors) => {
+    const list = Array.isArray(auditors) ? auditors : [];
+    const active = list.filter(
+        (auditor) => !auditor?.status || String(auditor.status).toLowerCase() === 'active'
+    );
+    // If all were marked Inactive by a bad update, still show them in Select Auditor
+    return active.length > 0 ? active : list;
+};
 
 const getAuditorCertProfile = (auditor) => auditor?.certificateType || '';
 
@@ -236,7 +247,7 @@ const AuditorDetails = (() => {
 
     const getAvailableAuditorsForRow = (rowIndex) => {
         const rows = audiAgencyFormValues.auditorDesscription || [];
-        const allAuditors = audiAgencyFormValues.auditors || [];
+        const allAuditors = getActiveAuditors(audiAgencyFormValues.auditors);
         const currentRow = rows[rowIndex] || {};
         const currentName = (currentRow.auditorName || '').trim();
 
@@ -252,7 +263,7 @@ const AuditorDetails = (() => {
             .map((row, i) => (i !== rowIndex ? row.certificateType : null))
             .filter(Boolean);
 
-        return allAuditors.filter((auditor) => {
+        const filtered = allAuditors.filter((auditor) => {
             const name = getAuditorDisplayName(auditor);
             if (!name) return false;
 
@@ -263,6 +274,11 @@ const AuditorDetails = (() => {
             if (usedAuditorNames.has(name)) return false;
 
             const profile = getAuditorCertProfile(auditor);
+
+            // No cert profile on master → allow for any selected certificate
+            if (!profile) {
+                return true;
+            }
 
             // Rules 1, 2, 4: hide auditors of a cert family already used in another row.
             // Both-profile auditors remain eligible for the other certification.
@@ -280,6 +296,18 @@ const AuditorDetails = (() => {
 
             return true;
         });
+
+        // Never leave Select Auditor empty when master auditors exist
+        if (filtered.length === 0 && allAuditors.length > 0) {
+            return allAuditors.filter((auditor) => {
+                const name = getAuditorDisplayName(auditor);
+                if (!name) return false;
+                if (currentName && name === currentName) return true;
+                return !usedAuditorNames.has(name);
+            });
+        }
+
+        return filtered;
     };
 
     const getAvailableCertificateTypesForRow = (rowIndex) => {
@@ -431,57 +459,167 @@ const AuditorDetails = (() => {
         try {
             setLoading(true);
             const response = await AuditAgency.getAllAuditAgencyList();
-            console.log('Audit Agencies:', response.data);
-    
-            setAllAuditAgencyList(response.data);
+            const list = Array.isArray(response?.data) ? response.data : [];
+            console.log('Audit Agencies:', list);
+            setAllAuditAgencyList(list);
+            return list;
         } catch (error) {
             console.error('Error fetching audit agencies:', error);
             showAlert({
                 messageTitle: 'Error',
                 messageContent: 'Failed to fetch audit agencies.',
             });
+            return [];
         } finally {
             setLoading(false);
         }
     };
 
-    const getAllAuditAgencySelection = async () => {
+    const loadAuditorsByAgencyId = async (agencyId) => {
+        if (agencyId == null || agencyId === '') {
+            return [];
+        }
+        try {
+            const response = await AuditAgency.getAuditorsByAgencyId(agencyId);
+            const list = getActiveAuditors(response?.data);
+            if (list.length > 0) {
+                return list;
+            }
+        } catch (error) {
+            console.warn('getAuditorsByAgencyId failed:', agencyId, error);
+        }
+        try {
+            const detail = await AuditAgency.getAuditAgencyById(agencyId);
+            return getActiveAuditors(detail?.data?.auditors);
+        } catch (error) {
+            console.warn('getAuditAgencyById failed:', agencyId, error);
+            return [];
+        }
+    };
+
+    const resolveAuditorsForAgency = async (selectedAgency, agencyList = [], selectionList = []) => {
+        const candidateIds = [];
+        const pushId = (id) => {
+            if (id == null || id === '') return;
+            const key = String(id);
+            if (!candidateIds.includes(key)) {
+                candidateIds.push(key);
+            }
+        };
+
+        pushId(selectedAgency?.auditAgencyId);
+        (selectionList || []).forEach((item) => pushId(item?.auditAgencyId));
+        (agencyList || []).forEach((agency) => {
+            if (getActiveAuditors(agency?.auditors).length > 0) {
+                pushId(agency?.auditAgencyId);
+            }
+        });
+
+        for (const agencyId of candidateIds) {
+            const auditors = await loadAuditorsByAgencyId(agencyId);
+            if (auditors.length > 0) {
+                return auditors;
+            }
+        }
+
+        const fromSelected = getActiveAuditors(selectedAgency?.auditors);
+        if (fromSelected.length > 0) {
+            return fromSelected;
+        }
+
+        // Last resort: any auditors embedded in the agency master list
+        for (const agency of agencyList || []) {
+            const embedded = getActiveAuditors(agency?.auditors);
+            if (embedded.length > 0) {
+                return embedded;
+            }
+        }
+
+        return [];
+    };
+
+    const findSelectedAgency = (agencyList, selectionList) => {
+        const sourceList = Array.isArray(agencyList) ? agencyList : [];
+        const selections = Array.isArray(selectionList) ? selectionList : [];
+
+        // Prefer selection row for this applicant
+        const forApplicant = selections.find((item) => {
+            const applicant = item?.aplicantUserName || item?.applicantUserName;
+            return (
+                applicant &&
+                ApplicantUserName &&
+                String(applicant).trim().toLowerCase() ===
+                    String(ApplicantUserName).trim().toLowerCase()
+            );
+        });
+
+        if (forApplicant?.auditAgencyId != null) {
+            const byId = sourceList.find(
+                (agency) => String(agency.auditAgencyId) === String(forApplicant.auditAgencyId)
+            );
+            if (byId) return byId;
+        }
+
+        const selectedAgencyIds = new Set(
+            selections.map(({ auditAgencyId }) => String(auditAgencyId)).filter(Boolean)
+        );
+        const bySelectionId = sourceList.find((agency) =>
+            selectedAgencyIds.has(String(agency.auditAgencyId))
+        );
+        if (bySelectionId) return bySelectionId;
+
+        // Fallback: match agency name CDAC / logged-in username
+        if (loggedInUsername) {
+            const byName = sourceList.find((agency) => {
+                const name = String(agency?.auditAgencyName || '').trim().toLowerCase();
+                const user = String(loggedInUsername).trim().toLowerCase();
+                return name && (name === user || name.includes(user) || user.includes(name));
+            });
+            if (byName) return byName;
+        }
+
+        return (
+            sourceList.find((agency) => getActiveAuditors(agency?.auditors).length > 0) ||
+            sourceList[0] ||
+            null
+        );
+    };
+
+    const getAllAuditAgencySelection = async (agencyList = []) => {
         try {
             setLoading(true);
-            // Use the logged-in username to filter audit selections for this specific audit agency
-            const response = await AuditService.getAllAuditSelectionByUsername(loggedInUsername);
-            console.log('Audit Agencies Selection:', response.data);
-    
-            const auditAgencySelectionList = response.data || [];
+            let auditAgencySelectionList = [];
+            try {
+                const response = await AuditService.getAllAuditSelectionByUsername(loggedInUsername);
+                console.log('Audit Agencies Selection:', response.data);
+                auditAgencySelectionList = Array.isArray(response?.data) ? response.data : [];
+            } catch (selectionError) {
+                console.warn('Selection by username failed, continuing with agency list only.', selectionError);
+            }
             setAllAuditAgencySelectionList(auditAgencySelectionList);
-    
-            // Ensure allAuditAgencyList is loaded before finding selected agency
-            setAllAuditAgencyList((prevAgencyList) => {
-                const selectedAgencyIds = new Set(
-                    auditAgencySelectionList.map(({ auditAgencyId }) => String(auditAgencyId))
-                );
-    
-                // Find selected agency
-                const selectedAgency = prevAgencyList.find(agency =>
-                    selectedAgencyIds.has(String(agency.auditAgencyId))
-                );
-    
-                console.log('Selected Agency:', selectedAgency);
-    
-                setAudiAgencyFormValues({
-                    auditAgencyName: selectedAgency?.auditAgencyName || 'N/A',
-                    name: selectedAgency?.auditAgencyName || 'N/A',
-                    mobileNo: selectedAgency?.phoneRecord || [],
-                    emailId: selectedAgency?.emailId || [],
-                    auditors: selectedAgency?.auditors || [],
-                    undertakingFile: null,
-                    auditorDesscription: [{ ...EMPTY_AUDITOR_ROW }, { ...EMPTY_AUDITOR_ROW }],
-                    auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }],
-                    applicantUserName: ApplicantUserName || '',
-                    intentAppId: '',
-                });
-    
-                return prevAgencyList; // Keep state unchanged
+
+            const sourceList = agencyList.length > 0 ? agencyList : allAuditAgencyList;
+            const selectedAgency = findSelectedAgency(sourceList, auditAgencySelectionList);
+
+            console.log('Selected Agency:', selectedAgency);
+            const auditors = await resolveAuditorsForAgency(
+                selectedAgency,
+                sourceList,
+                auditAgencySelectionList
+            );
+            console.log('Auditors for Select Auditor:', auditors);
+
+            setAudiAgencyFormValues({
+                auditAgencyName: selectedAgency?.auditAgencyName || 'N/A',
+                name: selectedAgency?.auditAgencyName || 'N/A',
+                mobileNo: selectedAgency?.phoneRecord || [],
+                emailId: selectedAgency?.emailId || [],
+                auditors,
+                undertakingFile: null,
+                auditorDesscription: [{ ...EMPTY_AUDITOR_ROW }, { ...EMPTY_AUDITOR_ROW }],
+                auditScope: [{ auditTitle: '', description: '', startDate: '', endDate: '' }],
+                applicantUserName: ApplicantUserName || '',
+                intentAppId: '',
             });
         } catch (error) {
             console.error('Error fetching audit agency selection:', error);
@@ -511,9 +649,15 @@ const AuditorDetails = (() => {
     };
 
     useEffect(() => {
+        if (!loggedInUsername) {
+            return;
+        }
         loadCertificateTypes();
-        getAllAuditAgency().then(() => getAllAuditAgencySelection());
-    }, []);
+        (async () => {
+            const agencyList = await getAllAuditAgency();
+            await getAllAuditAgencySelection(agencyList);
+        })();
+    }, [loggedInUsername, ApplicantUserName]);
 
     console.log('Audit Agencies cch:', audiAgencyFormValues);
 

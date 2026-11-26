@@ -583,9 +583,9 @@ const Dashboard = () =>{
     ]);
 
     const [infoList, setInfoList] = useState({
-      totalASP: 20,
-      totalDSCIssued: 97,
-      totalEsignIssued: 185,
+      totalASP: 0,
+      totalDSCIssued: 0,
+      totalEsignIssued: 0,
   });
 
   const [dscEsignIssued, setDscEsignIssued] = useState({
@@ -595,11 +595,13 @@ const Dashboard = () =>{
     [
     {
         name: 'DSC Issued',
-        data: [20, 5, 10, 0, 30, 0, 17, 0, 15, 0, 0, 0]
+        //data: [20, 5, 10, 0, 30, 0, 17, 0, 15, 0, 0, 0]
+        data: Array(12).fill(0)
     },
     {
         name: 'eSign Issued',
-        data: [3, 2, 10, 60, 0, 0, 40, 0, 70, 0, 0, 0]
+        //data: [3, 2, 10, 60, 0, 0, 40, 0, 70, 0, 0, 0]
+        data: Array(12).fill(0)
     },
     
 ]})

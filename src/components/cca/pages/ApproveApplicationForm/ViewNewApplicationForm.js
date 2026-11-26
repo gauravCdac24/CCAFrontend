@@ -681,7 +681,7 @@ const ViewNewApplicationForm = () => {
           params.row.applicationCurrentStatus.toLowerCase() !== "pending"
         ) {
           actionButtons.push(
-            <Tooltip title="View the Renewal Application" key="view-renewal">
+            <Tooltip title="View" key="view-renewal">
               <GridActionsCellItem
                 icon={<VisibilityIcon color="success" />}
                 label="View"

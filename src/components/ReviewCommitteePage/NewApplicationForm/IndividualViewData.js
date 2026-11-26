@@ -529,7 +529,28 @@ const handleDateChange = (name, date) => {
             ...prevValues,
             [name]: formattedDate,
         }));
+        if (name === 'reviewDate') {
+            setFormErrors((prevErrors) => ({
+                ...prevErrors,
+                reviewDate: '',
+            }));
+        }
     };
+
+  const validateReviewRequiredFields = () => {
+    const errors = {
+      reviewDate: '',
+      file1: '',
+    };
+    if (!checkedRows.reviewDate || !dayjs(checkedRows.reviewDate).isValid()) {
+      errors.reviewDate = 'Review Date is required.';
+    }
+    if (!(checkedRows.file1 instanceof File) && !fileName1) {
+      errors.file1 = 'Committee MoM Document is required.';
+    }
+    setFormErrors((prev) => ({ ...prev, ...errors }));
+    return !errors.reviewDate && !errors.file1;
+  };
 
 
 
@@ -746,6 +767,9 @@ const handleDownloads = async (appDocId, documentTitle) => {
 
   const handleRejectedSubmit = (e) => {
     e.preventDefault();
+    if (!validateReviewRequiredFields()) {
+      return;
+    }
     showAlert({
       messageTitle: "Confirm",
       messageContent: "Are you sure you want to submit?",
@@ -797,7 +821,10 @@ const handleDownloads = async (appDocId, documentTitle) => {
   
   const handleApprovedSubmit = (e) => {
     e.preventDefault();
-  
+    if (!validateReviewRequiredFields()) {
+      return;
+    }
+
     showAlert({
       messageTitle: "Confirm",
       messageContent: "Are you sure you want to submit?",
@@ -2374,7 +2401,18 @@ const handleDownloads = async (appDocId, documentTitle) => {
             <Grid item xs={12}>
               <Box>
                 <Typography variant="body1">
-                  { "1. Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both."}
+                  Whoever makes any misrepresentation to, or suppresses any material fact from the Controller or the Certifying Authority for obtaining any licence or Electronic Signature Certificate, as the case may be, shall be punished with imprisonment for a term which may extend to two years, or with fine which may extend to one lakh rupees, or with both.
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Box>
+                <Typography variant="h6" style={{ marginTop: '10px' }}>
+                  <b>Note:</b> <br /> 1. Application will proceed once the payment will be verified by CCA. <br />
+                  2. Online Submitted application must be submitted physical to CCA office.
                 </Typography>
               </Box>
             </Grid>
@@ -2404,7 +2442,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
                     {/* Date of Birth Field */}
                     <Grid item xs={12} sm>
                         <InputLabel shrink={false} htmlFor={"reviewDate"}>
-                            <Typography variant='body1'>Review Date</Typography>
+                            <Typography variant='body1'>Review Date<span className="req-asterisk">*</span></Typography>
                         </InputLabel>
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DatePicker
@@ -2413,14 +2451,18 @@ const handleDownloads = async (appDocId, documentTitle) => {
                                 name="reviewDate"
                                 maxDate={dayjs()}
                                 onChange={(date) => handleDateChange('reviewDate', date)}
-                                value={dayjs(checkedRows.reviewDate)}
+                                value={
+                                  checkedRows.reviewDate && dayjs(checkedRows.reviewDate).isValid()
+                                    ? dayjs(checkedRows.reviewDate)
+                                    : null
+                                }
                                 slotProps={{
                                     textField: {
                                         size: 'small',
                                         fullWidth: true,
                                         placeholder: "Review Date ",
-                                        //  error: !!formErrors.dob,
-                                        //     helperText: formErrors.dob || ''
+                                        error: !!formErrors.reviewDate,
+                                        helperText: formErrors.reviewDate || '',
                                     }
                                 }}
                                 sx={{ mt: 1 }}
@@ -2429,7 +2471,7 @@ const handleDownloads = async (appDocId, documentTitle) => {
                     </Grid>
       <Grid item xs={12} sm>
         <InputLabel shrink={false} htmlFor={"pdffile"}>
-            <Typography variant='body1'>Upload Committee MoM Document</Typography>
+            <Typography variant='body1'>Upload Committee MoM Document<span className="req-asterisk">*</span></Typography>
         </InputLabel>
 
         <Grid container direction="row" sx={{ border: '1px solid #cfcfcf', borderRadius: '5px', mt: 1 }}>

@@ -276,7 +276,7 @@ console.log(requiredDoc)
    {/* Date of Payment */}
    <Box display="flex" mb={1}>
     <Typography variant="body1" sx={{ minWidth: 200 }}>
-      <b>Date Of Payment*:</b>
+      <b>Date of Payment*:</b>
     </Typography>
     <Typography variant="body1">
       {dateFormatter(applicantPaymentProofList.dateOfPayment)}

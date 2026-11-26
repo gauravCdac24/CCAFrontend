@@ -60,9 +60,9 @@ const getFormStepName = (appTypeMasterId, formKey) => {
         return 'Bank Details';
     }
     // Individual: this step (passport/ISP/capital) uses Contact Details messaging
-    if (formKey === 'financialDetails' && resolveAppType(appTypeMasterId) === 1) {
-        return 'Contact Details';
-    }
+    //if (formKey === 'financialDetails' && resolveAppType(appTypeMasterId) === 1) {
+      //  return 'Contact Details';
+   // }
     return FORM_STEP_NAMES[formKey] || getFormStepLabel(appTypeMasterId, formKey);
 };
 
@@ -87,7 +87,7 @@ export const getStepErrorAlert = (appTypeMasterId, formKey, err) => {
 };
 
 export const getFinalSubmissionSuccessAlert = () => ({
-    messageTitle: 'Application Submitted Successfully',
+    messageTitle: 'Application Submitted',
     messageContent: 'Your application form has been submitted successfully.',
 });
 

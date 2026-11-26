@@ -1865,6 +1865,7 @@ const errorMsg = {
         format: 'Please enter a valid Email Address',
     },
     passportNo: 'Please enter the Passport Number.',
+    passportNoLength: 'Passport Number must be at most 9 characters.',
     passportIssuingAuthority: 'Please enter the Passport Issuing Authority.',
     passportExpiryDate: {
         required: 'Please enter the Passport Expiry Date.',
@@ -2061,6 +2062,8 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
             } else if (partner.idCardType === 'passport') {
                 if (!partner.passposrtNo) {
                     errors.partnerDetails[index].passposrtNo = errorMsg.passportNo;
+                } else if (String(partner.passposrtNo).length > 9) {
+                    errors.partnerDetails[index].passposrtNo = errorMsg.passportNoLength;
                 }
                 if (!partner.passportIssuingAthority) {
                     errors.partnerDetails[index].passportIssuingAthority = errorMsg.passportIssuingAuthority;
@@ -3477,7 +3480,7 @@ const Partner = ({ handleNext, handleFormDataChange, handleBack }) => {
                                         onChange={(event) => handleInputChange(event, index)}
                                         error={!!(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passposrtNo)}
                                         helperText={(formErrors.partnerDetails && formErrors.partnerDetails[index]?.passposrtNo) || ''}
-                                        inputProps={{ maxLength: 30 }}
+                                        inputProps={{ maxLength: 9 }}
                                         onKeyDown={(e) => ValidatePattern(e, /^[0-9A-Za-z]+$/)}
                                         margin="dense"
                                     />

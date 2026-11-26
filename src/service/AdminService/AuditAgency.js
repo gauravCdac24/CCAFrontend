@@ -13,6 +13,7 @@ const ADMIN_SERVICE = "/admin-service";
 	const DELETE_AUDIT_AGENCY_BY_ID = "/delete-audit-agency-by-id";
 	const CHANGE_AUDIT_AGENCY_STATUS = "/status-change";
 	const GET_AUDIT_AGENCY_BY_ID = "/get-audit-agency-by-id";
+	const GET_AUDITORS_BY_AGENCY_ID = "/get-auditors-by-agency-id";
     const DOWNLOAD_FILE="/download-file";
     const VERIFY_NEW_AUDIT_AGENCY="/create-new-user-by-audit-agency";
 	const USER_STATUS_CHANGE="/change-audit-agency-user-status-by-id";
@@ -90,6 +91,14 @@ const getAuditAgencyById = (id) =>{
 	})
 }
 
+const getAuditorsByAgencyId = (id) =>{
+	return API.get(ADMIN_SERVICE+GET_AUDITORS_BY_AGENCY_ID,{
+		params:{
+			id:encrypt(String(id))
+		}
+	})
+}
+
 const deleteAuditAgency = (id) =>{
 	return API.get(ADMIN_SERVICE+DELETE_AUDIT_AGENCY_BY_ID,{
 		params:{
@@ -107,6 +116,7 @@ export default{
 				updateAuditAgency,
 				deleteAuditAgency,
 				getAuditAgencyById,
+				getAuditorsByAgencyId,
 				downloadFile,
 				createNewUser,
 				changeUserStatus,

@@ -431,7 +431,7 @@ const IntentRegistration = () => {
                 IntentService.addNewIntent(intentFormValues)
                     .then((response) => {
                         showAlert({
-                            messageTitle: 'Registration Successful',
+                            messageTitle: 'Registration',
                             messageContent: response.data,
                             confirmText: 'Ok',
                             onConfirm: () => { navigate("/login") },

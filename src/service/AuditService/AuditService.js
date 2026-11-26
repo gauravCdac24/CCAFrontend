@@ -499,45 +499,79 @@ const downloadFinalReviewReport = (userName) => {
 };
 
 /**
- * Build Final eSigned Report for Review Committee:
- * auditor-signed NC report + applicant eSigned acceptance letter (when present).
+ * Build Final eSigned Report for Review Committee.
+ *
+ * After acceptance eSign with needsFullReport, the applicant signs the
+ * auditor-signed PDF itself — that acceptance signedDocId IS the final package.
+ * Do not call /merge-pdfs (endpoint does not exist → 404).
  */
 const getFinalReviewReportBlob = async (applicantUserName) => {
-	const metaRes = await getEsignedDocumentId(applicantUserName);
-	const signedDocId = metaRes?.data?.signedDocId;
-	const acceptanceSignedDocId = metaRes?.data?.acceptanceSignedDocId;
-	if (!signedDocId) {
-		throw new Error("No signed audit report found.");
-	}
-
 	const EsignService = (await import("../EsignService/EsignService")).default;
-	const reportBlob = await EsignService.viewDigitallySignedDocument(signedDocId);
-	const parts = [
-		new File([reportBlob], "AuditReport.pdf", { type: "application/pdf" }),
-	];
 
-	if (acceptanceSignedDocId) {
-		try {
-			const acceptanceBlob = await EsignService.viewDigitallySignedDocument(
-				acceptanceSignedDocId
-			);
-			parts.push(
-				new File([acceptanceBlob], "AcceptanceLetter.pdf", {
-					type: "application/pdf",
-				})
-			);
-		} catch (err) {
-			console.warn("Acceptance letter signed PDF unavailable:", err);
+	const loadBySignedDocId = async (signedDocId) => {
+		if (!signedDocId) {
+			return null;
 		}
+		try {
+			return await EsignService.viewDigitallySignedDocument(signedDocId);
+		} catch (err) {
+			console.warn("Signed PDF unavailable for id:", signedDocId, err);
+			return null;
+		}
+	};
+
+	let auditorSignedDocId = null;
+	let acceptanceSignedDocId = null;
+	try {
+		const metaRes = await getEsignedDocumentId(applicantUserName);
+		const data = metaRes?.data || {};
+		const signerKey = String(data.signerKey || "").toUpperCase();
+		acceptanceSignedDocId = data.acceptanceSignedDocId || null;
+		auditorSignedDocId =
+			data.auditorSignedDocId ||
+			(signerKey !== "ACCEPTANCE" && signerKey !== "ACCEPTANCE_REPORT"
+				? data.signedDocId
+				: null) ||
+			null;
+	} catch (metaErr) {
+		console.warn("getEsignedDocumentId failed, will try proxy download:", metaErr);
 	}
 
-	if (parts.length === 1) {
-		return parts[0];
+	// Prefer acceptance-signed PDF (full auditor report + applicant signature).
+	const acceptanceBlob = await loadBySignedDocId(acceptanceSignedDocId);
+	if (acceptanceBlob) {
+		return acceptanceBlob;
 	}
-	const mergedRes = await mergePdfs(parts);
-	return new Blob([mergedRes.data], {
-		type: mergedRes.headers?.["content-type"] || "application/pdf",
-	});
+
+	const auditorBlob = await loadBySignedDocId(auditorSignedDocId);
+	if (auditorBlob) {
+		return auditorBlob;
+	}
+
+	// Last resort: audit-service proxy to esign-service
+	try {
+		const fallback = await downloadAuditorSignedReport(applicantUserName);
+		const contentType = fallback.headers?.["content-type"] || "application/pdf";
+		if (
+			String(contentType).includes("application/json") ||
+			String(contentType).includes("text/")
+		) {
+			throw new Error("Signed audit report is not available.");
+		}
+		return new Blob([fallback.data], {
+			type: String(contentType).includes("pdf") ? contentType : "application/pdf",
+		});
+	} catch (err) {
+		const status = err?.response?.status;
+		if (status === 404) {
+			throw new Error(
+				"Signed audit report is not available. Auditors may not have completed eSign, or the signed file could not be retrieved."
+			);
+		}
+		throw new Error(
+			err?.message || "Unable to open the Final eSigned Report."
+		);
+	}
 };
 
 export default{
